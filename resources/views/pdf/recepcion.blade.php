@@ -13,27 +13,28 @@
         .footer-legal { font-size: 8.5px; text-align: justify; margin-top: 15px; border: 1px solid #000; padding: 10px; }
         .signature-section { margin-top: 30px; }
         .check-box { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; margin-right: 5px; }
+        .bg-gray { background: #f0f0f0; }
     </style>
 </head>
 <body>
     <table class="table no-border">
         <tr>
             <td class="no-border" style="width: 60%;">
-                <img src="{{ public_path('images/logo-taller.png') }}" class="logo"><br>
+               <img src="{{ public_path('images/Taller.png') }}" class="logo">
                 <span class="header-title">{{ $settings->company_name }}</span><br>
                 {{ $settings->address }}<br>
                 Phone: {{ $settings->phone }}<br>
                 <strong>License: #{{ $settings->license_number }}</strong>
             </td>
             <td class="no-border" style="text-align: right; vertical-align: top;">
-                <span style="font-size: 14px;">DATE: __________________</span><br><br>
-                <span class="text-red" style="font-size: 20px;">NO. 0197</span>
+                <span style="font-size: 14px;">DATE: {{ now()->format('m/d/Y') }}</span><br><br>
+                <span class="text-red" style="font-size: 20px;">NO. {{ str_pad($client->id, 4, '0', STR_PAD_LEFT) }}</span>
             </td>
         </tr>
     </table>
 
     <table class="table">
-        <tr style="background: #f0f0f0;">
+        <tr class="bg-gray">
             <th colspan="2">CUSTOMER INFORMATION</th>
             <th colspan="2">VEHICLE INFORMATION</th>
         </tr>
@@ -49,11 +50,20 @@
             <td><strong>VIN/PLATE:</strong></td>
             <td>{{ $client->vin }} / {{ $client->plate }}</td>
         </tr>
+        <tr>
+            <td><strong>DATE IN:</strong></td>
+            <td>{{ now()->format('m/d/Y H:i') }}</td>
+            <td><strong>MILES / FUEL:</strong></td>
+            <td>
+                {{ $client->miles ?? 'N/A' }} mi | 
+                <span class="text-red">{{ $client->fuel_level ?? 'N/A' }}</span>
+            </td>
+        </tr>
     </table>
 
     <table class="table">
         <thead>
-            <tr style="background: #f0f0f0;">
+            <tr class="bg-gray">
                 <th style="width: 10%;">QTY</th>
                 <th style="width: 50%;">DESCRIPTION OF SERVICE / PARTS</th>
                 <th style="width: 20%;">LABOR</th>
@@ -64,7 +74,11 @@
             @for($i = 0; $i < 10; $i++)
             <tr>
                 <td style="height: 20px;"></td>
-                <td>{{ $i == 0 ? ($client->technical_symptoms ?? '') : '' }}</td>
+                <td style="vertical-align: middle;">
+                    @if($i == 0)
+                        <strong class="text-red">SYMPTOMS:</strong> {{ $client->technical_symptoms ?? 'No reportado' }}
+                    @endif
+                </td>
                 <td></td>
                 <td></td>
             </tr>

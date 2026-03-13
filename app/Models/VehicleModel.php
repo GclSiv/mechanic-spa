@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class VehicleModel extends Model
 {
     /** @use HasFactory<\Database\Factories\VehicleModelFactory> */
+    protected $fillable = ['brand_id', 'name'];
     public function brand(): BelongsTo {
     return $this->belongsTo(Brand::class);
 }

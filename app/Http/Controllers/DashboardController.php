@@ -2,50 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Client;
-use App\Models\Setting;
-use Illuminate\Http\Request; // <-- Asegúrate de que esta línea esté aquí
+use App\Models\Recepcion; // Usamos el modelo de las entradas
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    // 1. Añadimos (Request $request) para recibir los datos del buscador
-    public function index(Request $request)
-    {
-        $search = $request->input('search');
+    /**
+     * Despliega el Panel Principal con estadísticas y buscador.
+     */
+  public function index(Request $request)
+{
+    $search = $request->input('search');
 
-        // Contamos cuántos clientes/vehículos hay en total (Esto se queda igual)
-        $totalVehicles = Client::count();
-        
-        // Vehículos que entraron HOY (Esto se queda igual)
-        $todayVehicles = Client::whereDate('created_at', Carbon::today())->count();
-
-        // 2. REEMPLAZAMOS la consulta de $recentClients por esta versión con filtro
-        $recentClients = Client::with(['brand', 'vehicleModel'])
-            ->when($search, function($query, $search) {
-                $query->where(function($q) use ($search) {
-                    // Búsqueda en campos directos
-                    $q->where('first_name', 'LIKE', "%$search%")
-                      ->orWhere('plate', 'LIKE', "%$search%")
-                      ->orWhere('vin', 'LIKE', "%$search%");
-                })
-                // Búsqueda en relaciones (Tablas de Marca y Modelo)
-                ->orWhereHas('brand', fn($q) => $q->where('name', 'LIKE', "%$search%"))
-                ->orWhereHas('vehicleModel', fn($q) => $q->where('name', 'LIKE', "%$search%"));
+    // Consultamos la tabla 'clients' porque ahí es donde tienes los datos
+    $recentClients = \App\Models\Client::with(['brand', 'vehicleModel'])
+        ->when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                // Ajustado a los nombres de tu Screenshot 309
+                $q->where('first_name', 'LIKE', "%{$search}%")
+                  ->orWhere('last_name', 'LIKE', "%{$search}%")
+                  ->orWhere('vin', 'LIKE', "%{$search}%")  // En 'clients' se llama 'vin'
+                  ->orWhere('plate', 'LIKE', "%{$search}%"); // Tienes columna 'plate'
             })
-            ->latest()
-            ->take(10) // Te sugiero subirlo a 10 para que la búsqueda sea más útil
-            ->get();
+            // Búsqueda en relaciones
+            ->orWhereHas('brand', fn($q) => $q->where('name', 'LIKE', "%{$search}%"))
+            ->orWhereHas('vehicleModel', fn($q) => $q->where('name', 'LIKE', "%{$search}%"));
+        })
+        ->latest()
+        ->take(10)
+        ->get();
 
-        return Inertia::render('Dashboard', [
-            'stats' => [
-                'total' => $totalVehicles,
-                'today' => $todayVehicles,
-            ],
-            'recentClients' => $recentClients,
-            // 3. PASAMOS el filtro de vuelta a Vue para que el input no se borre al escribir
-            'filters' => $request->only(['search'])
-        ]);
-    }
+    return Inertia::render('Dashboard', [
+        'stats' => [
+            'total' => \App\Models\Client::count(),
+            'today' => \App\Models\Client::whereDate('created_at', today())->count(),
+        ],
+        'recentClients' => $recentClients,
+        'filters' => $request->only(['search'])
+    ]);
+}
 }

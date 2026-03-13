@@ -46,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
 });
+// Ruta para generar el PDF
+Route::get('/recepcion/print/{id}', [App\Http\Controllers\RecepcionController::class, 'print'])->name('recepcion.print');
 });
 
 require __DIR__.'/auth.php';

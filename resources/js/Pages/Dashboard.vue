@@ -126,7 +126,7 @@ watch(search, (value) => {
                                         </td>
                                         <td class="p-4">
                                             <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600">
-                                                {{ client.vin || 'N/A' }}
+                                                {{ client.vin_serial || 'N/A' }}
                                             </span>
                                         </td>
                                         <td class="p-4 text-center text-sm text-gray-500">
