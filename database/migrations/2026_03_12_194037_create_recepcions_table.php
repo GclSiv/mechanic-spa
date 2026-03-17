@@ -12,13 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('recepcions', function (Blueprint $table) {
-            $table->id();
-        $table->string('customer_name');
-        $table->string('vehicle_details');
-        $table->string('vin_serial')->nullable(); 
-        $table->string('fuel_level'); // Guardará: 0, 1/4, 1/2, 3/4, 1
-        $table->text('symptoms');
-        $table->string('status')->default('Ingresado'); // Estado inicial del equipo
+        $table->id();
+        $table->string('first_name'); 
+        $table->string('phone')->nullable(); // Agregado aquí de forma definitiva
+        $table->foreignId('brand_id')->constrained(); 
+        $table->string('vehicle_model_id'); // Guardaremos el nombre del modelo
+        $table->string('fuel_level');
+        $table->json('witnesses')->nullable(); // Para los iconos del tablero
+        $table->json('inventory')->nullable(); // Para los accesorios
+        $table->string('miles')->nullable();
+        $table->string('vin_serial')->nullable();
+        $table->text('symptoms')->nullable(); // Falla reportada
+        $table->string('status')->default('Pendiente');
+        $table->string('address')->nullable()->after('phone');
+        $table->string('rfc', 20)->nullable()->after('address');
+        $table->string('year', 4)->nullable()->after('vehicle_model_id');
+        $table->string('plate', 20)->nullable()->after('year');
         $table->timestamps();
         });
     }

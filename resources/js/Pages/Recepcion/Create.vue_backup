@@ -165,8 +165,8 @@ const submit = () => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <InputLabel for="first_name" value="Nombre Completo *" />
-                            <!--<TextInput id="first_name" type="text" class="mt-1 block w-full"
-                                        v-model="form.first_name" required placeholder="Ej. Juan García López" />-->
+                                    <TextInput id="first_name" type="text" class="mt-1 block w-full"
+                                        v-model="form.first_name" required placeholder="Ej. Juan García López" />
                                     <InputError class="mt-2" :message="form.errors.first_name" />
                                 </div>
 
@@ -288,14 +288,14 @@ const submit = () => {
                                         </div>
                                     </div>
                                     <!-- Input numérico -->
-    <TextInput
-    type="number" 
-    min="0" 
-    max="999999"
-    class="block w-full text-lg font-mono"
-    v-model="form.miles" 
-    placeholder="0" 
-/>
+                                    <div class="flex-1">
+                                        <TextInput
+                                            type="number" min="0" max="999999"
+                                            class="block w-full text-lg font-mono"
+                                            v-model="form.miles"
+                                            placeholder="0" />
+                                        <InputError class="mt-1" :message="form.errors.miles" />
+                                    </div>
                                 </div>
                             </div>
 

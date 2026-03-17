@@ -1,8 +1,9 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 
+// Definimos el modelo para que acepte String y Number
 const model = defineModel({
-    type: String,
+    type: [String, Number], 
     required: true,
 });
 

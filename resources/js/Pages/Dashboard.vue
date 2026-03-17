@@ -134,7 +134,7 @@ watch(search, (value) => {
                                         </td>
                                         <td class="p-4 text-right">
                                             <a 
-    :href="route('recepcion.print', client.id)" 
+    :href="route('recepcion.pdf', client.id)" 
     target="_blank"
     class="bg-gray-100 hover:bg-jk-red hover:text-white px-4 py-1 rounded-full text-xs font-bold transition inline-block text-center"
 >

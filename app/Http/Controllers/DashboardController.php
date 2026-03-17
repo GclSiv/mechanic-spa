@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Recepcion; // Usamos el modelo de las entradas
+use App\Models\Recepcion; // 👈 Ahora este es el jefe
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -12,35 +12,37 @@ class DashboardController extends Controller
     /**
      * Despliega el Panel Principal con estadísticas y buscador.
      */
-  public function index(Request $request)
-{
-    $search = $request->input('search');
+    public function index(Request $request)
+    {
+        $search = $request->input('search');
 
-    // Consultamos la tabla 'clients' porque ahí es donde tienes los datos
-    $recentClients = \App\Models\Client::with(['brand', 'vehicleModel'])
-        ->when($search, function ($query, $search) {
-            $query->where(function ($q) use ($search) {
-                // Ajustado a los nombres de tu Screenshot 309
-                $q->where('first_name', 'LIKE', "%{$search}%")
-                  ->orWhere('last_name', 'LIKE', "%{$search}%")
-                  ->orWhere('vin', 'LIKE', "%{$search}%")  // En 'clients' se llama 'vin'
-                  ->orWhere('plate', 'LIKE', "%{$search}%"); // Tienes columna 'plate'
+        // 1. EL CAMBIO MAESTRO: Consultamos 'Recepcion' en lugar de 'Client'
+        $recentRecepcions = Recepcion::with(['brand', 'vehicleModel'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    // Ajustamos los nombres de las columnas a la tabla recepcions
+                    $q->where('first_name', 'LIKE', "%{$search}%")
+                      ->orWhere('vin_serial', 'LIKE', "%{$search}%") // 👈 En recepcions se llama vin_serial
+                      ->orWhere('plate', 'LIKE', "%{$search}%");
+                })
+                // Búsqueda en relaciones (Marcas y Modelos)
+                ->orWhereHas('brand', fn($q) => $q->where('name', 'LIKE', "%{$search}%"))
+                ->orWhereHas('vehicleModel', fn($q) => $q->where('name', 'LIKE', "%{$search}%"));
             })
-            // Búsqueda en relaciones
-            ->orWhereHas('brand', fn($q) => $q->where('name', 'LIKE', "%{$search}%"))
-            ->orWhereHas('vehicleModel', fn($q) => $q->where('name', 'LIKE', "%{$search}%"));
-        })
-        ->latest()
-        ->take(10)
-        ->get();
+            ->latest() // Ordena por los más recientes
+            ->take(10) // Trae los últimos 10
+            ->get();
 
-    return Inertia::render('Dashboard', [
-        'stats' => [
-            'total' => \App\Models\Client::count(),
-            'today' => \App\Models\Client::whereDate('created_at', today())->count(),
-        ],
-        'recentClients' => $recentClients,
-        'filters' => $request->only(['search'])
-    ]);
-}
+        return Inertia::render('Dashboard', [
+            'stats' => [
+                // 2. ESTADÍSTICAS REALES: Contamos las Recepciones
+                'total' => Recepcion::count(),
+                'today' => Recepcion::whereDate('created_at', Carbon::today())->count(),
+            ],
+            // Mantenemos el nombre 'recentClients' para que tu Dashboard.vue NO se rompa,
+            // pero internamente ya está enviando la información correcta de Recepciones.
+            'recentClients' => $recentRecepcions, 
+            'filters' => $request->only(['search'])
+        ]);
+    }
 }

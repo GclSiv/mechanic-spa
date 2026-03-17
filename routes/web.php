@@ -14,22 +14,24 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'    => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'settings'    => \App\Models\Setting::first(), // Se envía como 'settings' (plural)
+        'settings'    => \App\Models\Setting::first(),
     ]);
 });
 
-// --- 2. RUTAS PROTEGIDAS (REQUIEREN LOGIN) ---
+// --- 2. RUTAS PROTEGIDAS (REQUIEREN LOGIN Y VERIFICACIÓN) ---
 Route::middleware(['auth', 'verified'])->group(function () {
     
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Recepción Técnica (Formulario de alta)
+    // Recepción Técnica (Formulario y Guardado)
     Route::get('/recepcion/create', [RecepcionController::class, 'create'])->name('recepcion.create');
     Route::post('/recepcion', [RecepcionController::class, 'store'])->name('recepcion.store');
 
-    // Impresión y Gestión de Clientes/Fotos
-    Route::get('/recepcion/{id}/imprimir', [ClientController::class, 'print'])->name('recepcion.print');
+    // Generación de PDF (Esta es la ruta que llama el Modal de Éxito)
+    Route::get('/recepcion/pdf/{id}', [RecepcionController::class, 'print'])->name('recepcion.pdf');
+
+    // Gestión de Fotos
     Route::post('/clients/{client}/photos', [ClientPhotoController::class, 'store'])->name('clients.photos.store');
     Route::delete('/photos/{photo}', [ClientPhotoController::class, 'destroy'])->name('clients.photos.destroy');
 
@@ -42,12 +44,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware(['auth'])->group(function () {
-    Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
-    Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
-});
-// Ruta para generar el PDF
-Route::get('/recepcion/print/{id}', [App\Http\Controllers\RecepcionController::class, 'print'])->name('recepcion.print');
-});
+}); // <--- Aquí cerramos correctamente el grupo de middleware
 
 require __DIR__.'/auth.php';
