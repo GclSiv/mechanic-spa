@@ -46,4 +46,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 }); // <--- Aquí cerramos correctamente el grupo de middleware
 
+// --- Gestión de Recepciones (Dashboard Acciones) ---
+    Route::get('/recepciones/exportar', [\App\Http\Controllers\RecepcionController::class, 'export'])->name('recepcion.export');
+    Route::delete('/recepciones/{id}', [\App\Http\Controllers\RecepcionController::class, 'destroy'])->name('recepcion.destroy');
+
+    Route::get('/recepciones/{id}/editar', [\App\Http\Controllers\RecepcionController::class, 'edit'])->name('recepcion.edit');
 require __DIR__.'/auth.php';
