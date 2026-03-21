@@ -27,6 +27,8 @@ class Recepcion extends Model
     'witnesses',
     'inventory',
     'status',
+    'photos',
+
     ];
 
     /**
@@ -35,6 +37,7 @@ class Recepcion extends Model
     protected $casts = [
         'witnesses' => 'array',
         'inventory' => 'array',
+         'photos'    => 'array',
     ];
 
     // Relación con Marcas

@@ -44,9 +44,26 @@ class RecepcionController extends Controller
             'symptoms'         => 'nullable|string',
             'witnesses'        => 'nullable|array',
             'inventory'        => 'nullable|array',
+            //reglas para aceptar multiples fotografias
+            'photos'           => 'nullable|array',
+            'photos.*'         => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         $validatedData['vehicle_model_id'] = (string) $validatedData['vehicle_model_id'];
+
+
+        // NUEVO: Procesar y guardar las imágenes físicas en el servidor
+        $photoPaths = [];
+        if ($request->hasFile('photos')) {
+            foreach ($request->file('photos') as $photo) {
+                // Guarda la foto en storage/app/public/recepciones y guarda la ruta
+                $path = $photo->store('recepciones', 'public');
+                $photoPaths[] = $path;
+            }
+        }
+
+        // Convertimos el arreglo de rutas a formato JSON para guardarlo en la BD
+        $validatedData['photos'] = json_encode($photoPaths);
 
         // 2. EL MOTOR DE ORQUESTACIÓN (Transacción Segura)
         $recepcion = DB::transaction(function () use ($validatedData) {
