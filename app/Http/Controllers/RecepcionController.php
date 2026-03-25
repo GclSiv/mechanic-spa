@@ -20,9 +20,9 @@ class RecepcionController extends Controller
     {
         return Inertia::render('Recepcion/Create', [
             'brands' => Brand::with('vehicleModels:id,brand_id,name')
-                            ->select('id', 'name')
-                            ->orderBy('name')
-                            ->get(),
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -55,11 +55,13 @@ class RecepcionController extends Controller
         // NUEVO: Procesar y guardar las imágenes físicas en el servidor
         $photoPaths = [];
         if ($request->hasFile('photos')) {
-            foreach ($request->file('photos') as $photo) {
-                // Guarda la foto en storage/app/public/recepciones y guarda la ruta
-                $path = $photo->store('recepciones', 'public');
-                $photoPaths[] = $path;
+            $paths = [];
+            foreach ($request->file('photos') as $file) {
+                // Laravel se encarga de las barras y la ubicación
+                $path = $file->store('recepciones', 'public');
+                $paths[] = $path;
             }
+            $data['photos'] = $paths; // Esto guarda ["recepciones/archivo.png"]
         }
 
         // Convertimos el arreglo de rutas a formato JSON para guardarlo en la BD
@@ -89,7 +91,7 @@ class RecepcionController extends Controller
             // --- B) BUSCAR O CREAR EL VEHÍCULO ---
             $brandName = Brand::find($validatedData['brand_id'])->name;
             $modelName = VehicleModel::find($validatedData['vehicle_model_id'])->name;
-            
+
             $plateToSave = $validatedData['plate'] ?? 'S/P-' . strtoupper(substr(uniqid(), -6));
 
             $vehicle = Vehicle::firstOrCreate(
@@ -140,9 +142,9 @@ class RecepcionController extends Controller
 
         $columns = ['Folio', 'Cliente', 'Telefono', 'Marca', 'Modelo', 'Placa', 'VIN', 'Gasolina', 'Fecha'];
 
-        $callback = function() use($columns) {
+        $callback = function () use ($columns) {
             $file = fopen('php://output', 'w');
-            fputs($file, $bom =(chr(0xEF) . chr(0xBB) . chr(0xBF)));
+            fputs($file, $bom = (chr(0xEF) . chr(0xBB) . chr(0xBF)));
             fputcsv($file, $columns);
 
             $recepciones = Recepcion::with(['brand', 'vehicleModel'])->orderBy('created_at', 'desc')->get();
@@ -167,7 +169,7 @@ class RecepcionController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
- /**
+    /**
      * Elimina un registro de recepción.
      */
     public function destroy($id)
@@ -195,7 +197,7 @@ class RecepcionController extends Controller
         // Usamos el Facade Auth que no marca error
         /** @var \App\Models\User $user */
         $user = \Illuminate\Support\Facades\Auth::user();
-        
+
         if ($user->role !== 'admin') {
             abort(403, 'No tienes permisos para editar registros.');
         }
@@ -207,9 +209,9 @@ class RecepcionController extends Controller
         return Inertia::render('Recepcion/Edit', [
             'recepcion' => $recepcion,
             'brands' => Brand::with('vehicleModels:id,brand_id,name')
-                            ->select('id', 'name')
-                            ->orderBy('name')
-                            ->get(),
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -220,7 +222,7 @@ class RecepcionController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = \Illuminate\Support\Facades\Auth::user();
-        
+
         if ($user->role !== 'admin') {
             abort(403, 'No tienes permisos para modificar registros.');
         }
@@ -247,7 +249,7 @@ class RecepcionController extends Controller
 
         // 2. Buscamos y actualizamos el registro principal
         $recepcion = Recepcion::findOrFail($id);
-        
+
         DB::transaction(function () use ($validatedData, $recepcion) {
             // Actualizamos la tabla de recepciones
             $recepcion->update($validatedData);
@@ -255,7 +257,7 @@ class RecepcionController extends Controller
             // También actualizamos el cliente maestro para mantenerlo sincronizado
             $nameParts = explode(' ', $validatedData['first_name'], 2);
             $client = Client::where('phone', $recepcion->phone)->first();
-            if($client) {
+            if ($client) {
                 $client->update([
                     'first_name' => $nameParts[0],
                     'last_name'  => $nameParts[1] ?? '.',

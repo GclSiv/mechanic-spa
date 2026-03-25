@@ -35,10 +35,17 @@ class Recepcion extends Model
      * Los atributos que deben ser convertidos a tipos nativos.
      */
     protected $casts = [
+        'photos'    => 'array',
         'witnesses' => 'array',
         'inventory' => 'array',
-         'photos'    => 'array',
+         
     ];
+
+    // Esto asegura que si no hay fotos, siempre devuelva un array vacío [] y no un null
+public function getPhotosAttribute($value)
+{
+    return json_decode($value) ?: [];
+}
 
     // Relación con Marcas
     public function brand() 

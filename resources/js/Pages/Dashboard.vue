@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, router } from "@inertiajs/vue3";
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 
 // 1. Recibimos los datos del controlador
 const props = defineProps({
@@ -15,6 +15,14 @@ const isSearching = ref(false);
 const search = ref(props.filters.search || "");
 let timeout = null;
 
+const showPhotoModal = ref(false);
+const selectedPhotos = ref([]);
+
+const openPhotoGallery = (photos) => {
+    // Si photos llega como string por error, esto lo previene
+    selectedPhotos.value = Array.isArray(photos) ? photos : JSON.parse(photos || '[]');
+    showPhotoModal.value = true;
+};
 // 3. Vigilante con Debounce (Evita saturar el servidor)
 watch(search, (value) => {
     isSearching.value = true;
@@ -28,7 +36,7 @@ watch(search, (value) => {
                 replace: true,
                 preserveScroll: true,
                 onFinish: () => (isSearching.value = false),
-            }
+            },
         );
     }, 500);
 });
@@ -66,25 +74,35 @@ const deleteRecord = (id) => {
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-bold text-green-800 font-mono uppercase tracking-tighter">¡Operación
-                                Exitosa!
+                            <p class="text-sm font-bold text-green-800 font-mono uppercase tracking-tighter">
+                                ¡Operación Exitosa!
                             </p>
-                            <p class="text-sm text-green-600">{{ $page.props.flash.success }}</p>
+                            <p class="text-sm text-green-600">
+                                {{ $page.props.flash.success }}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-blue p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">Total Vehículos</p>
-                        <p class="text-4xl font-black text-gray-900">{{ stats.total }}</p>
+                        <p class="text-sm font-bold text-gray-500 uppercase">
+                            Total Vehículos
+                        </p>
+                        <p class="text-4xl font-black text-gray-900">
+                            {{ stats.total }}
+                        </p>
                     </div>
                     <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-red p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">Ingresos de Hoy</p>
-                        <p class="text-4xl font-black text-gray-900">{{ stats.today }}</p>
+                        <p class="text-sm font-bold text-gray-500 uppercase">
+                            Ingresos de Hoy
+                        </p>
+                        <p class="text-4xl font-black text-gray-900">
+                            {{ stats.today }}
+                        </p>
                     </div>
                     <Link href="/recepcion/create"
-                        class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95">
+                        class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
                         <span class="text-2xl">+</span> NUEVA RECEPCIÓN
                     </Link>
                 </div>
@@ -111,7 +129,7 @@ const deleteRecord = (id) => {
                                 </div>
                             </span>
                             <input v-model="search" type="text" placeholder="Buscar cliente o placa..."
-                                class="w-full pl-14 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jk-blue/20 outline-none text-sm" />
+                                class="w-full pl-14 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jk-blue/20 outline-none text-sm shadow-sm" />
                         </div>
                     </div>
 
@@ -135,7 +153,10 @@ const deleteRecord = (id) => {
 
                                     <td class="p-4">
                                         <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                                            {{ client.brand?.name || "S/M" }} / {{ client.vehicle_model?.name || "S/M"
+                                            {{ client.brand?.name || "S/M" }} /
+                                            {{
+                                                client.vehicle_model?.name ||
+                                                "S/M"
                                             }}
                                         </span>
                                     </td>
@@ -148,15 +169,34 @@ const deleteRecord = (id) => {
                                     </td>
 
                                     <td class="p-4 text-center text-sm text-gray-500">
-                                        {{ new Date(client.created_at).toLocaleDateString() }}
+                                        {{
+                                            new Date(
+                                                client.created_at,
+                                            ).toLocaleDateString()
+                                        }}
                                     </td>
 
                                     <td class="p-4 flex justify-end gap-2">
-                                        <a :href="route('recepcion.pdf', client.id)" target="_blank"
+                                        <button v-if="client.photos && client.photos.length > 0"
+                                            @click="openPhotoGallery(client.photos)" type="button"
+                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg ..."
+                                            title="Ver evidencia fotográfica">
+                                            📷
+                                        </button>
+
+                                        <a :href="route(
+                                            'recepcion.pdf',
+                                            client.id,
+                                        )
+                                            " target="_blank"
                                             class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
                                             🖨️
                                         </a>
-                                        <Link :href="route('recepcion.edit', client.id)"
+                                        <Link :href="route(
+                                            'recepcion.edit',
+                                            client.id,
+                                        )
+                                            "
                                             class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
                                             ✏️
                                         </Link>
@@ -182,7 +222,10 @@ const deleteRecord = (id) => {
                                 class="px-4 py-2 text-sm border rounded-lg text-gray-300 bg-gray-50 cursor-not-allowed"
                                 v-html="link.label"></div>
                             <Link v-else :href="link.url" class="px-4 py-2 text-sm border rounded-lg transition-all"
-                                :class="link.active ? 'bg-jk-blue text-white border-jk-blue shadow-lg' : 'bg-white text-gray-600 hover:bg-blue-50 border-gray-200'">
+                                :class="link.active
+                                    ? 'bg-jk-blue text-white border-jk-blue shadow-lg'
+                                    : 'bg-white text-gray-600 hover:bg-blue-50 border-gray-200'
+                                    ">
                                 <span v-html="link.label"></span>
                             </Link>
                         </template>
@@ -190,9 +233,42 @@ const deleteRecord = (id) => {
                 </div>
             </div>
         </div>
+        <div v-if="showPhotoModal"
+            class="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+
+            <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-black text-gray-800 uppercase tracking-tighter">
+                        Evidencia <span class="text-jk-blue">Fotográfica</span>
+                    </h3>
+                    <button @click="showPhotoModal = false"
+                        class="text-gray-400 hover:text-jk-red transition-colors text-2xl font-bold">&times;</button>
+                </div>
+
+                <div class="p-8 max-h-[70vh] overflow-y-auto">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                        <div v-for="(photo, index) in selectedPhotos" :key="index"
+                            class="aspect-video bg-gray-100 rounded-3xl overflow-hidden border-2 border-gray-100 group relative shadow-inner cursor-zoom-in">
+                            <img :src="'/storage/' + photo.replace(/\\/g, '/')"
+                                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                alt="Evidencia JK">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-gray-50 border-t border-gray-100 text-right">
+                    <button @click="showPhotoModal = false"
+                        class="px-8 py-3 bg-jk-blue text-white font-bold rounded-xl hover:bg-jk-blue/90 transition-all shadow-lg active:scale-95">
+                        CERRAR
+                    </button>
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>
-
 <style>
 .animate-vroom {
     animation: vroom 0.15s infinite alternate;

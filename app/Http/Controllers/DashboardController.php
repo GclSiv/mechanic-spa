@@ -28,7 +28,7 @@ class DashboardController extends Controller
             });
         })
         ->latest()
-        ->paginate(10) // 👈 La paginación debe ir al final y sin ->get()
+        ->paginate(10) //La paginación debe ir al final y sin ->get()
         ->withQueryString();
 
     return Inertia::render('Dashboard', [
