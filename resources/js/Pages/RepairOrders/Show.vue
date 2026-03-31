@@ -33,12 +33,13 @@ const totals = computed(() => {
 
     // 🌍 Lógica Multiregión
     const taxRate = taxType.value === 'MX' ? 0.16 : 0.0875;
-    const taxAmount = partsSubtotal * taxRate;
-
+    
+     const taxAmount = taxRate === 0.0875 ? 0 : laborSubtotal * taxRate;
     return {
         parts: partsSubtotal,
         labor: laborSubtotal,
         tax: taxAmount,
+
         taxLabel: taxType.value === 'MX' ? 'IVA (16%)' : 'Tax (8.75% on Parts)',
         grandTotal: partsSubtotal + laborSubtotal + taxAmount
     };
@@ -134,7 +135,7 @@ const imprimirCotizacion = () => {
                                 <span>${{ totals.parts.toFixed(2) }}</span>
                             </div>
                             <div class="flex justify-between text-green-600 font-bold border-b pb-2">
-                                <span>Tax (8.75% on Parts):</span>
+                                <span>Sin impuestos (Exento):</span>
                                 <span>${{ totals.tax.toFixed(2) }}</span>
                             </div>
                             <div class="flex justify-between">

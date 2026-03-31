@@ -1,31 +1,26 @@
 <script setup>
-import { computed, ref } from 'vue';
-// 🛑 AGREGA 'usePage' y 'Link' a esta importación:
-import { Link, usePage } from '@inertiajs/vue3';
-
-// Dentro de <script setup> en AuthenticatedLayout.vue
+import { ref, computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3'; // <--- Asegúrate que usePage esté aquí
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import Dropdown from '@/Components/Dropdown.vue';      // <--- SOLO UNA VEZ
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 
 
-import Dropdown from '@/Components/Dropdown.vue';
-// ... el resto de tus importaciones
-
-const page = usePage(); // <--- Ahora sí, esta línea funcionará perfectamente
+const page = usePage();
 const showingNavigationDropdown = ref(false);
 
-// 🛰️ Tus colores dinámicos de JK Automotive
+// 🛰️ Colores dinámicos de JK Automotive
 const primaryColor = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
 </script>
-
 <template>
     <div class="min-h-screen bg-gray-100">
-
+        
         <component :is="'style'">
             :root {
-            --primary-color: {{ primaryColor }};
-            --secondary-color: {{ secondaryColor }};
+                --primary-color: {{ primaryColor }};
+                --secondary-color: {{ secondaryColor }};
             }
             .bg-jk-blue { background-color: {{ primaryColor }} !important; color: white !important; }
             .text-jk-blue { color: {{ primaryColor }} !important; }
@@ -55,14 +50,10 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             <Dropdown align="right" width="48">
                                 <template #trigger>
                                     <span class="inline-flex rounded-md">
-                                        <button type="button"
-                                            class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 focus:outline-none transition">
+                                        <button type="button" class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 focus:outline-none transition">
                                             {{ $page.props.auth.user.name }}
-                                            <svg class="ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd"
-                                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                    clip-rule="evenodd" />
+                                            <svg class="ms-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                             </svg>
                                         </button>
                                     </span>
@@ -70,11 +61,9 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
 
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')"> Mi Perfil </DropdownLink>
-                                    <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue"> ⚙️
-                                        Configuración </DropdownLink>
+                                    <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue"> ⚙️ Configuración </DropdownLink>
                                     <div class="border-t border-gray-100" />
-                                    <DropdownLink :href="route('logout')" method="post" as="button"> Cerrar Sesión
-                                    </DropdownLink>
+                                    <DropdownLink :href="route('logout')" method="post" as="button"> Cerrar Sesión </DropdownLink>
                                 </template>
                             </Dropdown>
                         </div>
@@ -97,8 +86,7 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
 
 <style>
 /* Estilos base fijos */
-.bg-jk-blue,
-.bg-jk-red {
+.bg-jk-blue, .bg-jk-red {
     transition: all 0.3s ease;
 }
 </style>

@@ -19,11 +19,18 @@ const showPhotoModal = ref(false);
 const selectedPhotos = ref([]);
 
 const openPhotoGallery = (photos) => {
-    // Si photos llega como string por error, esto lo previene
     selectedPhotos.value = Array.isArray(photos) ? photos : JSON.parse(photos || '[]');
     showPhotoModal.value = true;
 };
-// 3. Vigilante con Debounce (Evita saturar el servidor)
+
+// Esta función revisa si el cliente actual tiene evidencia cargada
+const hasPhotos = (client) => {
+    return client.photos && client.photos.length > 0;
+};
+
+const hasQuote = (client) => client.repair_order != null;
+const hasServiceRequest = (client) => client.recepcion?.symptoms != null;
+// 3. Vigilante con Debounce
 watch(search, (value) => {
     isSearching.value = true;
     clearTimeout(timeout);
@@ -41,7 +48,6 @@ watch(search, (value) => {
     }, 500);
 });
 
-// Función para eliminar con confirmación
 const deleteRecord = (id) => {
     if (confirm("¿Estás seguro de que deseas eliminar este registro?")) {
         router.delete(route("recepcion.destroy", id), {
@@ -57,59 +63,51 @@ const deleteRecord = (id) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-bold leading-tight text-gray-800 uppercase tracking-tighter">
+            <h2 class="text-xl font-black leading-tight text-gray-900 uppercase tracking-tighter">
                 Panel Principal <span class="text-jk-blue">JK</span><span class="text-jk-red">Automotive</span>
             </h2>
         </template>
 
         <div class="py-12 bg-gray-50">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+
                 <div v-if="$page.props.flash.success"
                     class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <div class="bg-green-100 p-2 rounded-full">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-green-100 p-2 rounded-full text-green-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
                         <div>
-                            <p class="text-sm font-bold text-green-800 font-mono uppercase tracking-tighter">
-                                ¡Operación Exitosa!
+                            <p class="text-sm font-black text-green-800 uppercase tracking-tighter italic">¡Operación
+                                Exitosa!
                             </p>
-                            <p class="text-sm text-green-600">
-                                {{ $page.props.flash.success }}
-                            </p>
+                            <p class="text-sm text-green-600">{{ $page.props.flash.success }}</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-blue p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">
-                            Total Vehículos
-                        </p>
-                        <p class="text-4xl font-black text-gray-900">
-                            {{ stats.total }}
-                        </p>
+                        <p class="text-sm font-bold text-gray-500 uppercase font-mono">Total Vehículos</p>
+                        <p class="text-5xl font-black text-gray-900 tracking-tighter">{{ stats.total }}</p>
                     </div>
                     <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-red p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">
-                            Ingresos de Hoy
-                        </p>
-                        <p class="text-4xl font-black text-gray-900">
-                            {{ stats.today }}
-                        </p>
+                        <p class="text-sm font-bold text-gray-500 uppercase font-mono">Ingresos de Hoy</p>
+                        <p class="text-5xl font-black text-gray-900 tracking-tighter">{{ stats.today }}</p>
                     </div>
                     <Link href="/recepcion/create"
-                        class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
+                        class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer text-xl">
                         <span class="text-2xl">+</span> NUEVA RECEPCIÓN
                     </Link>
                 </div>
 
                 <div class="bg-white shadow-sm sm:rounded-xl overflow-hidden p-8">
+
                     <div class="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <h3 class="text-lg font-bold flex items-center gap-2 uppercase tracking-wider">
+                        <h3 class="text-lg font-black flex items-center gap-2 uppercase tracking-tighter">
                             <span class="w-2 h-7 bg-jk-red inline-block rounded-full"></span>
                             Últimos Vehículos Registrados
                         </h3>
@@ -129,13 +127,13 @@ const deleteRecord = (id) => {
                                 </div>
                             </span>
                             <input v-model="search" type="text" placeholder="Buscar cliente o placa..."
-                                class="w-full pl-14 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jk-blue/20 outline-none text-sm shadow-sm" />
+                                class="w-full pl-14 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jk-blue/20 outline-none text-sm shadow-sm font-medium" />
                         </div>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-bold">
+                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-black tracking-widest">
                                 <tr>
                                     <th class="p-4">Cliente</th>
                                     <th class="p-4">Vehículo</th>
@@ -147,59 +145,50 @@ const deleteRecord = (id) => {
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-for="client in recentRecepcions?.data" :key="client.id"
                                     class="hover:bg-blue-50/50 transition">
-                                    <td class="p-4 font-bold text-jk-blue">
+                                    <td class="p-4 font-black text-jk-blue uppercase tracking-tighter">
                                         {{ client.first_name }}
                                     </td>
 
                                     <td class="p-4">
-                                        <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                                            {{ client.brand?.name || "S/M" }} /
-                                            {{
-                                                client.vehicle_model?.name ||
-                                                "S/M"
+                                        <span
+                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700 font-bold">
+                                            {{ client.brand?.name || "S/M" }} / {{ client.vehicle_model?.name || "S/M"
                                             }}
                                         </span>
                                     </td>
 
-                                    <td class="p-4">
-                                        <span
-                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
-                                            {{ client.vin_serial || "N/A" }}
-                                        </span>
+                                    <td class="p-4 font-mono text-xs text-gray-600 uppercase">
+                                        {{ client.vin_serial || "N/A" }}
                                     </td>
 
-                                    <td class="p-4 text-center text-sm text-gray-500">
-                                        {{
-                                            new Date(
-                                                client.created_at,
-                                            ).toLocaleDateString()
-                                        }}
+                                    <td class="p-4 text-center text-sm text-gray-500 font-bold">
+                                        {{ new Date(client.created_at).toLocaleDateString() }}
                                     </td>
 
-                                    <td class="p-4 flex justify-end gap-2">
-                                        <button v-if="client.photos && client.photos.length > 0"
-                                            @click="openPhotoGallery(client.photos)" type="button"
-                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg ..."
+                                    <td class="p-4 flex justify-end gap-2 items-center">
+
+                                        <Link v-if="hasQuote(client)"
+                                            :href="route('repair-orders.show', client.repair_order.id)" class="...">
+                                            💰
+                                        </Link>
+
+                                        <button v-if="hasPhotos(client)" @click="openPhotoGallery(client.photos)"
+                                            type="button"
+                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg"
                                             title="Ver evidencia fotográfica">
                                             📷
                                         </button>
 
-                                        <a :href="route(
-                                            'recepcion.pdf',
-                                            client.id,
-                                        )
-                                            " target="_blank"
+                                        <a :href="route('recepcion.pdf', client.id)" target="_blank"
                                             class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
                                             🖨️
                                         </a>
-                                        <Link :href="route(
-                                            'recepcion.edit',
-                                            client.id,
-                                        )
-                                            "
+
+                                        <Link :href="route('recepcion.edit', client.id)"
                                             class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
                                             ✏️
                                         </Link>
+
                                         <button @click="deleteRecord(client.id)"
                                             class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
                                             🗑️
@@ -219,10 +208,10 @@ const deleteRecord = (id) => {
                     <div v-if="recentRecepcions?.links?.length > 3" class="mt-8 flex justify-center items-center gap-1">
                         <template v-for="(link, key) in recentRecepcions.links" :key="key">
                             <div v-if="link.url === null"
-                                class="px-4 py-2 text-sm border rounded-lg text-gray-300 bg-gray-50 cursor-not-allowed"
+                                class="px-4 py-2 text-sm border rounded-lg text-gray-300 bg-gray-50 cursor-not-allowed uppercase font-bold"
                                 v-html="link.label"></div>
-                            <Link v-else :href="link.url" class="px-4 py-2 text-sm border rounded-lg transition-all"
-                                :class="link.active
+                            <Link v-else :href="link.url"
+                                class="px-4 py-2 text-sm border rounded-lg transition-all font-bold" :class="link.active
                                     ? 'bg-jk-blue text-white border-jk-blue shadow-lg'
                                     : 'bg-white text-gray-600 hover:bg-blue-50 border-gray-200'
                                     ">
@@ -233,9 +222,9 @@ const deleteRecord = (id) => {
                 </div>
             </div>
         </div>
+
         <div v-if="showPhotoModal"
             class="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-
             <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
                 <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg font-black text-gray-800 uppercase tracking-tighter">
@@ -244,7 +233,6 @@ const deleteRecord = (id) => {
                     <button @click="showPhotoModal = false"
                         class="text-gray-400 hover:text-jk-red transition-colors text-2xl font-bold">&times;</button>
                 </div>
-
                 <div class="p-8 max-h-[70vh] overflow-y-auto">
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <div v-for="(photo, index) in selectedPhotos" :key="index"
@@ -252,16 +240,12 @@ const deleteRecord = (id) => {
                             <img :src="'/storage/' + photo.replace(/\\/g, '/')"
                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 alt="Evidencia JK">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            </div>
                         </div>
                     </div>
                 </div>
-
                 <div class="p-6 bg-gray-50 border-t border-gray-100 text-right">
                     <button @click="showPhotoModal = false"
-                        class="px-8 py-3 bg-jk-blue text-white font-bold rounded-xl hover:bg-jk-blue/90 transition-all shadow-lg active:scale-95">
+                        class="px-8 py-3 bg-jk-blue text-white font-black rounded-xl hover:bg-jk-blue/90 transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs">
                         CERRAR
                     </button>
                 </div>
@@ -269,17 +253,10 @@ const deleteRecord = (id) => {
         </div>
     </AuthenticatedLayout>
 </template>
+
 <style>
 .animate-vroom {
     animation: vroom 0.15s infinite alternate;
-}
-
-.animate-dash {
-    animation: dash 0.3s infinite linear;
-}
-
-.animate-dash-slow {
-    animation: dash 0.5s infinite linear;
 }
 
 @keyframes vroom {
@@ -289,22 +266,6 @@ const deleteRecord = (id) => {
 
     to {
         transform: translateY(-2px);
-    }
-}
-
-@keyframes dash {
-    0% {
-        opacity: 0;
-        transform: translateX(4px);
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-        transform: translateX(-8px);
     }
 }
 </style>

@@ -11,25 +11,32 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('recepcions', function (Blueprint $table) {
-        $table->id();
-        $table->string('first_name'); 
-        $table->string('phone')->nullable(); // Agregado aquí de forma definitiva
-        $table->foreignId('brand_id')->constrained(); 
-        $table->string('vehicle_model_id'); // Guardaremos el nombre del modelo
-        $table->string('fuel_level');
-        $table->json('witnesses')->nullable(); // Para los iconos del tablero
-        $table->json('inventory')->nullable(); // Para los accesorios
-        $table->string('miles')->nullable();
-        $table->string('vin_serial')->nullable();
-        $table->text('symptoms')->nullable(); // Falla reportada
-        $table->string('status')->default('Pendiente');
-        $table->string('address')->nullable()->after('phone');
-        $table->string('rfc', 20)->nullable()->after('address');
-        $table->string('year', 4)->nullable()->after('vehicle_model_id');
-        $table->string('plate', 20)->nullable()->after('year');
-        $table->timestamps();
-        });
+       Schema::create('recepcions', function (Blueprint $table) {
+    $table->id();
+    $table->string('first_name'); 
+    $table->string('phone')->nullable();
+    
+    // Agregamos address aquí, justo después de phone, sin el ->after()
+    $table->string('address')->nullable(); 
+    $table->string('rfc', 20)->nullable();
+    
+    $table->foreignId('brand_id')->constrained(); 
+    $table->string('vehicle_model_id');
+    
+    // El año y la placa también van sin ->after()
+    $table->string('year', 4)->nullable();
+    $table->string('plate', 20)->nullable();
+    
+    $table->string('fuel_level');
+    $table->json('witnesses')->nullable();
+    $table->json('inventory')->nullable();
+    $table->string('miles')->nullable();
+    $table->string('vin_serial')->nullable();
+    $table->text('symptoms')->nullable();
+    $table->string('status')->default('Pendiente');
+    $table->timestamps();
+
+});
     }
 
     /**

@@ -35,7 +35,7 @@ class Recepcion extends Model
      * Los atributos que deben ser convertidos a tipos nativos.
      */
     protected $casts = [
-        'photos'    => 'array',
+        //'photos'    => 'array',
         'witnesses' => 'array',
         'inventory' => 'array',
          
@@ -58,4 +58,14 @@ public function getPhotosAttribute($value)
     {
         return $this->belongsTo(VehicleModel::class, 'vehicle_model_id');
     }
+
+    
+    public function repairOrder()
+{
+    // Una Recepción tiene una (hasOne) Orden de Reparación
+    return $this->hasOne(RepairOrder::class, 'recepcion_id');
+}
+
+
+
 }

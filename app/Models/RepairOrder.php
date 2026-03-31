@@ -22,7 +22,8 @@ class RepairOrder extends Model
         'status_id', 
         'problem_description', 
         'estimated_cost', 
-        'entry_date'
+        'entry_date',
+        
     ];
 
     /**
