@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vehicle extends Model
 {
-    /** @use HasFactory<\Database\Factories\VehicleFactory> */
-    protected $fillable = ['client_id', 'plate', 'brand', 'model', 'year', 'color', 'notes'];
-    use HasFactory;
+    protected $fillable = [
+        'client_id', 'brand_id', 'model_id', 'year', 'plate', 
+        'vin', 'engine' // Nuevos campos estáticos
+    ];
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

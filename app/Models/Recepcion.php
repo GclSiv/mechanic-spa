@@ -2,60 +2,48 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Recepcion extends Model
 {
-    /** @use HasFactory<\Database\Factories\RecepcionFactory> */
-    use HasFactory;
-
+    /**
+     * Los atributos transaccionales puros.
+     * Observa que quitamos los datos del cliente/vehículo y agregamos los IDs.
+     */
     protected $fillable = [
-        
-     'first_name',
-    'phone',
-    'address',
-    'rfc',
-    'brand_id',
-    'vehicle_model_id',
-    'year',
-    'plate',
-    'vin_serial',
-    'miles',
-    'fuel_level',
-    'symptoms',
-    'witnesses',
-    'inventory',
-    'status',
-    'photos',
-
+        'client_id',     // NUEVO: Llave foránea del cliente
+        'vehicle_id',    // NUEVO: Llave foránea del vehículo
+        'fuel_level',
+        'miles',
+        'symptoms',
+        'witnesses',
+        'inventory',
+        'photos',        // Preparado para las evidencias gráficas
+        'status',
     ];
 
     /**
-     * Los atributos que deben ser convertidos a tipos nativos.
+     * Casts para manejar correctamente los JSON en la base de datos
      */
     protected $casts = [
-        'photos'    => 'array',
         'witnesses' => 'array',
         'inventory' => 'array',
-         
+        'photos'    => 'array',
     ];
 
-    // Esto asegura que si no hay fotos, siempre devuelva un array vacío [] y no un null
-public function getPhotosAttribute($value)
-{
-    return json_decode($value) ?: [];
-}
-
-    // Relación con Marcas
-    public function brand() 
+    /**
+     * Relación: La recepción pertenece a un Cliente.
+     */
+    public function client()
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Client::class);
     }
 
-    // Relación con Modelos de Vehículo
-    public function vehicleModel() 
+    /**
+     * Relación: La recepción pertenece a un Vehículo.
+     */
+    public function vehicle()
     {
-        return $this->belongsTo(VehicleModel::class, 'vehicle_model_id');
+        return $this->belongsTo(Vehicle::class);
     }
 }
