@@ -16,6 +16,19 @@ use Illuminate\Support\Facades\Auth;
 
 class RecepcionController extends Controller
 {
+    // ========================================================
+    // Nota: Necesitas agregar este método si quieres que /recepciones funcione
+    // ========================================================
+    public function index()
+    {
+        // Eager loading obligatorio para que Vue no se quede en blanco
+        $recepciones = Recepcion::with(['client', 'vehicle.brand'])->latest()->get();
+        
+        return Inertia::render('Recepcion/Index', [
+            'recepciones' => $recepciones
+        ]);
+    }
+
     public function create()
     {
         return Inertia::render('Recepcion/Create', [
@@ -28,7 +41,6 @@ class RecepcionController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validación de los datos que envía tu formulario Vue
         $validatedData = $request->validate([
             'first_name'       => 'required|string|max:255',
             'phone'            => 'nullable|string',
@@ -44,90 +56,76 @@ class RecepcionController extends Controller
             'symptoms'         => 'nullable|string',
             'witnesses'        => 'nullable|array',
             'inventory'        => 'nullable|array',
-            //reglas para aceptar multiples fotografias
             'photos'           => 'nullable|array',
             'photos.*'         => 'image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        $validatedData['vehicle_model_id'] = (string) $validatedData['vehicle_model_id'];
-
-
-        // NUEVO: Procesar y guardar las imágenes físicas en el servidor
         $photoPaths = [];
         if ($request->hasFile('photos')) {
-            $paths = [];
             foreach ($request->file('photos') as $file) {
-                // Laravel se encarga de las barras y la ubicación
-                $path = $file->store('recepciones', 'public');
-                $paths[] = $path;
+                $photoPaths[] = $file->store('recepciones', 'public');
             }
-            $data['photos'] = $paths; // Esto guarda ["recepciones/archivo.png"]
         }
 
-        // Convertimos el arreglo de rutas a formato JSON para guardarlo en la BD
-        $validatedData['photos'] = json_encode($photoPaths);
-
-        // 2. EL MOTOR DE ORQUESTACIÓN (Transacción Segura)
-        $recepcion = DB::transaction(function () use ($validatedData) {
+        // 2. EL MOTOR DE ORQUESTACIÓN (Separación estricta de dominios)
+        $recepcion = DB::transaction(function () use ($validatedData, $photoPaths) {
 
             // --- A) BUSCAR O CREAR AL CLIENTE ---
             $nameParts = explode(' ', $validatedData['first_name'], 2);
-            $firstName = $nameParts[0];
-            $lastName  = $nameParts[1] ?? '.';
-
-            $phoneToSave = $validatedData['phone'] ?? 'S/T-' . uniqid();
-
             $client = Client::firstOrCreate(
-                ['phone' => $phoneToSave],
+                ['phone' => $validatedData['phone'] ?? 'S/T-' . uniqid()],
                 [
-                    'first_name'       => $firstName,
-                    'last_name'        => $lastName,
-                    'address'          => $validatedData['address'],
-                    'rfc'              => $validatedData['rfc'],
-                    'client_status_id' => 1,
+                    'first_name' => $nameParts[0],
+                    'last_name'  => $nameParts[1] ?? '.',
+                    'address'    => $validatedData['address'],
+                    'rfc'        => $validatedData['rfc'],
                 ]
             );
 
             // --- B) BUSCAR O CREAR EL VEHÍCULO ---
-            $brandName = Brand::find($validatedData['brand_id'])->name;
-            $modelName = VehicleModel::find($validatedData['vehicle_model_id'])->name;
-
-            $plateToSave = $validatedData['plate'] ?? 'S/P-' . strtoupper(substr(uniqid(), -6));
-
+            // Aseguramos que guarde los IDs si tu tabla vehicles fue actualizada
             $vehicle = Vehicle::firstOrCreate(
-                ['plate' => $plateToSave],
+                ['plate' => $validatedData['plate'] ?? 'S/P-' . strtoupper(substr(uniqid(), -6))],
                 [
-                    'client_id' => $client->id,
-                    'brand'     => $brandName,
-                    'model'     => $modelName,
-                    'year'      => $validatedData['year'],
-                    'vin'       => $validatedData['vin_serial'],
+                    'client_id'        => $client->id,
+                    'brand_id'         => $validatedData['brand_id'],
+                    'vehicle_model_id' => $validatedData['vehicle_model_id'],
+                    'year'             => $validatedData['year'],
+                    'vin'              => $validatedData['vin_serial'],
                 ]
             );
 
-            // --- C) GUARDAR EL TICKET DE RECEPCIÓN ---
-            return Recepcion::create($validatedData);
+            // --- C) GUARDAR EL TICKET DE RECEPCIÓN (Solo campos transaccionales) ---
+            return Recepcion::create([
+                'client_id'  => $client->id,
+                'vehicle_id' => $vehicle->id,
+                'fuel_level' => $validatedData['fuel_level'],
+                'miles'      => $validatedData['miles'],
+                'symptoms'   => $validatedData['symptoms'],
+                'witnesses'  => $validatedData['witnesses'] ?? [],
+                'inventory'  => $validatedData['inventory'] ?? [],
+                'photos'     => $photoPaths, // El modelo debería tener cast a 'array'
+                'status'     => 'Pendiente'
+            ]);
         });
 
-        // 3. Todo salió perfecto, enviamos el last_id al Modal
         return redirect()->back()->with([
             'success' => '¡Vehículo y Cliente registrados con éxito!',
             'last_id' => $recepcion->id,
         ]);
     }
 
-    public function print($id)
+    // ✅ Route Model Binding Aplicado (Recepcion $recepcion)
+    public function print(Recepcion $recepcion)
     {
-        $recepcion = Recepcion::with(['brand', 'vehicleModel'])->findOrFail($id);
-        $settings  = Setting::first();
+        // Cargamos las relaciones para el PDF
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
+        $settings = Setting::first();
 
         $pdf = Pdf::loadView('pdf.recepcion', compact('recepcion', 'settings'));
         return $pdf->stream("Nota_Recepcion_{$recepcion->id}.pdf");
     }
 
-    /**
-     * Exporta los registros a un archivo compatible con Excel (CSV).
-     */
     public function export()
     {
         $fileName = 'ingresos_jk_automotive_' . date('Y-m-d') . '.csv';
@@ -140,72 +138,59 @@ class RecepcionController extends Controller
             "Expires"             => "0"
         ];
 
-        $columns = ['Folio', 'Cliente', 'Telefono', 'Marca', 'Modelo', 'Placa', 'VIN', 'Gasolina', 'Fecha'];
-
-        $callback = function () use ($columns) {
+        $callback = function () {
             $file = fopen('php://output', 'w');
-            fputs($file, $bom = (chr(0xEF) . chr(0xBB) . chr(0xBF)));
-            fputcsv($file, $columns);
+            fputs($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, ['Folio', 'Cliente', 'Telefono', 'Marca', 'Placa', 'VIN', 'Gasolina', 'Fecha']);
 
-            $recepciones = Recepcion::with(['brand', 'vehicleModel'])->orderBy('created_at', 'desc')->get();
+            // Eager loading vital
+            $recepciones = Recepcion::with(['client', 'vehicle.brand'])->orderBy('created_at', 'desc')->get();
 
             foreach ($recepciones as $rec) {
-                $row['Folio']    = '#' . $rec->id;
-                $row['Cliente']  = $rec->first_name;
-                $row['Telefono'] = $rec->phone ?? 'N/A';
-                $row['Marca']    = $rec->brand ? $rec->brand->name : 'S/M';
-                $row['Modelo']   = $rec->vehicleModel ? $rec->vehicleModel->name : 'S/M';
-                $row['Placa']    = $rec->plate ?? 'N/A';
-                $row['VIN']      = $rec->vin_serial ?? 'N/A';
-                $row['Gasolina'] = $rec->fuel_level;
-                $row['Fecha']    = $rec->created_at->format('d/m/Y H:i');
-
-                fputcsv($file, array($row['Folio'], $row['Cliente'], $row['Telefono'], $row['Marca'], $row['Modelo'], $row['Placa'], $row['VIN'], $row['Gasolina'], $row['Fecha']));
+                fputcsv($file, [
+                    '#' . $rec->id,
+                    $rec->client->first_name ?? 'Desconocido',
+                    $rec->client->phone ?? 'N/A',
+                    $rec->vehicle->brand->name ?? 'S/M',
+                    $rec->vehicle->plate ?? 'N/A',
+                    $rec->vehicle->vin ?? 'N/A',
+                    $rec->fuel_level,
+                    $rec->created_at->format('d/m/Y H:i')
+                ]);
             }
-
             fclose($file);
         };
 
         return response()->stream($callback, 200, $headers);
     }
 
-    /**
-     * Elimina un registro de recepción.
-     */
-    public function destroy($id)
+    // ✅ Route Model Binding Aplicado
+    public function destroy(Recepcion $recepcion)
     {
-        // Usamos el Facade Auth que VS Code entiende perfectamente
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Si no es admin, lo pateamos fuera con un error 403
         if ($user->role !== 'admin') {
             abort(403, 'No tienes permisos para eliminar registros.');
         }
 
-        $recepcion = Recepcion::findOrFail($id);
         $recepcion->delete();
-
         return redirect()->back()->with('success', 'Registro eliminado correctamente.');
     }
 
-    /**
-     * Muestra el formulario con los datos cargados para editar.
-     */
-    public function edit($id)
+    // ✅ Route Model Binding Aplicado
+    public function edit(Recepcion $recepcion)
     {
-        // Usamos el Facade Auth que no marca error
         /** @var \App\Models\User $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
         if ($user->role !== 'admin') {
             abort(403, 'No tienes permisos para editar registros.');
         }
 
-        // Buscamos la recepción que queremos editar
-        $recepcion = Recepcion::findOrFail($id);
+        // Cargar los datos del cliente y vehículo para mandarlos a la vista Edit.vue
+        $recepcion->load(['client', 'vehicle']);
 
-        // Renderizamos la vista Edit.vue enviando los datos y las marcas
         return Inertia::render('Recepcion/Edit', [
             'recepcion' => $recepcion,
             'brands' => Brand::with('vehicleModels:id,brand_id,name')
@@ -215,19 +200,16 @@ class RecepcionController extends Controller
         ]);
     }
 
-    /**
-     * Guarda los cambios de edición en la base de datos.
-     */
-    public function update(Request $request, $id)
+    // ✅ Route Model Binding Aplicado
+    public function update(Request $request, Recepcion $recepcion)
     {
         /** @var \App\Models\User $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
 
         if ($user->role !== 'admin') {
             abort(403, 'No tienes permisos para modificar registros.');
         }
 
-        // 1. Validamos los datos nuevos
         $validatedData = $request->validate([
             'first_name'       => 'required|string|max:255',
             'phone'            => 'nullable|string',
@@ -241,32 +223,41 @@ class RecepcionController extends Controller
             'miles'            => 'nullable',
             'fuel_level'       => 'required|string',
             'symptoms'         => 'nullable|string',
-            'witnesses'        => 'nullable|array',
-            'inventory'        => 'nullable|array',
         ]);
 
-        $validatedData['vehicle_model_id'] = (string) $validatedData['vehicle_model_id'];
-
-        // 2. Buscamos y actualizamos el registro principal
-        $recepcion = Recepcion::findOrFail($id);
-
         DB::transaction(function () use ($validatedData, $recepcion) {
-            // Actualizamos la tabla de recepciones
-            $recepcion->update($validatedData);
-
-            // También actualizamos el cliente maestro para mantenerlo sincronizado
-            $nameParts = explode(' ', $validatedData['first_name'], 2);
-            $client = Client::where('phone', $recepcion->phone)->first();
-            if ($client) {
-                $client->update([
+            
+            // 1. Actualizar al Cliente
+            if ($recepcion->client) {
+                $nameParts = explode(' ', $validatedData['first_name'], 2);
+                $recepcion->client->update([
                     'first_name' => $nameParts[0],
                     'last_name'  => $nameParts[1] ?? '.',
-                    'phone'      => $validatedData['phone']
+                    'phone'      => $validatedData['phone'],
+                    'address'    => $validatedData['address'],
+                    'rfc'        => $validatedData['rfc'],
                 ]);
             }
+
+            // 2. Actualizar el Vehículo
+            if ($recepcion->vehicle) {
+                $recepcion->vehicle->update([
+                    'brand_id'         => $validatedData['brand_id'],
+                    'vehicle_model_id' => $validatedData['vehicle_model_id'],
+                    'year'             => $validatedData['year'],
+                    'plate'            => $validatedData['plate'],
+                    'vin'              => $validatedData['vin_serial'],
+                ]);
+            }
+
+            // 3. Actualizar la Recepción (solo la data transaccional)
+            $recepcion->update([
+                'fuel_level' => $validatedData['fuel_level'],
+                'miles'      => $validatedData['miles'],
+                'symptoms'   => $validatedData['symptoms'],
+            ]);
         });
 
-        // 3. Regresamos al Dashboard con el mensaje de éxito
         return redirect()->route('dashboard')->with('success', '¡Registro actualizado correctamente!');
     }
 }

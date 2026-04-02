@@ -7,7 +7,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ClientPhotoController;
 use App\Http\Controllers\RecepcionController;
 use App\Http\Controllers\RepairOrderController;
-use App\Http\Controllers\RepairOrderItemController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Setting;
@@ -27,40 +26,67 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // --- Módulo de Recepción Técnica ---
-    Route::prefix('recepcion')->group(function () {
-        Route::get('/create', [RecepcionController::class, 'create'])->name('recepcion.create');
-        Route::post('/', [RecepcionController::class, 'store'])->name('recepcion.store');
-        Route::get('/pdf/{id}', [RecepcionController::class, 'print'])->name('recepcion.pdf');
-        Route::get('/exportar', [RecepcionController::class, 'export'])->name('recepcion.export');
-        Route::get('/{id}/editar', [RecepcionController::class, 'edit'])->name('recepcion.edit');
-        Route::delete('/{id}', [RecepcionController::class, 'destroy'])->name('recepcion.destroy');
+    // ========================================================
+    // MÓDULO 1: RECEPCIÓN TÉCNICA (RESTful y Route Model Binding)
+    // ========================================================
+    Route::controller(RecepcionController::class)
+        ->prefix('recepciones') // Todo unificado a plural
+        ->group(function () {
+            
+            // ⚠️ Rutas estáticas van primero para evitar colisiones
+            Route::get('/', 'index')->name('recepcion.index');
+            Route::get('/exportar', 'export')->name('recepcion.export');
+            Route::get('/create', 'create')->name('recepcion.create');
+            Route::post('/', 'store')->name('recepcion.store');
+
+            // ✅ Route Model Binding: Inyectamos el modelo automáticamente
+            Route::get('/{recepcion}', 'show')->name('recepcion.show');
+            Route::get('/{recepcion}/edit', 'edit')->name('recepcion.edit');
+            Route::delete('/{recepcion}', 'destroy')->name('recepcion.destroy');
+            Route::get('/{recepcion}/pdf', 'print')->name('recepcion.pdf');
+            Route::post('/{recepcion}/generate-order', 'generateOrder')->name('recepcion.generate-order');
     });
 
-    // --- Módulo de Gestión de Órdenes y Cotización ---
-    // Ver panel de gestión (Show.vue)
-    Route::get('/repair-orders/{id}', [RepairOrderController::class, 'show'])
-        ->name('repair-orders.show');
+    // ========================================================
+    // MÓDULO 2: ÓRDENES DE REPARACIÓN Y COTIZACIÓN
+    // ========================================================
+    Route::controller(RepairOrderController::class)
+        ->prefix('repair-orders')
+        ->name('repair-orders.')
+        ->group(function () {
+            
+            // Ver panel de gestión de la orden
+            Route::get('/{order}', 'show')->name('show');
 
-    // Guardar items (Mano de obra/Refacciones)
-    Route::post('/repair-order-items', [RepairOrderItemController::class, 'store'])
-        ->name('repair-order-items.store');
+            // Gestión de conceptos (Refacciones y Mano de obra)
+            Route::post('/{order}/items', 'addItem')->name('items.store');
+            Route::delete('/{order}/items/{item}', 'removeItem')->name('items.destroy');
 
-    // Generar PDF de la Cotización (PDF de Salida con Taxes de CA)
-    Route::get('/cotizacion/pdf/{id}', [RepairOrderItemController::class, 'descargarCotizacion'])
-        ->name('cotizacion.pdf');
+            // Generación de PDF centralizada en el controlador principal
+            Route::get('/{order}/pdf', 'downloadPdf')->name('pdf');
+    });
 
-    // --- Gestión de Fotos y Archivos ---
-    Route::post('/clients/{client}/photos', [ClientPhotoController::class, 'store'])->name('clients.photos.store');
-    Route::delete('/photos/{photo}', [ClientPhotoController::class, 'destroy'])->name('clients.photos.destroy');
+    // ========================================================
+    // MÓDULO 3: GESTIÓN DE FOTOS Y ARCHIVOS
+    // ========================================================
+    Route::controller(ClientPhotoController::class)->group(function () {
+        Route::post('/clients/{client}/photos', 'store')->name('clients.photos.store');
+        Route::delete('/photos/{photo}', 'destroy')->name('clients.photos.destroy');
+    });
 
-    // --- Configuración y Perfil ---
-    Route::get('/configuracion', [SettingController::class, 'edit'])->name('settings.edit');
-    Route::put('/configuracion', [SettingController::class, 'update'])->name('settings.update');
+    // ========================================================
+    // MÓDULO 4: CONFIGURACIÓN Y PERFIL
+    // ========================================================
+    Route::controller(SettingController::class)->group(function () {
+        Route::get('/configuracion', 'edit')->name('settings.edit');
+        Route::put('/configuracion', 'update')->name('settings.update');
+    });
     
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::controller(ProfileController::class)->group(function () {
+        Route::get('/profile', 'edit')->name('profile.edit');
+        Route::patch('/profile', 'update')->name('profile.update');
+        Route::delete('/profile', 'destroy')->name('profile.destroy');
+    });
 
 });
 

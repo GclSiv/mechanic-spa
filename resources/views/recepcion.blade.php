@@ -1,68 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Nota de Recepción #{{ $recepcion->id }}</title>
     <style>
-        @page { margin: 40px; }
-        body { font-family: 'Helvetica', sans-serif; color: #333; line-height: 1.4; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .header-bg { background-color: #10213E; color: white; padding: 8px; font-weight: bold; }
-        .border-box { border: 1px solid #ccc; padding: 10px; }
-        .text-red { color: #EE2857; font-weight: bold; }
-        .signature { border-top: 1px solid #000; width: 200px; text-align: center; margin-top: 40px; }
-        .logo { width: 180px; height: auto; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 14px; color: #333; }
+        .header { text-align: center; border-bottom: 2px solid #1a365d; padding-bottom: 10px; margin-bottom: 20px; }
+        .logo { font-size: 24px; font-weight: bold; color: #1a365d; }
+        .logo span { color: #e53e3e; }
+        .folio { font-size: 18px; color: #555; }
+        
+        .section-title { background-color: #f3f4f6; padding: 5px; font-weight: bold; border-left: 4px solid #1a365d; margin-top: 20px; }
+        
+        table { w-full; border-collapse: collapse; margin-top: 10px; width: 100%; }
+        td, th { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { font-size: 12px; color: #666; text-transform: uppercase; }
+        
+        .footer { position: fixed; bottom: 30px; left: 0; right: 0; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #ddd; padding-top: 10px; }
     </style>
 </head>
 <body>
 
-    <table class="table" style="border: none;">
-        <tr>
-            <td style="width: 50%; border: none;">
-                <img src="{{ public_path('images/logo-taller.png') }}" class="logo">
-            </td>
-            <td style="width: 50%; border: none; text-align: right;">
-                <span style="font-size: 24px;" class="text-red">RECEPTION ORDER #{{ str_pad($client->id, 5, '0', STR_PAD_LEFT) }}</span><br>
-                <strong>{{ $settings->company_name }}</strong><br>
-                {{ $settings->address }}<br>
-                Phone: {{ $settings->phone }} | Lic: {{ $settings->license_number }}
-            </td>
-        </tr>
-    </table>
-
-    <div class="header-bg">CUSTOMER & VEHICLE INFORMATION</div>
-    <table class="table">
-        <tr>
-            <td class="border-box"><strong>CLIENT:</strong> {{ $client->first_name }} {{ $client->last_name }}</td>
-            <td class="border-box"><strong>DATE:</strong> {{ $client->created_at->format('m/d/Y') }}</td>
-        </tr>
-        <tr>
-            <td class="border-box"><strong>VEHICLE:</strong> {{ $client->brand?->name }} {{ $client->vehicleModel?->name }} ({{ $client->year }})</td>
-            <td class="border-box"><strong>PLATE:</strong> {{ $client->plate }}</td>
-        </tr>
-        <tr>
-            <td class="border-box"><strong>VIN:</strong> {{ $client->vin }}</td>
-            <td class="border-box"><strong>ODOMETER:</strong> {{ number_format($client->miles) }} mi</td>
-        </tr>
-    </table>
-
-    <div class="header-bg">SERVICE DESCRIPTION & SYMPTOMS</div>
-    <div class="border-box" style="min-height: 150px;">
-        <strong>Reported Symptoms:</strong><br>
-        {{ $client->technical_symptoms ?? 'No specific symptoms reported.' }}
-        <br><br>
-        <strong>Fuel Level:</strong> {{ $client->fuel_level }}
+    <div class="header">
+        <div class="logo">JK<span>Automotive</span></div>
+        <div>Mecánica Especializada y Diagnóstico Avanzado</div>
+        <div class="folio">Orden de Recepción #{{ str_pad($recepcion->id, 5, '0', STR_PAD_LEFT) }}</div>
+        <div>Fecha: {{ $recepcion->created_at->format('d/m/Y h:i A') }}</div>
     </div>
 
-    <div style="font-size: 9px; margin-top: 20px; text-align: justify; color: #555;">
-        <strong>LEGAL DISCLAIMER:</strong> {{ $settings->clauses }}
-    </div>
-
-    <table class="table" style="border: none; margin-top: 60px;">
+    <div class="section-title">DATOS DEL CLIENTE</div>
+    <table>
         <tr>
-            <td style="border: none;"><div class="signature">Technician Signature</div></td>
-            <td style="border: none; text-align: right;"><div class="signature" style="margin-left: auto;">Customer Authorization</div></td>
+            <th>Nombre:</th> <td>{{ $recepcion->client->first_name }} {{ $recepcion->client->last_name }}</td>
+            <th>Teléfono:</th> <td>{{ $recepcion->client->phone ?? 'N/A' }}</td>
         </tr>
     </table>
+
+    <div class="section-title">DATOS DEL VEHÍCULO</div>
+    <table>
+        <tr>
+            <th>Marca:</th> <td>{{ $recepcion->vehicle->brand->name ?? 'S/M' }}</td>
+            <th>Modelo:</th> <td>{{ $recepcion->vehicle->vehicleModel->name ?? 'S/M' }}</td>
+        </tr>
+        <tr>
+            <th>Año:</th> <td>{{ $recepcion->vehicle->year }}</td>
+            <th>Placas:</th> <td>{{ $recepcion->vehicle->plate }}</td>
+        </tr>
+        <tr>
+            <th>VIN:</th> <td colspan="3">{{ $recepcion->vehicle->vin }}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">ESTADO DE RECEPCIÓN</div>
+    <table>
+        <tr>
+            <th>Nivel de Combustible:</th> <td>{{ $recepcion->fuel_level }}</td>
+            <th>Kilometraje:</th> <td>{{ $recepcion->miles ?? 'No reportado' }}</td>
+        </tr>
+        <tr>
+            <th>Síntomas Reportados:</th>
+            <td colspan="3">{{ $recepcion->symptoms ?? 'Revisión general' }}</td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Firma del Cliente ___________________________<br><br>
+        Al firmar este documento, el cliente acepta los términos y condiciones del taller. <br>
+        {{ $settings->address ?? 'Taller JK Automotive' }}
+    </div>
 
 </body>
 </html>

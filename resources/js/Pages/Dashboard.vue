@@ -144,75 +144,61 @@ const deleteRecord = (id) => {
                                     <th class="p-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr v-for="client in recentRecepcions?.data" :key="client.id"
-                                    class="hover:bg-blue-50/50 transition">
-                                    <td class="p-4 font-bold text-jk-blue">
-                                        {{ client.first_name }}
-                                    </td>
+                          <tbody class="divide-y divide-gray-100">
+    <tr v-for="recepcion in recentRecepcions?.data" :key="recepcion.id" class="hover:bg-blue-50/50 transition">
+        
+        <td class="p-4 font-bold text-jk-blue">
+            {{ recepcion.client?.first_name || 'Sin Nombre' }}
+        </td>
 
-                                    <td class="p-4">
-                                        <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                                            {{ client.brand?.name || "S/M" }} /
-                                            {{
-                                                client.vehicle_model?.name ||
-                                                "S/M"
-                                            }}
-                                        </span>
-                                    </td>
+        <td class="p-4">
+            <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
+                {{ recepcion.vehicle?.brand?.name || "S/M" }} /
+                {{ recepcion.vehicle?.vehicleModel?.name || "S/M" }}
+            </span>
+        </td>
 
-                                    <td class="p-4">
-                                        <span
-                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
-                                            {{ client.vin_serial || "N/A" }}
-                                        </span>
-                                    </td>
+        <td class="p-4">
+            <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
+                {{ recepcion.vehicle?.vin || "N/A" }}
+            </span>
+        </td>
 
-                                    <td class="p-4 text-center text-sm text-gray-500">
-                                        {{
-                                            new Date(
-                                                client.created_at,
-                                            ).toLocaleDateString()
-                                        }}
-                                    </td>
+        <td class="p-4 text-center text-sm text-gray-500">
+            {{ new Date(recepcion.created_at).toLocaleDateString() }}
+        </td>
 
-                                    <td class="p-4 flex justify-end gap-2">
-                                        <button v-if="client.photos && client.photos.length > 0"
-                                            @click="openPhotoGallery(client.photos)" type="button"
-                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg ..."
-                                            title="Ver evidencia fotográfica">
-                                            📷
-                                        </button>
+        <td class="p-4 flex justify-end gap-2">
+            <button v-if="recepcion.photos && recepcion.photos.length > 0"
+                @click="openPhotoGallery(recepcion.photos)" type="button"
+                class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg"
+                title="Ver evidencia fotográfica">
+                📷
+            </button>
 
-                                        <a :href="route(
-                                            'recepcion.pdf',
-                                            client.id,
-                                        )
-                                            " target="_blank"
-                                            class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            🖨️
-                                        </a>
-                                        <Link :href="route(
-                                            'recepcion.edit',
-                                            client.id,
-                                        )
-                                            "
-                                            class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            ✏️
-                                        </Link>
-                                        <button @click="deleteRecord(client.id)"
-                                            class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
+            <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
+                class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                🖨️
+            </a>
 
-                                <tr v-if="recentRecepcions?.data?.length === 0">
-                                    <td colspan="5" class="p-10 text-center text-gray-400">
-                                        No se encontraron vehículos registrados.
-                                    </td>
-                                </tr>
-                            </tbody>
+            <Link :href="route('recepcion.edit', recepcion.id)"
+                class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                ✏️
+            </Link>
+
+            <button @click="deleteRecord(recepcion.id)"
+                class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                🗑️
+            </button>
+        </td>
+    </tr>
+
+    <tr v-if="recentRecepcions?.data?.length === 0">
+        <td colspan="5" class="p-10 text-center text-gray-400">
+            No se encontraron vehículos registrados.
+        </td>
+    </tr>
+</tbody>
                         </table>
                     </div>
 
