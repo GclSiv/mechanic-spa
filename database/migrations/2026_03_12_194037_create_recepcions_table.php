@@ -24,7 +24,9 @@ return new class extends Migration
         $table->string('vin_serial')->nullable();
         $table->text('symptoms')->nullable(); // Falla reportada
         $table->string('status')->default('Pendiente');
-        $table->string('address')->nullable()->after('phone');
+        if (!Schema::hasColumn('recepcions', 'address')) {
+    $table->string('address')->nullable()->after('phone');
+}
         $table->string('rfc', 20)->nullable()->after('address');
         $table->string('year', 4)->nullable()->after('vehicle_model_id');
         $table->string('plate', 20)->nullable()->after('year');
