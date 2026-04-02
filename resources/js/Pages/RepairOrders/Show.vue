@@ -5,8 +5,11 @@ import OrderTotals from '@/Components/OrderTotals.vue';
 // Unifiqué el prop a 'orden' porque así lo llamas en todo el HTML
 defineProps({
     orden: Object,
-    recepcion: Object
+    recepcion: Object,
+    financial_breakdown: Object
+    
 });
+
 const page = usePage();
 </script>
 
@@ -76,8 +79,11 @@ const page = usePage();
                     </table>
 
                     <div class="flex justify-end mt-4 pt-4 border-t border-gray-200">
-                        <OrderTotals :orden="orden" />
-                    </div>
+    <OrderTotals 
+        :orden="orden" 
+        :breakdown="financial_breakdown" 
+    />
+</div>
 
                 </div>
             </div>

@@ -6,6 +6,8 @@ use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+
 use Illuminate\Support\Facades\DB;
 
 class RepairOrderController extends Controller
@@ -31,12 +33,19 @@ class RepairOrderController extends Controller
         return back()->withErrors('Error al agregar el item.');
     }
 
-    return back()->with([
-        'success' => 'Item agregado y totales actualizados.',
+   return redirect()->route('repair-orders.show', $order)
+    ->with('success', 'Item eliminado correctamente.');
+}
+public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator)
+{
+    $breakdown = $calculator->execute($order);
+
+    return Inertia::render('RepairOrders/Show', [
+        'orden' => $order->load('items'),
+        'recepcion' => $order->recepcion,
         'financial_breakdown' => $breakdown
     ]);
 }
-
 public function removeItem(RepairOrder $order, RepairOrderItem $item, CalculateOrderTotalsAction $calculator)
 {
     if ($item->repair_order_id !== $order->id) {
@@ -52,9 +61,7 @@ public function removeItem(RepairOrder $order, RepairOrderItem $item, CalculateO
         return back()->withErrors('Error al eliminar el item.');
     }
 
-    return back()->with([
-        'success' => 'Item eliminado y totales actualizados.',
-        'financial_breakdown' => $breakdown
-    ]);
+    return redirect()->route('repair-orders.show', $order)
+    ->with('success', 'Item agregado correctamente.');
 }
 }
