@@ -5,7 +5,7 @@ defineProps({
 </script>
 
 <template>
-    <div class="w-full max-w-sm text-sm text-gray-700 space-y-2">
+    <div v-if="breakdown" class="w-full max-w-sm text-sm text-gray-700 space-y-2">
 
         <div class="flex justify-between">
             <span>Refacciones:</span>
@@ -18,7 +18,7 @@ defineProps({
         </div>
 
         <div class="flex justify-between">
-            <span>IVA:</span>
+            <span>IVA ({{ breakdown.tax_rate }}%):</span>
             <span>${{ Number(breakdown.tax_amount).toFixed(2) }}</span>
         </div>
 
@@ -28,4 +28,5 @@ defineProps({
         </div>
 
     </div>
+    <div v-else class="text-gray-400 text-sm italic">Calculando totales...</div>
 </template>
