@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
-// 1. Recibimos los datos exactos que nos manda el Controlador
+// 1. Recibimos los datos con sus relaciones cargadas desde el controlador
 const props = defineProps({
     brands: Array,
     recepcion: Object,
@@ -12,17 +12,32 @@ const props = defineProps({
 // 2. Control de la vista
 const currentStep = ref(1);
 
-// 3. PRE-LLENADO: El formulario arranca con la memoria de la base de datos
+// 3. Extracción segura: Leemos de las relaciones (client y vehicle)
+const client = props.recepcion.client || {};
+const vehicle = props.recepcion.vehicle || {};
+
+// 4. PRE-LLENADO: El formulario arranca con la memoria de la BD normalizada
 const form = useForm({
-    first_name: props.recepcion.first_name || '',
-    phone: props.recepcion.phone || '',
-    address: props.recepcion.address || '',
-    rfc: props.recepcion.rfc || '',
-    brand_id: props.recepcion.brand_id || '',
-    vehicle_model_id: props.recepcion.vehicle_model_id || '',
-    year: props.recepcion.year || '',
-    plate: props.recepcion.plate || '',
-    vin_serial: props.recepcion.vin_serial || '',
+    // Mandamos los IDs para que el backend sepa a quién actualizar
+    client_id: client.id,
+    vehicle_id: vehicle.id,
+
+    // Datos del Cliente
+    first_name: client.first_name || '',
+    last_name: client.last_name || '', // Agregado: Requerido en la BD
+    phone: client.phone || '',
+    address: client.address || '',
+    rfc: client.rfc || '',
+
+    // Datos del Vehículo
+    brand_id: vehicle.brand_id || '',
+    vehicle_model_id: vehicle.model_id || '', // Corregido: La llave foránea es model_id
+    year: vehicle.year || '',
+    plate: vehicle.plate || '',
+    vin: vehicle.vin || '', // Corregido: vin_serial -> vin
+    engine: vehicle.engine || '', // Agregado: Nuevo campo de motor
+
+    // Datos de la Recepción (Transaccionales puros)
     miles: props.recepcion.miles || '',
     fuel_level: props.recepcion.fuel_level || '1/4',
     symptoms: props.recepcion.symptoms || '',
@@ -30,7 +45,7 @@ const form = useForm({
     inventory: props.recepcion.inventory || [],
 });
 
-// 4. Lógica de Marcas y Modelos Dinámicos
+// Lógica de Marcas y Modelos Dinámicos
 const availableModels = computed(() => {
     const brand = props.brands.find(b => b.id === form.brand_id);
     return brand ? brand.vehicle_models : [];
@@ -39,15 +54,14 @@ const availableModels = computed(() => {
 // Niveles de gasolina para el diseño visual
 const fuelLevels = ['E', '1/4', '1/2', '3/4', 'F'];
 
-// 5. Enviar los datos actualizados (usando PUT)
+// Enviar los datos actualizados (usando PUT)
 const submit = () => {
-    // Usamos form.put y apuntamos a la ruta update con el ID del registro
     form.put(route("recepcion.update", props.recepcion.id), {
         preserveState: true,
         preserveScroll: true,
         onError: (errors) => {
-            console.error("🚨 Laravel rechazó los datos:", errors);
-            alert("Por favor, revisa los campos requeridos.");
+            console.error("🚨 Error de validación de Laravel:", errors);
+            alert("Por favor, revisa los campos marcados en rojo.");
         }
     });
 };
@@ -55,7 +69,6 @@ const submit = () => {
 
 <template>
     <Head title="Editar Recepción" />
-
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center">
@@ -67,13 +80,11 @@ const submit = () => {
                 </Link>
             </div>
         </template>
-
         <div class="py-12 bg-gray-50 min-h-screen">
             <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                
                 <div class="flex justify-center mb-8">
                     <div class="flex items-center space-x-4">
-                        <button @click="currentStep = 1" :class="currentStep === 1 ? 'bg-jk-blue text-white' : 'bg-green-500 text-white'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
+                        <button type="button" @click="currentStep = 1" :class="currentStep === 1 ? 'bg-jk-blue text-white' : 'bg-green-500 text-white'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
                             <span v-if="currentStep === 1">1</span>
                             <span v-else>✓</span>
                         </button>
@@ -81,7 +92,7 @@ const submit = () => {
                         
                         <div class="w-8 h-0.5 bg-gray-300"></div>
                         
-                        <button @click="currentStep = 2" :class="currentStep === 2 ? 'bg-jk-blue text-white' : 'bg-gray-200 text-gray-600'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
+                        <button type="button" @click="currentStep = 2" :class="currentStep === 2 ? 'bg-jk-blue text-white' : 'bg-gray-200 text-gray-600'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
                             2
                         </button>
                         <span :class="currentStep === 2 ? 'text-jk-blue font-bold' : 'text-gray-400'">Datos del Vehículo</span>
@@ -90,29 +101,31 @@ const submit = () => {
 
                 <form @submit.prevent="submit" class="bg-white shadow-xl sm:rounded-2xl overflow-hidden border-t-8 border-jk-blue">
                     <div class="p-8">
-
+                        <!-- PASO 1 -->
                         <div v-show="currentStep === 1" class="space-y-6 animate-fade-in">
                             <h3 class="text-lg font-black text-jk-blue uppercase border-b-2 border-gray-100 pb-2 mb-6">Datos del Cliente</h3>
-                            
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo *</label>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre(s) *</label>
                                     <input v-model="form.first_name" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Apellidos *</label>
+                                    <input v-model="form.last_name" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
                                     <input v-model="form.phone" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
                                 </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Dirección</label>
-                                    <input v-model="form.address" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
-                                </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">RFC</label>
                                     <input v-model="form.rfc" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" />
                                 </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Dirección</label>
+                                    <input v-model="form.address" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
+                                </div>
                             </div>
-
                             <div class="mt-8 flex justify-end">
                                 <button type="button" @click="currentStep = 2" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-xl transition-all">
                                     CONTINUAR &rarr;
@@ -120,10 +133,10 @@ const submit = () => {
                             </div>
                         </div>
 
+                        <!-- PASO 2 -->
                         <div v-show="currentStep === 2" class="space-y-6 animate-fade-in">
                             <h3 class="text-lg font-black text-jk-red uppercase border-b-2 border-gray-100 pb-2 mb-6">Datos del Vehículo</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Marca *</label>
                                     <select v-model="form.brand_id" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required>
@@ -147,25 +160,29 @@ const submit = () => {
                                     <input v-model="form.plate" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" />
                                 </div>
                                 <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">Motor</label>
+                                    <input v-model="form.engine" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" placeholder="Ej. 2.0L" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">VIN / Serie</label>
+                                    <input v-model="form.vin" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" maxlength="17" />
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                                <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-1">Kilometraje</label>
                                     <input v-model="form.miles" type="number" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">VIN / Número de Serie</label>
-                                    <input v-model="form.vin_serial" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" />
-                                </div>
-                            </div>
-
-                            <div class="pt-4">
-                                <label class="block text-sm font-bold text-gray-700 mb-3">Nivel de Gasolina al Ingreso *</label>
-                                <div class="flex gap-2">
-                                    <button 
-                                        v-for="level in fuelLevels" :key="level" type="button"
-                                        @click="form.fuel_level = level"
-                                        :class="form.fuel_level === level ? 'bg-jk-blue text-white ring-2 ring-offset-2 ring-jk-blue' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                        class="flex-1 py-3 rounded-xl font-bold transition-all text-sm">
-                                        {{ level }}
-                                    </button>
+                                    <label class="block text-sm font-bold text-gray-700 mb-3">Gasolina al Ingreso *</label>
+                                    <div class="flex gap-2">
+                                        <button v-for="level in fuelLevels" :key="level" type="button" @click="form.fuel_level = level"
+                                            :class="form.fuel_level === level ? 'bg-jk-blue text-white ring-2 ring-offset-2 ring-jk-blue' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                            class="flex-1 py-3 rounded-xl font-bold transition-all text-sm">
+                                            {{ level }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -184,10 +201,8 @@ const submit = () => {
                                 </button>
                             </div>
                         </div>
-
                     </div>
                 </form>
-
             </div>
         </div>
     </AuthenticatedLayout>

@@ -77,7 +77,15 @@ public function store(Request $request)
     // 3. Regresamos con un mensaje de éxito
     return redirect()->back()->with('success', '¡Recepción de vehículo registrada exitosamente!');
 }
+public function index()
+{
+    // Traemos todos los clientes ordenados por el más reciente
+    $clients = \App\Models\Client::orderBy('id', 'desc')->get();
 
+    return \Inertia\Inertia::render('Clientes/Index', [
+        'clients' => $clients
+    ]);
+}
     public function print($id)
 {
        // 1. Carga optimizada de relaciones

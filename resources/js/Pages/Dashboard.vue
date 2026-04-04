@@ -101,7 +101,7 @@ const deleteRecord = (id) => {
                             {{ stats.today }}
                         </p>
                     </div>
-                    <Link href="/recepcion/create"
+                    <Link :href="route('recepcion.create')"
                         class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
                         <span class="text-2xl">+</span> NUEVA RECEPCIÓN
                     </Link>
@@ -144,61 +144,63 @@ const deleteRecord = (id) => {
                                     <th class="p-4 text-right">Acciones</th>
                                 </tr>
                             </thead>
-                          <tbody class="divide-y divide-gray-100">
-    <tr v-for="recepcion in recentRecepcions?.data" :key="recepcion.id" class="hover:bg-blue-50/50 transition">
-        
-        <td class="p-4 font-bold text-jk-blue">
-            {{ recepcion.client?.first_name || 'Sin Nombre' }}
-        </td>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="recepcion in recentRecepcions?.data" :key="recepcion.id"
+                                    class="hover:bg-blue-50/50 transition">
 
-        <td class="p-4">
-            <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                {{ recepcion.vehicle?.brand?.name || "S/M" }} /
-                {{ recepcion.vehicle?.vehicleModel?.name || "S/M" }}
-            </span>
-        </td>
+                                    <td class="p-4 font-bold text-jk-blue">
+                                        {{ recepcion.client?.first_name || 'Sin Nombre' }}
+                                    </td>
 
-        <td class="p-4">
-            <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
-                {{ recepcion.vehicle?.vin || "N/A" }}
-            </span>
-        </td>
+                                    <td class="p-4">
+                                        <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
+                                            {{ recepcion.vehicle?.brand?.name || "S/M" }} /
+                                            {{ recepcion.vehicle?.vehicleModel?.name || "S/M" }}
+                                        </span>
+                                    </td>
 
-        <td class="p-4 text-center text-sm text-gray-500">
-            {{ new Date(recepcion.created_at).toLocaleDateString() }}
-        </td>
+                                    <td class="p-4">
+                                        <span
+                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
+                                            {{ recepcion.vehicle?.vin || "N/A" }}
+                                        </span>
+                                    </td>
 
-        <td class="p-4 flex justify-end gap-2">
-            <button v-if="recepcion.photos && recepcion.photos.length > 0"
-                @click="openPhotoGallery(recepcion.photos)" type="button"
-                class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg"
-                title="Ver evidencia fotográfica">
-                📷
-            </button>
+                                    <td class="p-4 text-center text-sm text-gray-500">
+                                        {{ new Date(recepcion.created_at).toLocaleDateString() }}
+                                    </td>
 
-            <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
-                class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                🖨️
-            </a>
+                                    <td class="p-4 flex justify-end gap-2">
+                                        <button v-if="recepcion.photos && recepcion.photos.length > 0"
+                                            @click="openPhotoGallery(recepcion.photos)" type="button"
+                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg"
+                                            title="Ver evidencia fotográfica">
+                                            📷
+                                        </button>
 
-            <Link :href="route('recepcion.edit', recepcion.id)"
-                class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                ✏️
-            </Link>
+                                        <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
+                                            class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                                            🖨️
+                                        </a>
 
-            <button @click="deleteRecord(recepcion.id)"
-                class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                🗑️
-            </button>
-        </td>
-    </tr>
+                                        <Link :href="route('recepcion.edit', recepcion.id)"
+                                            class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                                            ✏️
+                                        </Link>
 
-    <tr v-if="recentRecepcions?.data?.length === 0">
-        <td colspan="5" class="p-10 text-center text-gray-400">
-            No se encontraron vehículos registrados.
-        </td>
-    </tr>
-</tbody>
+                                        <button @click="deleteRecord(recepcion.id)"
+                                            class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr v-if="recentRecepcions?.data?.length === 0">
+                                    <td colspan="5" class="p-10 text-center text-gray-400">
+                                        No se encontraron vehículos registrados.
+                                    </td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
 

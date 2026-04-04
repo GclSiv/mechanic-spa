@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Client extends Model
 {
+    use HasFactory; // 2. Activar el chip dentro de la clase
     protected $fillable = [
         'first_name', 'last_name', 'email', 'phone', 'address', // Campos correctos de identidad
     ];
