@@ -22,7 +22,15 @@ Route::get('/', function () {
 
 // --- 2. RUTAS PROTEGIDAS (SISTEMA JK AUTOMOTIVE) ---
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
+Route::post('/settings/tax', [SettingController::class, 'updateTax'])->name('settings.updateTax');
+    // El puente que crea la cotización desde el Dashboard
+Route::get('/recepciones/{recepcion}/generate-order', [App\Http\Controllers\RecepcionController::class, 'generateOrder'])->name('recepcion.generateOrder');
+
+// Las rutas de la pantalla de Cotizaciones
+Route::get('/repair-orders/{order}', [RepairOrderController::class, 'show'])->name('repair-orders.show');
+Route::post('/repair-orders/{order}/items', [RepairOrderController::class, 'addItem'])->name('repair-orders.addItem');
+Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::class, 'removeItem'])->name('repair-orders.removeItem');
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

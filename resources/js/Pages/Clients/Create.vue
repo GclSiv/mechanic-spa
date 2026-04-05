@@ -23,7 +23,7 @@ const page = usePage();
 // ─── Wizard (pasos) ──────────────────────────────────────────
 const currentStep = ref(1);
 const totalSteps = 2;
-
+const isNewClient = ref(true);
 const goNext = () => {
     if (currentStep.value < totalSteps) currentStep.value++;
 };

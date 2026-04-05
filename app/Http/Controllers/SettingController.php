@@ -51,4 +51,17 @@ class SettingController extends Controller
 
         return back()->with('message', 'Sistema JK Automotive calibrado con éxito.');
     }
+     public function updateTax(\Illuminate\Http\Request $request)
+    {
+        $request->validate(['iva' => 'required|numeric']);
+        
+        $setting = \App\Models\Setting::first();
+        if ($setting) {
+            $setting->iva = $request->iva;
+            $setting->save();
+        }
+        
+        // Regresa a la pantalla y Laravel recalculará todos los totales automáticamente
+        return back()->with('success', 'Configuración fiscal actualizada');
+    }
 }

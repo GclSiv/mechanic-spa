@@ -47,7 +47,8 @@ class RepairOrderController extends Controller
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,
             'recepcion'           => $order->recepcion, // Ya viene con cliente y vehículo
-            'financial_breakdown' => $breakdown
+            'financial_breakdown' => $breakdown,
+            'settings'            => \App\Models\Setting::first(), // <--- ¡ESTA ES LA LÍNEA MÁGICA!
         ]);
     }
 
@@ -69,5 +70,36 @@ class RepairOrderController extends Controller
         // ✅ Corregido el mensaje
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Concepto eliminado correctamente.');
+    }
+     /**
+     * Genera y descarga el PDF de la Cotización.
+     */
+    public function downloadPdf(RepairOrder $order, CalculateOrderTotalsAction $calculator)
+    {
+        // Cargamos todas las relaciones necesarias para que no salga en blanco
+        $order->load([
+            'items', 
+            'recepcion.client', 
+            'recepcion.vehicle.brand', 
+            'recepcion.vehicle.vehicleModel'
+        ]);
+
+        // Traemos los ajustes del taller y calculamos los totales
+        $settings = \App\Models\Setting::first();
+        $breakdown = $calculator->execute($order);
+
+        // Generamos el PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.cotizacion', [
+            'orden'     => $order,
+            'recepcion' => $order->recepcion,
+            'settings'  => $settings,
+            'subtotal'  => $breakdown['subtotal'] ?? 0,
+            'iva'       => $breakdown['tax'] ?? 0,
+            'total'     => $breakdown['total'] ?? 0
+        ]);
+
+        // Limpiamos el nombre y descargamos
+        $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'JK-Automotive';
+        return $pdf->stream('Cotizacion_' . strtoupper($empresaSegura) . '_' . ($order->folio ?? $order->id) . '.pdf');
     }
 }

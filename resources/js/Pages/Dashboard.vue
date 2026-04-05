@@ -172,11 +172,12 @@ const deleteRecord = (id) => {
 
                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
     
-    <!-- BOTÓN DE COTIZACIÓN -->
-    <Link :href="route('repair-orders.show', recepcion.id)" 
-          class="bg-green-100 text-green-600 p-2 rounded-lg hover:bg-green-200 transition-colors shadow-sm" title="Ver/Crear Cotización">
-        💰
-    </Link>
+   <!-- BOTÓN DE COTIZACIÓN (La bolsita de dinero) -->
+<Link :href="route('recepcion.generateOrder', recepcion.id)" 
+      class="bg-green-100 text-green-600 p-2 rounded-lg hover:bg-green-200 transition-colors shadow-sm"
+      title="Ver/Crear Cotización">
+    💰
+</Link>
 
     <!-- BOTÓN DE IMPRIMIR -->
     <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"

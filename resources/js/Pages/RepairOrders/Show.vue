@@ -8,7 +8,15 @@ defineProps({
     orden: Object,
     recepcion: Object,
     financial_breakdown: Object,
+      settings: Object, // <--- Recibimos los settings dinámicos
 });
+// Función para cambiar el impuesto con un solo clic
+function updateTax(newTax) {
+    router.post(route('settings.updateTax'), { iva: newTax }, {
+        preserveScroll: true,
+        preserveState: true, // <--- ¡CAMBIA ESTO A TRUE!
+    });
+}
 
 const page = usePage();
 const showModal = ref(false);
@@ -127,61 +135,84 @@ function removeItem(itemId) {
         </div>
 
         <!-- Modal: Agregar Concepto -->
+    <!-- Modal: Agregar Concepto -->
         <div v-if="showModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-bold text-gray-800">Agregar Concepto</h3>
-                    <button @click="showModal = false; form.reset()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-200">
+                
+                <!-- HEADER DEL MODAL DINÁMICO -->
+                <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
+                    <h3 class="text-white font-black text-sm tracking-wider uppercase">
+                        Nuevo Concepto - {{ settings?.company_name || 'Taller' }}
+                    </h3>
+                    <button @click="showModal = false; form.reset()" class="text-white hover:text-red-400 font-bold">✕</button>
                 </div>
 
-                <div class="space-y-4">
-                    <!-- Tipo -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
-                        <select v-model="form.type"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="part">Refacción</option>
-                            <option value="labor">Mano de Obra</option>
-                        </select>
-                    </div>
-                    <!-- Descripción -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
-                        <input v-model="form.description" type="text" placeholder="Ej. Filtro de aceite"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                        <p v-if="form.errors.description" class="text-red-500 text-xs mt-1">{{ form.errors.description }}</p>
-                    </div>
-                    <!-- Cantidad y Precio -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Cantidad</label>
-                            <input v-model="form.quantity" type="number" min="0.01" step="0.01"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <p v-if="form.errors.quantity" class="text-red-500 text-xs mt-1">{{ form.errors.quantity }}</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio Unitario</label>
-                            <input v-model="form.unit_price" type="number" min="0" step="0.01"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <p v-if="form.errors.unit_price" class="text-red-500 text-xs mt-1">{{ form.errors.unit_price }}</p>
+                <div class="p-6">
+                    <!-- BOTONES FISCALES FUNCIONALES -->
+                    <div class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-6">
+                        <span class="text-xs font-bold text-gray-500 pl-3">Configuración Fiscal:</span>
+                        <div class="flex gap-1">
+                            <button type="button" @click="updateTax(8.75)"
+                                    :class="settings?.iva == 8.75 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
+                                    class="px-4 py-1.5 rounded text-xs font-bold transition-all">
+                                USA (8.75%)
+                            </button>
+                            <button type="button" @click="updateTax(16)"
+                                    :class="settings?.iva == 16 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
+                                    class="px-4 py-1.5 rounded text-xs font-bold transition-all">
+                                MÉXICO (16%)
+                            </button>
                         </div>
                     </div>
-                    <!-- Subtotal preview -->
-                    <div class="bg-blue-50 rounded-lg px-4 py-2 flex justify-between text-sm font-bold text-blue-800">
-                        <span>Subtotal estimado:</span>
-                        <span>${{ (Number(form.quantity) * Number(form.unit_price)).toFixed(2) }}</span>
-                    </div>
-                </div>
 
-                <div class="flex gap-3 mt-6">
-                    <button @click="showModal = false; form.reset()"
-                        class="flex-1 border border-gray-300 text-gray-600 font-bold py-2 rounded-lg hover:bg-gray-50 transition text-sm">
-                        Cancelar
-                    </button>
-                    <button @click="submitItem" :disabled="form.processing"
-                        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 rounded-lg transition text-sm">
-                        {{ form.processing ? 'Guardando...' : 'Agregar Concepto' }}
-                    </button>
+                    <div class="space-y-4">
+                        <!-- Descripción -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción del Servicio o Refacción</label>
+                            <textarea v-model="form.description" rows="2" placeholder="Ej: Cambio de balatas cerámicas..."
+                                      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]"></textarea>
+                            <p v-if="form.errors.description" class="text-red-500 text-xs mt-1">{{ form.errors.description }}</p>
+                        </div>
+
+                        <!-- Cantidad, Precio y EL SELECTOR DE TIPO (VITAL PARA EL SISTEMA) -->
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Cantidad</label>
+                                <input v-model="form.quantity" type="number" min="0.01" step="0.01"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio Unit.</label>
+                                <input v-model="form.unit_price" type="number" min="0" step="0.01"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo *</label>
+                                <select v-model="form.type"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                    <option value="part">Refacción (Pieza)</option>
+                                    <option value="labor">Mano de Obra</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Subtotal preview -->
+                        <div class="bg-blue-50 rounded-lg px-4 py-2 flex justify-between text-sm font-bold text-blue-800">
+                            <span>Subtotal estimado:</span>
+                            <span>${{ (Number(form.quantity) * Number(form.unit_price)).toFixed(2) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Botones Inferiores -->
+                    <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                        <button @click="showModal = false; form.reset()" class="text-gray-500 font-bold text-sm hover:text-[#EE2857] transition-colors">
+                            Cancelar
+                        </button>
+                        <button @click="submitItem" :disabled="form.processing"
+                                class="bg-[#10213E] hover:bg-blue-900 disabled:opacity-50 text-white font-black px-6 py-3 rounded-lg shadow-md transition-all text-sm uppercase">
+                            {{ form.processing ? 'Guardando...' : 'Agregar a Cotización' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

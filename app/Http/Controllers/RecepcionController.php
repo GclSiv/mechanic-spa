@@ -8,7 +8,7 @@ use App\Models\Client;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use App\Models\Recepcion;
-
+use App\Models\Setting; 
 // Tus importaciones originales
 use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
@@ -209,18 +209,62 @@ class RecepcionController extends Controller
     }
 
     /**
-     * Genera e imprime el PDF de la Nota de Recepción
+     * Genera el PDF de la nota de recepción.
      */
-    public function print($id)
+    public function print(Recepcion $recepcion)
     {
-        // 1. Cargamos la recepción CON todas sus relaciones (Eager Loading) 
-        // Esto evita el error de variables nulas que arreglamos en la vista
-        $recepcion = \App\Models\Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])->findOrFail($id);
+        // 1. Eager load de todas las relaciones que necesita el blade (¡ESTO ES CORRECTO!)
+        $recepcion->load([
+            'client',
+            'vehicle.brand',
+            'vehicle.vehicleModel',
+        ]);
 
-        // 2. Generamos el PDF apuntando a tu archivo recepcion.blade.php
-        $pdf = \PDF::loadView('recepcion', compact('recepcion'));
-        
-        // 3. Mostramos el PDF directamente en el navegador
-        return $pdf->stream('Recepcion_' . $recepcion->id . '.pdf');
+        // 2. Configuración global del taller
+        $settings = \App\Models\Setting::first(); 
+
+        // 3. Generar PDF apuntando a la carpeta "pdf" y pasando AMBAS variables
+        $pdf = Pdf::loadView('pdf.recepcion', [
+            'recepcion' => $recepcion,
+            'settings'  => $settings,
+        ]);
+
+        $pdf->setPaper('letter', 'portrait');
+
+        // 4. Mostrar en el navegador
+        return $pdf->stream("Recepcion-{$recepcion->id}.pdf");
+    }
+    public function generateOrder(Recepcion $recepcion)
+    {
+        try {
+            // 1. Buscamos el primer registro válido que exista en tu base de datos 
+            // para no forzar el "ID 1" que podría no existir.
+            $mechanic = \App\Models\Mechanic::first();
+            $status   = \App\Models\RepairOrderStatus::first();
+            $client   = \App\Models\Client::first();
+            $vehicle  = \App\Models\Vehicle::first();
+
+            // 2. Buscamos o creamos la orden
+            $order = \App\Models\RepairOrder::firstOrCreate(
+                ['recepcion_id' => $recepcion->id],
+                [
+                    'folio'               => 'Q-' . str_pad($recepcion->id, 4, '0', STR_PAD_LEFT),
+                    'client_id'           => $recepcion->client_id ?? ($client ? $client->id : null),
+                    'vehicle_id'          => $recepcion->vehicle_id ?? ($vehicle ? $vehicle->id : null),
+                    'mechanic_id'         => $mechanic ? $mechanic->id : null,
+                    'status_id'           => $status ? $status->id : null,
+                    'problem_description' => $recepcion->symptoms ?? 'Diagnóstico general',
+                    'entry_date'          => now(),
+                ]
+            );
+
+            // 3. Redirige exitosamente
+            return redirect()->route('repair-orders.show', $order->id);
+
+        } catch (\Exception $e) {
+            // ¡EL SALVAVIDAS! Si la base de datos bloquea el guardado,
+            // esto te mostrará en letras gigantes EXACTAMENTE cuál es el problema.
+            dd('Error SQL al intentar crear la cotización: ' . $e->getMessage());
+        }
     }
 }

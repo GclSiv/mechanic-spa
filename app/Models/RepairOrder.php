@@ -14,15 +14,17 @@ class RepairOrder extends Model
 
     // Agregamos 'recepcion_id' al fillable para vincular la entrada con la orden
     protected $fillable = [
-        'folio', 
         'recepcion_id', // Vínculo vital para el PDF
+        'folio', 
+        
         'client_id', 
         'vehicle_id', 
         'mechanic_id', 
         'status_id', 
         'problem_description', 
         'estimated_cost', 
-        'entry_date'
+        'entry_date',
+        'delivery_date'
     ];
 
     /**
@@ -51,4 +53,5 @@ class RepairOrder extends Model
     }
 
     // se Puede agregar relaciones adicionales para Client y Vehicle si las necesitas
+   
 }
