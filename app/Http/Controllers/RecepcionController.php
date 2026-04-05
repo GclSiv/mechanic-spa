@@ -16,6 +16,10 @@ use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+// 1. IMPORTA EL MODELO Y LA LIBRERÍA PDF AQUÍ ARRIBA
+
+use Barryvdh\DomPDF\Facade\Pdf; 
+
 
 class RecepcionController extends Controller
 {
@@ -202,5 +206,21 @@ class RecepcionController extends Controller
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Concepto agregado correctamente.');
+    }
+
+    /**
+     * Genera e imprime el PDF de la Nota de Recepción
+     */
+    public function print($id)
+    {
+        // 1. Cargamos la recepción CON todas sus relaciones (Eager Loading) 
+        // Esto evita el error de variables nulas que arreglamos en la vista
+        $recepcion = \App\Models\Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])->findOrFail($id);
+
+        // 2. Generamos el PDF apuntando a tu archivo recepcion.blade.php
+        $pdf = \PDF::loadView('recepcion', compact('recepcion'));
+        
+        // 3. Mostramos el PDF directamente en el navegador
+        return $pdf->stream('Recepcion_' . $recepcion->id . '.pdf');
     }
 }

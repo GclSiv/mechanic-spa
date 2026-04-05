@@ -170,29 +170,34 @@ const deleteRecord = (id) => {
                                         {{ new Date(recepcion.created_at).toLocaleDateString() }}
                                     </td>
 
-                                    <td class="p-4 flex justify-end gap-2">
-                                        <button v-if="recepcion.photos && recepcion.photos.length > 0"
-                                            @click="openPhotoGallery(recepcion.photos)" type="button"
-                                            class="bg-blue-50 hover:bg-blue-100 text-jk-blue p-2 rounded-lg"
-                                            title="Ver evidencia fotográfica">
-                                            📷
-                                        </button>
+                                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
+    
+    <!-- BOTÓN DE COTIZACIÓN -->
+    <Link :href="route('repair-orders.show', recepcion.id)" 
+          class="bg-green-100 text-green-600 p-2 rounded-lg hover:bg-green-200 transition-colors shadow-sm" title="Ver/Crear Cotización">
+        💰
+    </Link>
 
-                                        <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
-                                            class="bg-gray-100 hover:bg-jk-blue hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            🖨️
-                                        </a>
+    <!-- BOTÓN DE IMPRIMIR -->
+    <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
+       class="bg-purple-100 text-purple-600 p-2 rounded-lg hover:bg-purple-200 transition-colors shadow-sm" title="Imprimir Nota de Ingreso">
+        🖨️
+    </a>
 
-                                        <Link :href="route('recepcion.edit', recepcion.id)"
-                                            class="bg-gray-100 hover:bg-yellow-500 hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            ✏️
-                                        </Link>
+    <!-- BOTÓN DE EDITAR -->
+    <Link :href="route('recepcion.edit', recepcion.id)"
+          class="bg-orange-100 text-orange-600 p-2 rounded-lg hover:bg-orange-200 transition-colors shadow-sm" title="Editar Datos">
+        ✏️
+    </Link>
 
-                                        <button @click="deleteRecord(recepcion.id)"
-                                            class="bg-gray-100 hover:bg-jk-red hover:text-white p-2 rounded-lg text-sm transition-all shadow-sm">
-                                            🗑️
-                                        </button>
-                                    </td>
+    <!-- BOTÓN DE ELIMINAR (Restaurado) -->
+    <Link :href="route('recepcion.destroy', recepcion.id)" method="delete" as="button"
+          class="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition-colors shadow-sm" title="Eliminar Recepción"
+          onclick="return confirm('¿Estás seguro de que deseas eliminar este registro de forma permanente?')">
+        🗑️
+    </Link>
+
+</td>
                                 </tr>
 
                                 <tr v-if="recentRecepcions?.data?.length === 0">
