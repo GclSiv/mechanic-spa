@@ -72,6 +72,9 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
 
             // Generación de PDF centralizada en el controlador principal
             Route::get('/{order}/pdf', 'downloadPdf')->name('pdf');
+
+            // Fase 3: Cambio de estado de la orden
+            Route::patch('/{order}/status', 'updateStatus')->name('status.update');
     });
 
     // ========================================================

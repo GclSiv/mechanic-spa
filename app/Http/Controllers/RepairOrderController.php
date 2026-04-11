@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
+use App\Models\RepairOrderStatus;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,13 +43,14 @@ class RepairOrderController extends Controller
         $breakdown = $calculator->execute($order);
 
         // 2. ✅ Eager Loading Senior: Cargamos todo lo que Vue necesita para no romperse
-        $order->load(['items', 'recepcion.client', 'recepcion.vehicle.brand', 'recepcion.vehicle.vehicleModel']);
+        $order->load(['items', 'status', 'recepcion.client', 'recepcion.vehicle.brand', 'recepcion.vehicle.vehicleModel']);
 
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,
-            'recepcion'           => $order->recepcion, // Ya viene con cliente y vehículo
+            'recepcion'           => $order->recepcion,
             'financial_breakdown' => $breakdown,
-            'settings'            => \App\Models\Setting::first(), // <--- ¡ESTA ES LA LÍNEA MÁGICA!
+            'settings'            => \App\Models\Setting::first(),
+            'statuses'            => RepairOrderStatus::orderBy('id')->get(), // Fase 3
         ]);
     }
 
@@ -101,5 +103,20 @@ class RepairOrderController extends Controller
         // Limpiamos el nombre y descargamos
         $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'JK-Automotive';
         return $pdf->stream('Cotizacion_' . strtoupper($empresaSegura) . '_' . ($order->folio ?? $order->id) . '.pdf');
+    }
+
+    /**
+     * Fase 3: Actualiza el estado de la orden de reparación.
+     */
+    public function updateStatus(Request $request, RepairOrder $order)
+    {
+        $request->validate([
+            'status_id' => 'required|exists:repair_order_statuses,id',
+        ]);
+
+        $order->update(['status_id' => $request->status_id]);
+
+        return redirect()->route('repair-orders.show', $order)
+            ->with('success', 'Estado actualizado correctamente.');
     }
 }

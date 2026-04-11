@@ -1,5 +1,6 @@
 <script setup>
 import OrderTotals from '@/Components/OrderTotals.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -8,7 +9,8 @@ defineProps({
     orden: Object,
     recepcion: Object,
     financial_breakdown: Object,
-    settings: Object, // Traemos la configuración dinámica
+    settings: Object,
+    statuses: Array, // Fase 3
 });
 
 const page = usePage();
@@ -56,9 +58,12 @@ function removeItem(itemId) {
     <AuthenticatedLayout title="Gestión de Cotización">
         <template #header>
             <div class="flex justify-between items-center">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider leading-tight">
-                    Cotización JK - Orden #{{ orden.id }}
-                </h2>
+                <div class="flex items-center gap-4">
+                    <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider leading-tight">
+                        Cotización JK - Orden #{{ orden.id }}
+                    </h2>
+                    <StatusBadge :orden="orden" :statuses="statuses ?? []" />
+                </div>
                 <button @click="imprimirCotizacion"
                     class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all flex items-center gap-2">
                     🖨️ Descargar PDF
