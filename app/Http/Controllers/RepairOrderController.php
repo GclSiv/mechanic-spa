@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Models\RepairOrderStatus;
+use App\Models\Mechanic;
+use App\Models\FollowUp;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,18 +41,23 @@ class RepairOrderController extends Controller
 
     public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
-        // 1. Calculamos los totales actualizados
         $breakdown = $calculator->execute($order);
 
-        // 2. ✅ Eager Loading Senior: Cargamos todo lo que Vue necesita para no romperse
-        $order->load(['items', 'status', 'recepcion.client', 'recepcion.vehicle.brand', 'recepcion.vehicle.vehicleModel']);
+        $order->load([
+            'items', 'status', 'mechanic',
+            'followUps.mechanic',
+            'recepcion.client',
+            'recepcion.vehicle.brand',
+            'recepcion.vehicle.vehicleModel',
+        ]);
 
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,
             'recepcion'           => $order->recepcion,
             'financial_breakdown' => $breakdown,
             'settings'            => \App\Models\Setting::first(),
-            'statuses'            => RepairOrderStatus::orderBy('id')->get(), // Fase 3
+            'statuses'            => RepairOrderStatus::orderBy('id')->get(),
+            'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']), // Fase 4
         ]);
     }
 
@@ -103,6 +110,38 @@ class RepairOrderController extends Controller
         // Limpiamos el nombre y descargamos
         $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'JK-Automotive';
         return $pdf->stream('Cotizacion_' . strtoupper($empresaSegura) . '_' . ($order->folio ?? $order->id) . '.pdf');
+    }
+
+    /**
+     * Fase 4: Asigna un mecánico a la orden.
+     */
+    public function assignMechanic(Request $request, RepairOrder $order)
+    {
+        $request->validate([
+            'mechanic_id' => 'required|exists:mechanics,id',
+        ]);
+
+        $order->update(['mechanic_id' => $request->mechanic_id]);
+
+        return redirect()->route('repair-orders.show', $order)
+            ->with('success', 'Mecánico asignado correctamente.');
+    }
+
+    /**
+     * Fase 4: Agrega una nota a la bitácora de seguimiento.
+     */
+    public function storeFollowUp(Request $request, RepairOrder $order)
+    {
+        $request->validate([
+            'mechanic_id'  => 'required|exists:mechanics,id',
+            'description'  => 'required|string|max:1000',
+            'date'         => 'required|date',
+        ]);
+
+        $order->followUps()->create($request->only('mechanic_id', 'description', 'date'));
+
+        return redirect()->route('repair-orders.show', $order)
+            ->with('success', 'Nota agregada a la bitácora.');
     }
 
     /**

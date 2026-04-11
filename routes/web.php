@@ -75,6 +75,10 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
 
             // Fase 3: Cambio de estado de la orden
             Route::patch('/{order}/status', 'updateStatus')->name('status.update');
+
+            // Fase 4: Asignación de mecánico y bitácora
+            Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign');
+            Route::post('/{order}/follow-ups', 'storeFollowUp')->name('follow-ups.store');
     });
 
     // ========================================================

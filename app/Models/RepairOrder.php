@@ -52,6 +52,16 @@ class RepairOrder extends Model
         return $this->belongsTo(RepairOrderStatus::class, 'status_id');
     }
 
+    public function mechanic(): BelongsTo
+    {
+        return $this->belongsTo(Mechanic::class);
+    }
+
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(FollowUp::class)->latest('date');
+    }
+
     // se Puede agregar relaciones adicionales para Client y Vehicle si las necesitas
    
 }

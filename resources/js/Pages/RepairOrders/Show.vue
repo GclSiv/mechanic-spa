@@ -1,6 +1,7 @@
 <script setup>
 import OrderTotals from '@/Components/OrderTotals.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
+import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -10,7 +11,8 @@ defineProps({
     recepcion: Object,
     financial_breakdown: Object,
     settings: Object,
-    statuses: Array, // Fase 3
+    statuses: Array,  // Fase 3
+    mechanics: Array, // Fase 4
 });
 
 const page = usePage();
@@ -135,6 +137,9 @@ function removeItem(itemId) {
                         </div>
                     </div>
                 </div>
+
+                <!-- FASE 4: MECÁNICO + BITÁCORA -->
+                <FollowUpLogger :orden="orden" :mechanics="mechanics ?? []" />
             </div>
         </div>
 
