@@ -104,6 +104,7 @@ class RepairOrderController extends Controller
             'settings'  => $settings,
             'subtotal'  => $breakdown['subtotal'] ?? 0,
             'iva'       => $breakdown['tax'] ?? 0,
+            'tax_rate'  => $breakdown['tax_rate'] ?? 16,
             'total'     => $breakdown['total'] ?? 0
         ]);
 
