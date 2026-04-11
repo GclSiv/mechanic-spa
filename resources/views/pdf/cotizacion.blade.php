@@ -56,8 +56,8 @@
     {{-- RESUMEN VEHÍCULO --}}
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
         <tr>
-            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>CLIENTE:</strong> {{ $recepcion->first_name }}</td>
-            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>VEHÍCULO:</strong> {{ $recepcion->brand?->name }} {{ $recepcion->vehicleModel?->name }} ({{ $recepcion->year }})</td>
+            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>CLIENTE:</strong> {{ $recepcion->client->first_name }} {{ $recepcion->client->last_name }}</td>
+            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>VEHÍCULO:</strong> {{ $recepcion->vehicle->brand->name }} {{ $recepcion->vehicle->vehicleModel->name }} ({{ $recepcion->vehicle->year }})</td>
         </tr>
     </table>
 
@@ -112,7 +112,7 @@
                         <td style="text-align: right;">${{ number_format($subtotal, 2) }}</td>
                     </tr>
                     <tr class="total-row">
-                        <td>{{ isset($tax_rate) && $tax_rate == 8.75 ? 'TAX (8.75%)' : 'IVA (16%)' }}</td>
+                        <td>{{ (float)$tax_rate === 8.75 ? 'TAX (8.75%)' : 'IVA (' . (float)$tax_rate . '%)' }}</td>
         <td>${{ number_format($iva, 2) }}</td>
                     </tr>
                     <tr class="total-row grand-total">
