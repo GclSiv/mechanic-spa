@@ -56,8 +56,8 @@
     {{-- RESUMEN VEHÍCULO --}}
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
         <tr>
-            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>CLIENTE:</strong> {{ $recepcion->client->first_name }} {{ $recepcion->client->last_name }}</td>
-            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>VEHÍCULO:</strong> {{ $recepcion->vehicle->brand->name }} {{ $recepcion->vehicle->vehicleModel->name }} ({{ $recepcion->vehicle->year }})</td>
+            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>CLIENTE:</strong> {{ $recepcion->client->first_name ?? '' }} {{ $recepcion->client->last_name ?? '' }}</td>
+            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>VEHÍCULO:</strong> {{ $recepcion->vehicle?->brand?->name ?? 'S/M' }} {{ $recepcion->vehicle?->vehicleModel?->name ?? 'S/M' }} ({{ $recepcion->vehicle?->year ?? '—' }})</td>
         </tr>
     </table>
 
