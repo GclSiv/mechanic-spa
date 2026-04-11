@@ -112,8 +112,8 @@
                         <td style="text-align: right;">${{ number_format($subtotal, 2) }}</td>
                     </tr>
                     <tr class="total-row">
-                        <td style="font-weight: bold; color: #10213E;">IVA (16%)</td>
-                        <td style="text-align: right;">${{ number_format($iva, 2) }}</td>
+                        <td>{{ isset($tax_rate) && $tax_rate == 8.75 ? 'TAX (8.75%)' : 'IVA (16%)' }}</td>
+        <td>${{ number_format($iva, 2) }}</td>
                     </tr>
                     <tr class="total-row grand-total">
                         <td>TOTAL NETO</td>

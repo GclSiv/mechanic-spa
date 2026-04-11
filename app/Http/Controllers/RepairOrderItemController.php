@@ -5,15 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Models\Setting;
-use App\Actions\RepairOrders\CalculateOrderTotalsAction;
+use App\Actions\RepairOrders\CalculateOrderTotalsAction; // <--- Importamos la calculadora
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class RepairOrderItemController extends Controller
 {
     /**
-     * Guarda un nuevo item (mano de obra/refacción) en la base de datos.
-     * (Nota: Si ya usas addItem en RepairOrderController, este método es opcional)
+     * Guarda un nuevo item en la base de datos.
      */
     public function store(Request $request)
     {
@@ -37,38 +36,32 @@ class RepairOrderItemController extends Controller
      */
     public function descargarCotizacion($id, CalculateOrderTotalsAction $calculator)
     {
-        // 1. Eager load COMPLETO para que el cliente y vehículo no salgan en blanco en el PDF
+        // 1. Traemos todo (Cliente y Vehículo) para que no salga en blanco
         $orden = RepairOrder::with([
-            'recepcion.client',
-            'recepcion.vehicle.brand',
+            'recepcion.client', 
+            'recepcion.vehicle.brand', 
             'recepcion.vehicle.vehicleModel',
             'items'
         ])->findOrFail($id);
 
-        // 2. Traemos la configuración (Logos, datos del taller)
         $settings = Setting::first();
-
-        // 3. Usamos tu Calculadora Centralizada para que el PDF coincida 100% con la pantalla
-        // (Respetando que las refacciones no llevan IVA y usando el % correcto)
+        
+        // 2. Usamos la calculadora inteligente
         $breakdown = $calculator->execute($orden);
 
-        // 4. Generamos el PDF pasando las variables que espera tu vista
+        // 3. Enviamos las variables al PDF
         $pdf = Pdf::loadView('pdf.cotizacion', [
             'orden'     => $orden,
             'recepcion' => $orden->recepcion,
+            'client'    => $orden->recepcion->client ?? null,
+            'vehicle'   => $orden->recepcion->vehicle ?? null,
             'settings'  => $settings,
-            // Extraemos los valores matemáticos exactos del Action
-            'subtotal'  => $breakdown['subtotal'] ?? 0,
-            'iva'       => $breakdown['tax'] ?? 0,
-            'total'     => $breakdown['total'] ?? 0
+            'subtotal'  => $breakdown['subtotal'],
+            'iva'       => $breakdown['tax'],
+            'tax_rate'  => $breakdown['tax_rate'],
+            'total'     => $breakdown['total']
         ]);
 
-        // Ajustamos el papel a tamaño carta
-        $pdf->setPaper('letter', 'portrait');
-// Limpiamos el nombre de la empresa para que sea seguro en nombres de archivos (sin espacios ni caracteres raros)
-        $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'Taller';
-
-        // Generamos el PDF con el nombre dinámico y en mayúsculas
-        return $pdf->stream('Cotizacion_' . strtoupper($empresaSegura) . '_' . ($orden->folio ?? $orden->id) . '.pdf');
+        return $pdf->stream("Cotizacion_JK_{$orden->id}.pdf");
     }
 }

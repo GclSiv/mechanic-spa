@@ -20,7 +20,7 @@ const props = defineProps({
 const page = usePage();
 const currentStep = ref(1);
 const totalSteps = 2;
-const isNewClient = ref(false); 
+const isNewClient = ref(true); 
 const goNext = () => {
     if (currentStep.value < totalSteps) currentStep.value++;
 };

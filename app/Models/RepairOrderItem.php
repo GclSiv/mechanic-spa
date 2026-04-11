@@ -17,7 +17,8 @@ class RepairOrderItem extends Model
         'description',
         'quantity',
         'unit_price',
-        'subtotal'
+        'subtotal',
+         'type',
     ];
 
     // Relación inversa: Un item pertenece a una Orden de Reparación
