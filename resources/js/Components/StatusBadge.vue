@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -9,9 +9,8 @@ const props = defineProps({
 
 const isOpen = ref(false);
 const isLoading = ref(false);
+const dropdownRef = ref(null);
 
-// color_class viene de la BD (ej: "bg-yellow-100 text-yellow-800")
-// Fallback por si algún registro no tiene color_class asignado
 const fallbackColor = 'bg-gray-100 text-gray-700';
 
 const currentStatus = () =>
@@ -22,30 +21,31 @@ function selectStatus(status) {
         isOpen.value = false;
         return;
     }
-
     isLoading.value = true;
     isOpen.value = false;
-
     router.patch(
         route('repair-orders.status.update', props.orden.id),
         { status_id: status.id },
-        {
-            preserveScroll: true,
-            onFinish: () => { isLoading.value = false; },
-        }
+        { preserveScroll: true, onFinish: () => { isLoading.value = false; } }
     );
 }
+
+function handleClickOutside(e) {
+    if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+        isOpen.value = false;
+    }
+}
+onMounted(() => document.addEventListener('mousedown', handleClickOutside));
+onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside));
 </script>
 
 <template>
-    <div class="relative inline-block text-left">
+    <div ref="dropdownRef" class="relative inline-block text-left">
 
-        <!-- Badge / Trigger -->
         <button
             @click="isOpen = !isOpen"
             :disabled="isLoading"
-            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-transparent
-                   hover:opacity-80 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-transparent hover:opacity-80 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             :class="currentStatus()?.color_class || fallbackColor"
         >
             <span v-if="isLoading" class="animate-spin">⟳</span>
@@ -54,7 +54,6 @@ function selectStatus(status) {
             <span class="ml-1 opacity-60">▾</span>
         </button>
 
-        <!-- Dropdown -->
         <transition
             enter-active-class="transition ease-out duration-100"
             enter-from-class="opacity-0 scale-95"
@@ -65,7 +64,6 @@ function selectStatus(status) {
         >
             <div
                 v-if="isOpen"
-                v-click-outside="() => isOpen = false"
                 class="absolute left-0 mt-2 w-52 rounded-xl shadow-xl bg-white ring-1 ring-black/10 z-50 overflow-hidden"
             >
                 <div class="py-1">
