@@ -56,11 +56,12 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
     });
 
     // ========================================================
-    // MÓDULO 5: GESTIÓN DE MECÁNICOS
+    // MÓDULO 5: GESTIÓN DE MECÁNICOS (solo admin)
     // ========================================================
     Route::resource('mechanics', \App\Http\Controllers\MechanicController::class)
         ->except(['show'])
-        ->names('mechanics');
+        ->names('mechanics')
+        ->middleware('role:admin');
 
     // ========================================================
     // MÓDULO 2: ÓRDENES DE REPARACIÓN Y COTIZACIÓN

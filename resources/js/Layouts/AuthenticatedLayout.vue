@@ -6,6 +6,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 // Dentro de <script setup> en AuthenticatedLayout.vue
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
+import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
 
 import Dropdown from '@/Components/Dropdown.vue';
@@ -47,6 +48,13 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                 DASHBOARD
                             </NavLink>
+                            <NavLink
+                                v-if="$page.props.auth.role === 'admin'"
+                                :href="route('mechanics.index')"
+                                :active="route().current('mechanics.*')"
+                            >
+                                PERSONAL
+                            </NavLink>
                         </div>
                     </div>
 
@@ -79,11 +87,45 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             </Dropdown>
                         </div>
                     </div>
+                    <!-- Hamburguesa móvil -->
+                    <div class="-me-2 flex items-center sm:hidden">
+                        <button @click="showingNavigationDropdown = !showingNavigationDropdown"
+                            class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none transition">
+                            <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path :class="{ hidden: showingNavigationDropdown, 'inline-flex': !showingNavigationDropdown }"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16" />
+                                <path :class="{ hidden: !showingNavigationDropdown, 'inline-flex': showingNavigationDropdown }"
+                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menú móvil desplegable -->
+            <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }" class="sm:hidden">
+                <div class="space-y-1 pb-3 pt-2">
+                    <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
+                        Dashboard
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        v-if="$page.props.auth.role === 'admin'"
+                        :href="route('mechanics.index')"
+                        :active="route().current('mechanics.*')"
+                    >
+                        Personal
+                    </ResponsiveNavLink>
                 </div>
             </div>
         </nav>
 
-        <header class="bg-white shadow-sm" v-if="$slots.header">
+        <!-- Flash error banner -->
+        <div v-if="$page.props.flash?.error"
+            class="bg-red-50 border-b border-red-200 px-4 py-3 text-center text-sm font-medium text-red-700">
+            ⚠️ {{ $page.props.flash.error }}
+        </div>
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <slot name="header" />
             </div>
