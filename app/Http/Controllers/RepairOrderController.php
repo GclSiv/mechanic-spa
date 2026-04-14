@@ -119,10 +119,10 @@ class RepairOrderController extends Controller
     public function assignMechanic(Request $request, RepairOrder $order)
     {
         $request->validate([
-            'mechanic_id' => 'required|exists:mechanics,id',
+            'mechanic_id' => 'nullable|exists:mechanics,id',
         ]);
 
-        $order->update(['mechanic_id' => $request->mechanic_id]);
+        $order->update(['mechanic_id' => $request->mechanic_id ?? null]);
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Mecánico asignado correctamente.');
