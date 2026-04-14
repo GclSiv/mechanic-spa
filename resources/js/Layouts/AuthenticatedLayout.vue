@@ -1,21 +1,14 @@
 <script setup>
 import { computed, ref } from 'vue';
-// 🛑 AGREGA 'usePage' y 'Link' a esta importación:
 import { Link, usePage } from '@inertiajs/vue3';
-
-// Dentro de <script setup> en AuthenticatedLayout.vue
+import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
-
-import Dropdown from '@/Components/Dropdown.vue';
-// ... el resto de tus importaciones
-
-const page = usePage(); // <--- Ahora sí, esta línea funcionará perfectamente
+const page = usePage();
 const showingNavigationDropdown = ref(false);
 
-// 🛰️ Tus colores dinámicos de JK Automotive
 const primaryColor = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
 </script>
@@ -37,13 +30,14 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
         <nav class="border-b border-gray-100 bg-white shadow-sm">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 justify-between">
+
+                    <!-- Logo + Links escritorio -->
                     <div class="flex">
                         <div class="flex shrink-0 items-center">
                             <Link :href="route('dashboard')">
                                 <img src="/images/logo-taller.svg" class="h-10 w-auto" alt="Logo" />
                             </Link>
                         </div>
-
                         <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex text-xs">
                             <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                 DASHBOARD
@@ -58,6 +52,7 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                         </div>
                     </div>
 
+                    <!-- Dropdown usuario escritorio -->
                     <div class="hidden sm:ms-6 sm:flex sm:items-center">
                         <div class="relative ms-3">
                             <Dropdown align="right" width="48">
@@ -75,18 +70,20 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                                         </button>
                                     </span>
                                 </template>
-
                                 <template #content>
-                                    <DropdownLink :href="route('profile.edit')"> Mi Perfil </DropdownLink>
-                                    <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue"> ⚙️
-                                        Configuración </DropdownLink>
+                                    <DropdownLink :href="route('profile.edit')">Mi Perfil</DropdownLink>
+                                    <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue">
+                                        ⚙️ Configuración
+                                    </DropdownLink>
                                     <div class="border-t border-gray-100" />
-                                    <DropdownLink :href="route('logout')" method="post" as="button"> Cerrar Sesión
+                                    <DropdownLink :href="route('logout')" method="post" as="button">
+                                        Cerrar Sesión
                                     </DropdownLink>
                                 </template>
                             </Dropdown>
                         </div>
                     </div>
+
                     <!-- Hamburguesa móvil -->
                     <div class="-me-2 flex items-center sm:hidden">
                         <button @click="showingNavigationDropdown = !showingNavigationDropdown"
@@ -101,6 +98,7 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             </svg>
                         </button>
                     </div>
+
                 </div>
             </div>
 
@@ -126,6 +124,9 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
             class="bg-red-50 border-b border-red-200 px-4 py-3 text-center text-sm font-medium text-red-700">
             ⚠️ {{ $page.props.flash.error }}
         </div>
+
+        <!-- Header de página -->
+        <header v-if="$slots.header" class="bg-white shadow-sm">
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <slot name="header" />
             </div>
@@ -134,11 +135,11 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
         <main>
             <slot />
         </main>
+
     </div>
 </template>
 
 <style>
-/* Estilos base fijos */
 .bg-jk-blue,
 .bg-jk-red {
     transition: all 0.3s ease;
