@@ -51,6 +51,7 @@ function destroy(id) {
                             <tr>
                                 <th class="px-6 py-3">#</th>
                                 <th class="px-6 py-3">Nombre</th>
+                                <th class="px-6 py-3">Email / Acceso</th>
                                 <th class="px-6 py-3">Especialidad</th>
                                 <th class="px-6 py-3">Género</th>
                                 <th class="px-6 py-3">Teléfono</th>
@@ -62,6 +63,10 @@ function destroy(id) {
                                 class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-gray-400 font-mono">{{ m.id }}</td>
                                 <td class="px-6 py-4 font-bold text-[#10213E]">{{ m.name }}</td>
+                                <td class="px-6 py-4 text-gray-600 text-xs">
+                                    <span v-if="m.email">{{ m.email }}</span>
+                                    <span v-else class="text-amber-500 font-medium">Sin cuenta</span>
+                                </td>
                                 <td class="px-6 py-4">
                                     <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
                                         {{ m.mechanic_type?.name ?? '—' }}

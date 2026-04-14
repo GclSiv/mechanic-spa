@@ -10,6 +10,7 @@ const props = defineProps({
 
 const form = useForm({
     name:             props.mechanic.name,
+    email:            props.mechanic.email ?? '',
     gender_id:        props.mechanic.gender_id,
     mechanic_type_id: props.mechanic.mechanic_type_id,
     phone:            props.mechanic.phone ?? '',
@@ -38,11 +39,32 @@ function submit() {
                     </div>
                     <div class="p-6 space-y-5">
 
+                        <!-- Info cuenta vinculada -->
+                        <div v-if="mechanic.user_id" class="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                            <span class="text-blue-500">👤</span>
+                            <p class="text-xs text-blue-800">
+                                Cuenta de acceso vinculada. Al cambiar el email aquí también se actualizará el usuario de login.
+                            </p>
+                        </div>
+                        <div v-else class="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                            <span class="text-amber-500">⚠️</span>
+                            <p class="text-xs text-amber-800">
+                                Este mecánico no tiene cuenta de acceso vinculada (fue creado antes de esta funcionalidad).
+                            </p>
+                        </div>
+
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre completo *</label>
                             <input v-model="form.name" type="text"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Correo electrónico *</label>
+                            <input v-model="form.email" type="email"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">

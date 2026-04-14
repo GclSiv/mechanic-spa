@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Mechanic extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'gender_id', 'mechanic_type_id', 'phone', 'is_active'];
+    protected $fillable = ['name', 'email', 'user_id', 'gender_id', 'mechanic_type_id', 'phone', 'is_active'];
 
     public function gender(): BelongsTo
     {
@@ -19,5 +19,10 @@ class Mechanic extends Model
     public function mechanicType(): BelongsTo
     {
         return $this->belongsTo(MechanicType::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
