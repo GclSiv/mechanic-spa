@@ -75,17 +75,22 @@ class RecepcionController extends Controller
             $brand = Brand::find($request->brand_id);
             $model = VehicleModel::find($request->vehicle_model_id);
 
-            $vehicle = Vehicle::create([
-                'client_id' => $client->id,
-                'brand_id'  => $request->brand_id,
-                'model_id'  => $request->vehicle_model_id,
-                'brand'     => $brand->name ?? 'Desconocido',
-                'model'     => $model->name ?? 'Desconocido',
-                'year'      => $request->year,
-                'plate'     => $request->plate,
-                'vin'       => $request->vin,
-                'engine'    => $request->engine,
-            ]);
+            // Si ya existe un vehículo con esa placa, lo reutilizamos en lugar de crear uno nuevo
+            $vehicle = Vehicle::where('plate', $request->plate)->first();
+
+            if (!$vehicle) {
+                $vehicle = Vehicle::create([
+                    'client_id' => $client->id,
+                    'brand_id'  => $request->brand_id,
+                    'model_id'  => $request->vehicle_model_id,
+                    'brand'     => $brand->name ?? 'Desconocido',
+                    'model'     => $model->name ?? 'Desconocido',
+                    'year'      => $request->year,
+                    'plate'     => $request->plate,
+                    'vin'       => $request->vin,
+                    'engine'    => $request->engine,
+                ]);
+            }
         }
 
         // 4. Lógica de FOTOS (Evidencia)
