@@ -207,6 +207,12 @@ function formatCurrency(val) {
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex justify-center gap-2">
+                                            <button
+                                                @click="openPhotoGallery(rec.client?.photos ?? [])"
+                                                title="Ver fotos del vehículo"
+                                                class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                                📷
+                                            </button>
                                             <Link :href="route('recepcion.show', rec.id)"
                                                 class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                                 Ver
