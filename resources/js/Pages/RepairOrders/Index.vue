@@ -47,6 +47,13 @@ function changeStatus(order, statusId) {
         preserveScroll: true,
     });
 }
+
+function deleteOrder(order) {
+    if (!confirm(`¿Eliminar la orden #${order.folio ?? order.id}? Esta acción no se puede deshacer.`)) return;
+    router.delete(route('recepcion.destroy', order.recepcion_id), {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -144,6 +151,38 @@ function changeStatus(order, statusId) {
                                         :class="saldoPendiente(order) <= 0 ? 'text-green-600' : 'text-[#EE2857]'">
                                         {{ saldoPendiente(order) <= 0 ? '✅ Liquidado' : '$' + saldoPendiente(order).toFixed(2) }}
                                     </span>
+                                </div>
+
+                                <!-- Botones de acción compactos -->
+                                <div class="mt-2 pt-2 border-t border-gray-100 flex items-center gap-1 flex-wrap">
+                                    <!-- Ver Cotización -->
+                                    <a :href="route('repair-orders.show', order.id)"
+                                        title="Ver Cotización"
+                                        class="flex items-center gap-1 bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
+                                        📋 Cotización
+                                    </a>
+                                    <!-- PDF Recepción -->
+                                    <a v-if="order.recepcion_id"
+                                        :href="route('recepcion.pdf', order.recepcion_id)"
+                                        target="_blank"
+                                        title="Imprimir PDF Recepción"
+                                        class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg transition">
+                                        🖨️ PDF
+                                    </a>
+                                    <!-- Editar Recepción -->
+                                    <a v-if="order.recepcion_id"
+                                        :href="route('recepcion.edit', order.recepcion_id)"
+                                        title="Editar Recepción"
+                                        class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg transition">
+                                        ✏️ Editar
+                                    </a>
+                                    <!-- Eliminar (solo admin) -->
+                                    <button v-if="isAdmin"
+                                        @click.prevent="deleteOrder(order)"
+                                        title="Eliminar Orden"
+                                        class="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-[#EE2857] text-[10px] font-bold px-2 py-1 rounded-lg transition ml-auto">
+                                        ✕ Eliminar
+                                    </button>
                                 </div>
                             </div>
 

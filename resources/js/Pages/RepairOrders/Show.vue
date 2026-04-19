@@ -6,7 +6,6 @@ import PaymentPanel from '@/Components/PaymentPanel.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { ref, computed } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
 
 defineProps({
     orden: Object,
