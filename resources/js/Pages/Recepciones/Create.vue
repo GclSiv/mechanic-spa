@@ -140,12 +140,54 @@ const odometerDisplay = computed(() => {
     return String(val).padStart(6, "0").split("");
 });
 
+// ─── Detección de duplicados por placa / VIN ───
+const duplicateAlert = ref(null);   // { type: 'plate'|'vin', vehicle: {...} }
+const showDuplicateModal = ref(false);
+let plateTimer = null;
+let vinTimer = null;
+
+async function checkField(field, value) {
+    if (!value || value.length < 3) return;
+    try {
+        const params = new URLSearchParams({ [field]: value });
+        const res = await fetch(route('vehicles.check') + '?' + params.toString());
+        const data = await res.json();
+        if (data[field]) {
+            duplicateAlert.value = { type: field, vehicle: data[field] };
+            showDuplicateModal.value = true;
+        }
+    } catch (_) {}
+}
+
+watch(() => form.plate, (val) => {
+    if (form.vehicle_id) return; // ya seleccionó vehículo existente
+    clearTimeout(plateTimer);
+    plateTimer = setTimeout(() => checkField('plate', val?.toUpperCase()), 600);
+});
+
+watch(() => form.vin, (val) => {
+    if (form.vehicle_id) return;
+    clearTimeout(vinTimer);
+    vinTimer = setTimeout(() => checkField('vin', val?.toUpperCase()), 600);
+});
+
+function useDuplicateVehicle() {
+    // Usar el vehículo existente que se detectó
+    form.vehicle_id = duplicateAlert.value.vehicle.id;
+    showDuplicateModal.value = false;
+    duplicateAlert.value = null;
+}
+
+function ignoreDuplicate() {
+    showDuplicateModal.value = false;
+    duplicateAlert.value = null;
+}
+
 const submit = () => {
     form.post(route("recepcion.store"), {
-        // Inertia.js procesa automáticamente los archivos (photos) y setea forceFormData si es necesario
         onSuccess: () => {
             form.reset();
-            photoPreviews.value = []; 
+            photoPreviews.value = [];
         },
     });
 };
@@ -423,8 +465,57 @@ const submit = () => {
             </div>
         </div>
 
-        <!-- MODAL DE ÉXITO (Sin cambios) -->
-        <div v-if="showSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-jk-blue/40 backdrop-blur-sm">
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- MODAL: VEHÍCULO DUPLICADO DETECTADO           -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div v-if="showDuplicateModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-orange-100">
+
+                <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                    ⚠️
+                </div>
+                <h2 class="text-xl font-black text-[#10213E] uppercase mb-2">
+                    Vehículo ya registrado
+                </h2>
+                <p class="text-gray-500 text-sm mb-4">
+                    Se encontró un vehículo con
+                    <strong>{{ duplicateAlert?.type === 'plate' ? 'la placa' : 'el número de serie (VIN)' }}</strong>
+                    ingresada:
+                </p>
+
+                <!-- Tarjeta del vehículo encontrado -->
+                <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-left mb-6">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-widest mb-2">Vehículo encontrado</p>
+                    <p class="font-black text-[#10213E]">
+                        {{ duplicateAlert?.vehicle.brand }} {{ duplicateAlert?.vehicle.model }} ({{ duplicateAlert?.vehicle.year }})
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        🔖 Placa: <strong>{{ duplicateAlert?.vehicle.plate ?? '—' }}</strong>
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        🔢 VIN: <strong>{{ duplicateAlert?.vehicle.vin ?? '—' }}</strong>
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    <button @click="useDuplicateVehicle"
+                        class="w-full bg-[#10213E] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow hover:opacity-90 transition flex items-center justify-center gap-2">
+                        ✅ Usar este vehículo existente
+                    </button>
+                    <button @click="ignoreDuplicate"
+                        class="w-full bg-gray-100 text-gray-500 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
+                        Continuar con datos nuevos
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ -->
+        <!-- MODAL: REGISTRO EXITOSO                       -->
+        <!-- ══════════════════════════════════════════════ -->
+        <div v-if="showSuccessModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-jk-blue/40 backdrop-blur-sm">
             <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
                 <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -432,14 +523,15 @@ const submit = () => {
                     </svg>
                 </div>
                 <h2 class="text-2xl font-black text-jk-blue uppercase mb-2">¡Ingreso Exitoso!</h2>
-                <p class="text-gray-500 text-sm mb-6 font-medium">Se ha registrado la recepción con el folio:<br />
-                    <span class="text-jk-red font-black text-3xl">#{{ page.props.flash?.last_id }}</span>
-                </p>
+                <p class="text-gray-500 text-sm mb-1 font-medium">Se ha registrado la recepción con el folio:</p>
+                <p class="text-jk-red font-black text-4xl mb-6">#{{ page.props.flash?.last_id }}</p>
                 <div class="space-y-3">
-                    <button @click="printPdf(page.props.flash?.last_id)" class="w-full bg-jk-blue text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                    <button @click="printPdf(page.props.flash?.last_id)"
+                        class="w-full bg-jk-blue text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:opacity-90 transition flex items-center justify-center gap-2">
                         🖨️ Imprimir Nota de Recepción
                     </button>
-                    <button @click="closeModal" class="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-all">
+                    <button @click="closeModal"
+                        class="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
                         Ir al Dashboard
                     </button>
                 </div>

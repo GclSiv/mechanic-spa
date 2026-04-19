@@ -45,6 +45,51 @@ class RecepcionController extends Controller
      * Guarda la nueva recepción en la base de datos.
      * (NUEVO MÉTODO)
      */
+    /**
+     * Verifica si una placa o VIN ya existe en la BD (llamada AJAX desde el formulario).
+     */
+    public function checkVehicle(Request $request)
+    {
+        $plate = trim($request->input('plate', ''));
+        $vin   = trim($request->input('vin', ''));
+
+        $result = ['plate' => null, 'vin' => null];
+
+        if ($plate) {
+            $vehicle = Vehicle::where('plate', strtoupper($plate))
+                ->with(['brand', 'vehicleModel'])
+                ->first();
+            if ($vehicle) {
+                $result['plate'] = [
+                    'id'    => $vehicle->id,
+                    'brand' => $vehicle->brand->name ?? $vehicle->brand ?? '—',
+                    'model' => $vehicle->vehicleModel->name ?? $vehicle->model ?? '—',
+                    'year'  => $vehicle->year,
+                    'plate' => $vehicle->plate,
+                    'vin'   => $vehicle->vin,
+                ];
+            }
+        }
+
+        if ($vin && strlen($vin) >= 5) {
+            $vehicle = Vehicle::where('vin', strtoupper($vin))
+                ->with(['brand', 'vehicleModel'])
+                ->first();
+            if ($vehicle) {
+                $result['vin'] = [
+                    'id'    => $vehicle->id,
+                    'brand' => $vehicle->brand->name ?? $vehicle->brand ?? '—',
+                    'model' => $vehicle->vehicleModel->name ?? $vehicle->model ?? '—',
+                    'year'  => $vehicle->year,
+                    'plate' => $vehicle->plate,
+                    'vin'   => $vehicle->vin,
+                ];
+            }
+        }
+
+        return response()->json($result);
+    }
+
     public function store(Request $request)
     {
         // 1. Validar la petición inteligentemente
