@@ -46,6 +46,7 @@ class RepairOrderController extends Controller
         $order->load([
             'items', 'status', 'mechanic',
             'followUps.mechanic',
+            'payments',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',

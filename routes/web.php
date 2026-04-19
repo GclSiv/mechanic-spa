@@ -64,6 +64,22 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
         ->middleware('role:admin');
 
     // ========================================================
+    // MÓDULO 6: INVENTARIO DE REFACCIONES (solo admin)
+    // ========================================================
+    Route::resource('parts', \App\Http\Controllers\PartController::class)
+        ->except(['show'])
+        ->names('parts')
+        ->middleware('role:admin');
+
+    // ========================================================
+    // MÓDULO 7: PAGOS Y COBRANZA
+    // ========================================================
+    Route::post('/repair-orders/{order}/payments', [\App\Http\Controllers\PaymentController::class, 'store'])
+        ->name('payments.store');
+    Route::delete('/repair-orders/{order}/payments/{payment}', [\App\Http\Controllers\PaymentController::class, 'destroy'])
+        ->name('payments.destroy');
+
+    // ========================================================
     // MÓDULO 2: ÓRDENES DE REPARACIÓN Y COTIZACIÓN
     // ========================================================
     Route::controller(RepairOrderController::class)

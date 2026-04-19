@@ -62,6 +62,11 @@ class RepairOrder extends Model
         return $this->hasMany(FollowUp::class)->latest('date');
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->latest();
+    }
+
     // se Puede agregar relaciones adicionales para Client y Vehicle si las necesitas
    
 }

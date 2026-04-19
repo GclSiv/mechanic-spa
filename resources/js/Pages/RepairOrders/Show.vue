@@ -2,6 +2,7 @@
 import OrderTotals from '@/Components/OrderTotals.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
+import PaymentPanel from '@/Components/PaymentPanel.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -144,6 +145,9 @@ function removeItem(itemId) {
                     :orden="orden"
                     :mechanics="mechanics ?? []"
                 />
+
+                <!-- FASE 7: PAGOS Y ANTICIPOS -->
+                <PaymentPanel :orden="orden" :breakdown="financial_breakdown" />
             </div>
         </div>
 

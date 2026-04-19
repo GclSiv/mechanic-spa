@@ -49,6 +49,13 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             >
                                 PERSONAL
                             </NavLink>
+                            <NavLink
+                                v-if="$page.props.auth.role === 'admin'"
+                                :href="route('parts.index')"
+                                :active="route().current('parts.*')"
+                            >
+                                INVENTARIO
+                            </NavLink>
                         </div>
                     </div>
 
@@ -114,6 +121,13 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                         :active="route().current('mechanics.*')"
                     >
                         Personal
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        v-if="$page.props.auth.role === 'admin'"
+                        :href="route('parts.index')"
+                        :active="route().current('parts.*')"
+                    >
+                        Inventario
                     </ResponsiveNavLink>
                 </div>
             </div>
