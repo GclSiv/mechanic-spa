@@ -1,304 +1,271 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, Link, router } from "@inertiajs/vue3";
-import { ref, watch } from "vue";
+import { Head, Link, router, usePage } from "@inertiajs/vue3";
+import { ref, watch, computed } from "vue";
 
-// 1. Recibimos los datos del controlador
 const props = defineProps({
-    stats: Object,
-    recentRecepcions: Object,
-    filters: Object,
+    stats:             Object,
+    recentRecepcions:  Object,
+    filters:           Object,
 });
 
-// 2. Variables de estado
+const page     = usePage();
+const isAdmin  = computed(() => page.props.auth.role === 'admin');
 const isSearching = ref(false);
-const search = ref(props.filters.search || "");
-let timeout = null;
+const search   = ref(props.filters.search || "");
+let timeout    = null;
 
-const showPhotoModal = ref(false);
-const selectedPhotos = ref([]);
+const showPhotoModal  = ref(false);
+const selectedPhotos  = ref([]);
 
 const openPhotoGallery = (photos) => {
-    // Si photos llega como string por error, esto lo previene
     selectedPhotos.value = Array.isArray(photos) ? photos : JSON.parse(photos || '[]');
     showPhotoModal.value = true;
 };
-// 3. Vigilante con Debounce (Evita saturar el servidor)
+
 watch(search, (value) => {
     isSearching.value = true;
     clearTimeout(timeout);
     timeout = setTimeout(() => {
-        router.get(
-            route("dashboard"),
-            { search: value },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-                onFinish: () => (isSearching.value = false),
-            },
-        );
+        router.get(route("dashboard"), { search: value }, {
+            preserveState: true, replace: true, preserveScroll: true,
+            onFinish: () => (isSearching.value = false),
+        });
     }, 500);
 });
 
-// Función para eliminar con confirmación
 const deleteRecord = (id) => {
     if (confirm("¿Estás seguro de que deseas eliminar este registro?")) {
-        router.delete(route("recepcion.destroy", id), {
-            preserveScroll: true,
-        });
+        router.delete(route("recepcion.destroy", id), { preserveScroll: true });
     }
 };
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD' }).format(val ?? 0);
+}
 </script>
 
 <template>
-
     <Head title="Panel de Control" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-bold leading-tight text-gray-800 uppercase tracking-tighter">
-                Panel Principal <span class="text-jk-blue">JK</span><span class="text-jk-red">Automotive</span>
+            <h2 class="text-xl font-black leading-tight text-[#10213E] uppercase tracking-tighter">
+                Panel Principal
+                <span class="text-[#10213E]">JK</span><span class="text-[#EE2857]">Automotive</span>
             </h2>
         </template>
 
-        <div class="py-12 bg-gray-50">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
+        <div class="py-8 bg-gray-50 min-h-screen">
+            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-8">
+
+                <!-- Flash -->
                 <div v-if="$page.props.flash.success"
-                    class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-green-100 p-2 rounded-full">
-                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold text-green-800 font-mono uppercase tracking-tighter">
-                                ¡Operación Exitosa!
-                            </p>
-                            <p class="text-sm text-green-600">
-                                {{ $page.props.flash.success }}
-                            </p>
-                        </div>
-                    </div>
+                    class="bg-green-50 border-l-4 border-green-500 px-5 py-3 rounded-r-lg flex items-center gap-3 text-sm text-green-800 font-medium shadow-sm">
+                    ✅ {{ $page.props.flash.success }}
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-blue p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">
-                            Total Vehículos
-                        </p>
-                        <p class="text-4xl font-black text-gray-900">
-                            {{ stats.total }}
-                        </p>
-                    </div>
-                    <div class="bg-white shadow-sm sm:rounded-xl border-l-8 border-jk-red p-6">
-                        <p class="text-sm font-bold text-gray-500 uppercase">
-                            Ingresos de Hoy
-                        </p>
-                        <p class="text-4xl font-black text-gray-900">
-                            {{ stats.today }}
-                        </p>
-                    </div>
-                    <Link :href="route('recepcion.create')"
-                        class="bg-jk-blue flex items-center justify-center gap-3 px-8 py-10 text-white font-black rounded-3xl shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer">
-                        <span class="text-2xl">+</span> NUEVA RECEPCIÓN
-                    </Link>
-                </div>
+                <!-- ═══════════════════════════════════════════════ -->
+                <!-- QUICK STATS                                     -->
+                <!-- ═══════════════════════════════════════════════ -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-                <div class="bg-white shadow-sm sm:rounded-xl overflow-hidden p-8">
-                    <div class="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <h3 class="text-lg font-bold flex items-center gap-2 uppercase tracking-wider">
-                            <span class="w-2 h-7 bg-jk-red inline-block rounded-full"></span>
-                            Últimos Vehículos Registrados
-                        </h3>
+                    <!-- Órdenes activas -->
+                    <a :href="route('repair-orders.index')"
+                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Órdenes Activas</p>
+                                <p class="text-3xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
+                                <p class="text-xs text-gray-400 mt-1">en progreso ahora</p>
+                            </div>
+                            <span class="text-2xl bg-blue-50 p-2 rounded-xl group-hover:bg-blue-100 transition">🔧</span>
+                        </div>
+                    </a>
 
-                        <div class="relative w-full sm:w-80">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                                <svg v-if="!isSearching" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" />
-                                </svg>
-                                <div v-else class="flex items-center">
-                                    <svg class="w-6 h-6 text-jk-red animate-vroom" viewBox="0 0 24 24"
-                                        fill="currentColor">
-                                        <path
-                                            d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
-                                    </svg>
-                                </div>
+                    <!-- Recepciones hoy -->
+                    <a :href="route('recepcion.create')"
+                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Recepciones Hoy</p>
+                                <p class="text-3xl font-black text-[#10213E]">{{ stats.today ?? 0 }}</p>
+                                <p class="text-xs text-gray-400 mt-1">de {{ stats.total }} total</p>
+                            </div>
+                            <span class="text-2xl bg-green-50 p-2 rounded-xl group-hover:bg-green-100 transition">🚗</span>
+                        </div>
+                    </a>
+
+                    <!-- Alertas stock -->
+                    <a :href="isAdmin ? route('parts.index') : '#'"
+                        class="group rounded-2xl shadow-sm border p-5 transition-all hover:-translate-y-0.5"
+                        :class="stats.stockAlertas > 0
+                            ? 'bg-red-50 border-red-200 hover:shadow-md'
+                            : 'bg-white border-gray-100 hover:shadow-md'">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-widest mb-1"
+                                    :class="stats.stockAlertas > 0 ? 'text-red-400' : 'text-gray-400'">
+                                    Alertas Inventario
+                                </p>
+                                <p class="text-3xl font-black"
+                                    :class="stats.stockAlertas > 0 ? 'text-red-600' : 'text-[#10213E]'">
+                                    {{ stats.stockAlertas ?? 0 }}
+                                </p>
+                                <p class="text-xs mt-1"
+                                    :class="stats.stockAlertas > 0 ? 'text-red-400' : 'text-gray-400'">
+                                    {{ stats.stockAlertas > 0 ? 'refacciones con stock bajo' : 'sin alertas' }}
+                                </p>
+                            </div>
+                            <span class="text-2xl p-2 rounded-xl transition"
+                                :class="stats.stockAlertas > 0 ? 'bg-red-100 group-hover:bg-red-200' : 'bg-gray-50 group-hover:bg-gray-100'">
+                                📦
                             </span>
-                            <input v-model="search" type="text" placeholder="Buscar cliente o placa..."
-                                class="w-full pl-14 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-jk-blue/20 outline-none text-sm shadow-sm" />
+                        </div>
+                    </a>
+
+                    <!-- Ingresos del mes — solo admin -->
+                    <div v-if="isAdmin"
+                        class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-2xl shadow-sm p-5">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Ingresos del Mes</p>
+                                <p class="text-2xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
+                                <p class="text-xs text-blue-300 mt-1">pagos registrados</p>
+                            </div>
+                            <span class="text-2xl bg-white/10 p-2 rounded-xl">💰</span>
                         </div>
                     </div>
 
+                    <!-- Placeholder para mechanic (no ve ingresos) -->
+                    <div v-else
+                        class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-center">
+                        <p class="text-xs text-gray-300 italic text-center">Bienvenido al taller</p>
+                    </div>
+
+                </div>
+
+                <!-- ═══════════════════════════════════════════════ -->
+                <!-- BUSCADOR + TABLA RECEPCIONES                   -->
+                <!-- ═══════════════════════════════════════════════ -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+                    <!-- Header con buscador -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100">
+                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">
+                            📋 Recepciones Recientes
+                        </h3>
+                        <div class="relative w-full sm:w-72">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                            <input
+                                v-model="search"
+                                type="text"
+                                placeholder="Cliente, placa, folio..."
+                                class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50"
+                            />
+                            <span v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sm">⟳</span>
+                        </div>
+                        <Link :href="route('recepcion.create')"
+                            class="shrink-0 bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">
+                            + Nueva Recepción
+                        </Link>
+                    </div>
+
+                    <!-- Tabla -->
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-bold">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
-                                    <th class="p-4">Cliente</th>
-                                    <th class="p-4">Vehículo</th>
-                                    <th class="p-4">Serie</th>
-                                    <th class="p-4 text-center">Fecha</th>
-                                    <th class="p-4 text-right">Acciones</th>
+                                    <th class="px-6 py-3">#</th>
+                                    <th class="px-6 py-3">Cliente</th>
+                                    <th class="px-6 py-3">Vehículo</th>
+                                    <th class="px-6 py-3">Placa</th>
+                                    <th class="px-6 py-3">Fecha</th>
+                                    <th class="px-6 py-3 text-center">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr v-for="recepcion in recentRecepcions?.data" :key="recepcion.id"
-                                    class="hover:bg-blue-50/50 transition">
-
-                                    <td class="p-4 font-bold text-jk-blue">
-                                        {{ recepcion.client?.first_name || 'Sin Nombre' }}
+                            <tbody class="divide-y divide-gray-50">
+                                <tr v-for="rec in recentRecepcions.data" :key="rec.id"
+                                    class="hover:bg-gray-50 transition-colors group">
+                                    <td class="px-6 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
+                                    <td class="px-6 py-4">
+                                        <p class="font-bold text-[#10213E]">
+                                            {{ rec.client?.first_name }} {{ rec.client?.last_name }}
+                                        </p>
+                                        <p class="text-xs text-gray-400">{{ rec.client?.phone ?? '—' }}</p>
                                     </td>
-
-                                    <td class="p-4">
-                                        <span class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">
-                                            {{ recepcion.vehicle?.brand?.name || "S/M" }} /
-                                            {{ recepcion.vehicle?.vehicleModel?.name || "S/M" }}
-                                        </span>
+                                    <td class="px-6 py-4 text-gray-700">
+                                        {{ rec.vehicle?.brand?.name ?? 'S/M' }}
+                                        {{ rec.vehicle?.vehicleModel?.name ?? '' }}
+                                        <span class="text-gray-400 text-xs">({{ rec.vehicle?.year ?? '—' }})</span>
                                     </td>
-
-                                    <td class="p-4">
-                                        <span
-                                            class="bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-600 uppercase">
-                                            {{ recepcion.vehicle?.vin || "N/A" }}
-                                        </span>
+                                    <td class="px-6 py-4 font-mono font-bold uppercase text-xs text-gray-600">
+                                        {{ rec.vehicle?.plate ?? '—' }}
                                     </td>
-
-                                    <td class="p-4 text-center text-sm text-gray-500">
-                                        {{ new Date(recepcion.created_at).toLocaleDateString() }}
+                                    <td class="px-6 py-4 text-gray-500 text-xs">
+                                        {{ new Date(rec.created_at).toLocaleDateString('es-MX') }}
                                     </td>
-
-                                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
-    
-   <!-- BOTÓN DE COTIZACIÓN (La bolsita de dinero) -->
-<Link :href="route('recepcion.generateOrder', recepcion.id)" 
-      class="bg-green-100 text-green-600 p-2 rounded-lg hover:bg-green-200 transition-colors shadow-sm"
-      title="Ver/Crear Cotización">
-    💰
-</Link>
-
-    <!-- BOTÓN DE IMPRIMIR -->
-    <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
-       class="bg-purple-100 text-purple-600 p-2 rounded-lg hover:bg-purple-200 transition-colors shadow-sm" title="Imprimir Nota de Ingreso">
-        🖨️
-    </a>
-
-    <!-- BOTÓN DE EDITAR -->
-    <Link :href="route('recepcion.edit', recepcion.id)"
-          class="bg-orange-100 text-orange-600 p-2 rounded-lg hover:bg-orange-200 transition-colors shadow-sm" title="Editar Datos">
-        ✏️
-    </Link>
-
-    <!-- BOTÓN DE ELIMINAR (Restaurado) -->
-    <Link :href="route('recepcion.destroy', recepcion.id)" method="delete" as="button"
-          class="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition-colors shadow-sm" title="Eliminar Recepción"
-          onclick="return confirm('¿Estás seguro de que deseas eliminar este registro de forma permanente?')">
-        🗑️
-    </Link>
-
-</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex justify-center gap-2">
+                                            <Link :href="route('recepcion.show', rec.id)"
+                                                class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                                Ver
+                                            </Link>
+                                            <button v-if="isAdmin" @click="deleteRecord(rec.id)"
+                                                class="bg-red-50 hover:bg-red-100 text-[#EE2857] px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
-
-                                <tr v-if="recentRecepcions?.data?.length === 0">
-                                    <td colspan="5" class="p-10 text-center text-gray-400">
-                                        No se encontraron vehículos registrados.
+                                <tr v-if="!recentRecepcions.data?.length">
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-300 italic text-sm">
+                                        {{ search ? 'Sin resultados para "' + search + '"' : 'No hay recepciones registradas.' }}
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <div v-if="recentRecepcions?.links?.length > 3" class="mt-8 flex justify-center items-center gap-1">
-                        <template v-for="(link, key) in recentRecepcions.links" :key="key">
-                            <div v-if="link.url === null"
-                                class="px-4 py-2 text-sm border rounded-lg text-gray-300 bg-gray-50 cursor-not-allowed"
-                                v-html="link.label"></div>
-                            <Link v-else :href="link.url" class="px-4 py-2 text-sm border rounded-lg transition-all"
+                    <!-- Paginación -->
+                    <div v-if="recentRecepcions.last_page > 1"
+                        class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                        <span>Mostrando {{ recentRecepcions.from }}–{{ recentRecepcions.to }} de {{ recentRecepcions.total }}</span>
+                        <div class="flex gap-1">
+                            <Link v-for="link in recentRecepcions.links" :key="link.label"
+                                :href="link.url ?? '#'"
+                                v-html="link.label"
+                                class="px-3 py-1.5 rounded-lg border transition"
                                 :class="link.active
-                                    ? 'bg-jk-blue text-white border-jk-blue shadow-lg'
-                                    : 'bg-white text-gray-600 hover:bg-blue-50 border-gray-200'
-                                    ">
-                                <span v-html="link.label"></span>
-                            </Link>
-                        </template>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div v-if="showPhotoModal"
-            class="fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-
-            <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-                <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 class="text-lg font-black text-gray-800 uppercase tracking-tighter">
-                        Evidencia <span class="text-jk-blue">Fotográfica</span>
-                    </h3>
-                    <button @click="showPhotoModal = false"
-                        class="text-gray-400 hover:text-jk-red transition-colors text-2xl font-bold">&times;</button>
-                </div>
-
-                <div class="p-8 max-h-[70vh] overflow-y-auto">
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        <div v-for="(photo, index) in selectedPhotos" :key="index"
-                            class="aspect-video bg-gray-100 rounded-3xl overflow-hidden border-2 border-gray-100 group relative shadow-inner cursor-zoom-in">
-                            <img :src="'/storage/' + photo.replace(/\\/g, '/')"
-                                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                alt="Evidencia JK">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            </div>
+                                    ? 'bg-[#10213E] text-white border-[#10213E] font-black'
+                                    : link.url
+                                        ? 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'
+                                        : 'bg-gray-50 border-gray-100 text-gray-300 cursor-default'"
+                            />
                         </div>
                     </div>
                 </div>
 
-                <div class="p-6 bg-gray-50 border-t border-gray-100 text-right">
-                    <button @click="showPhotoModal = false"
-                        class="px-8 py-3 bg-jk-blue text-white font-bold rounded-xl hover:bg-jk-blue/90 transition-all shadow-lg active:scale-95">
-                        CERRAR
-                    </button>
-                </div>
             </div>
         </div>
+
+        <!-- Modal fotos -->
+        <div v-if="showPhotoModal"
+            class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+            @click.self="showPhotoModal = false">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-[#10213E] uppercase tracking-wider text-sm">Evidencia Fotográfica</h3>
+                    <button @click="showPhotoModal = false" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+                </div>
+                <div v-if="selectedPhotos.length" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <img v-for="(photo, i) in selectedPhotos" :key="i"
+                        :src="'/storage/' + photo.path"
+                        class="rounded-xl object-cover w-full aspect-square cursor-zoom-in hover:opacity-90 transition" />
+                </div>
+                <p v-else class="text-center text-gray-400 italic py-8">Sin fotos registradas.</p>
+            </div>
+        </div>
+
     </AuthenticatedLayout>
 </template>
-<style>
-.animate-vroom {
-    animation: vroom 0.15s infinite alternate;
-}
-
-.animate-dash {
-    animation: dash 0.3s infinite linear;
-}
-
-.animate-dash-slow {
-    animation: dash 0.5s infinite linear;
-}
-
-@keyframes vroom {
-    from {
-        transform: translateY(0);
-    }
-
-    to {
-        transform: translateY(-2px);
-    }
-}
-
-@keyframes dash {
-    0% {
-        opacity: 0;
-        transform: translateX(4px);
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-        transform: translateX(-8px);
-    }
-}
-</style>

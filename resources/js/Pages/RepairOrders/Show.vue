@@ -4,6 +4,7 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { ref, computed } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -14,7 +15,8 @@ defineProps({
     settings: Object,
     statuses: Array,
     mechanics: Array,
-    parts: Array,    // Fase 8: refacciones con stock
+    parts: Array,
+    isAdmin: Boolean,
 });
 
 const page = usePage();
@@ -42,6 +44,23 @@ function selectPart(partId) {
         form.unit_price = part.sale_price;
         form.part_id = part.id;
     }
+}
+
+// Combobox buscador de refacciones
+const partSearch   = ref('');
+const showPartList = ref(false);
+const filteredParts = computed(() => {
+    const q = partSearch.value.toLowerCase().trim();
+    return (page.props.parts ?? []).filter(p =>
+        p.name.toLowerCase().includes(q)
+    ).slice(0, 50);
+});
+
+function pickPart(part) {
+    form.part_id    = part.id;
+    form.unit_price = part.sale_price;
+    partSearch.value = part.name;
+    showPartList.value = false;
 }
 
 function imprimirCotizacion() {
@@ -142,8 +161,8 @@ function removeItem(itemId) {
                             </tbody>
                         </table>
 
-                        <!-- Calculadora Financiera -->
-                        <div class="flex justify-end mt-4 pt-4 border-t border-gray-200">
+                        <!-- Calculadora Financiera — solo admin -->
+                        <div v-if="isAdmin" class="flex justify-end mt-4 pt-4 border-t border-gray-200">
                             <OrderTotals :orden="orden" :breakdown="financial_breakdown" />
                         </div>
                     </div>
@@ -156,8 +175,8 @@ function removeItem(itemId) {
                     :mechanics="mechanics ?? []"
                 />
 
-                <!-- FASE 7: PAGOS Y ANTICIPOS -->
-                <PaymentPanel :orden="orden" :breakdown="financial_breakdown" />
+                <!-- FASE 7: PAGOS Y ANTICIPOS — solo admin -->
+                <PaymentPanel v-if="isAdmin" :orden="orden" :breakdown="financial_breakdown" />
             </div>
         </div>
 
@@ -192,23 +211,41 @@ function removeItem(itemId) {
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo *</label>
-                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="part">Refacción (Pieza)</option>
                             <option value="labor">Mano de Obra</option>
                         </select>
                     </div>
 
-                    <!-- Refacción: select desde inventario -->
-                    <div v-if="form.type === 'part'">
+                    <!-- Refacción: combobox buscador -->
+                    <div v-if="form.type === 'part'" class="relative">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Refacción *</label>
-                        <select v-model="form.part_id" @change="selectPart(form.part_id)"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
-                            <option :value="null" disabled>-- Seleccionar refacción --</option>
-                            <option v-for="p in (parts ?? [])" :key="p.id" :value="p.id">
-                                {{ p.name }} (Stock: {{ p.stock }})
-                            </option>
-                        </select>
-                        <p v-if="!parts || parts.length === 0" class="text-amber-600 text-xs mt-1">
+                        <input
+                            v-model="partSearch"
+                            @focus="showPartList = true"
+                            @input="showPartList = true"
+                            type="text"
+                            placeholder="Escribe para buscar..."
+                            autocomplete="off"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]"
+                        />
+                        <!-- Lista desplegable -->
+                        <div v-if="showPartList && filteredParts.length > 0"
+                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                            <button v-for="p in filteredParts" :key="p.id"
+                                type="button"
+                                @mousedown.prevent="pickPart(p)"
+                                class="w-full flex justify-between items-center px-4 py-2.5 text-sm hover:bg-gray-50 transition text-left"
+                                :class="form.part_id === p.id ? 'bg-blue-50 font-black text-[#10213E]' : 'text-gray-700'">
+                                <span>{{ p.name }}</span>
+                                <span class="text-xs text-gray-400 ml-2 shrink-0">Stock: {{ p.stock }}</span>
+                            </button>
+                        </div>
+                        <div v-if="showPartList && filteredParts.length === 0 && partSearch"
+                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 italic">
+                            Sin resultados para "{{ partSearch }}"
+                        </div>
+                        <p v-if="!page.props.parts || page.props.parts.length === 0" class="text-amber-600 text-xs mt-1">
                             ⚠️ Sin refacciones con stock disponible.
                         </p>
                     </div>

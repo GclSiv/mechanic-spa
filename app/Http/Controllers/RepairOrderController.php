@@ -65,22 +65,30 @@ class RepairOrderController extends Controller
 
     public function index()
     {
+        $user     = auth()->user();
+        $isAdmin  = $user->role === 'admin';
         $statuses = RepairOrderStatus::orderBy('id')->get();
 
-        $orders = RepairOrder::with([
+        $query = RepairOrder::with([
             'status', 'mechanic',
             'payments',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',
-        ])
-        ->orderByDesc('created_at')
-        ->get()
-        ->groupBy('status_id');
+        ])->orderByDesc('created_at');
+
+        // Mecánico solo ve sus propias órdenes
+        if (!$isAdmin) {
+            $mechanic = $user->mechanic;
+            $query->where('mechanic_id', $mechanic?->id ?? 0);
+        }
+
+        $orders = $query->get()->groupBy('status_id');
 
         return Inertia::render('RepairOrders/Index', [
-            'statuses'     => $statuses,
+            'statuses'       => $statuses,
             'ordersByStatus' => $orders,
+            'isAdmin'        => $isAdmin,
         ]);
     }
 
@@ -105,6 +113,7 @@ class RepairOrderController extends Controller
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
             'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock']),
+            'isAdmin'             => auth()->user()->role === 'admin',
         ]);
     }
 
