@@ -15,7 +15,6 @@ use App\Models\Setting;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'    => Route::has('login'),
-        'canRegister' => Route::has('register'),
         'settings'    => Setting::first(),
     ]);
 });

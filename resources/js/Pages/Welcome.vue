@@ -4,8 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 // Recibimos los datos que enviamos desde web.php
 const props = defineProps({
     canLogin: Boolean,
-    canRegister: Boolean,
-    settings: Object, // Aquí vienen Nombre, Dirección, Teléfono, etc.
+    settings: Object,
 });
 </script>
 
@@ -35,14 +34,6 @@ const props = defineProps({
                             class="px-4 py-2 font-semibold text-gray-700 hover:text-jk-blue transition"
                         >
                             Iniciar Sesión
-                        </Link>
-
-                        <Link
-                            v-if="canRegister"
-                            :href="route('register')"
-                            class="ml-4 px-6 py-2 bg-jk-blue text-white rounded-lg shadow-md hover:bg-blue-900 transition"
-                        >
-                            Registrarse
                         </Link>
                     </template>
                 </nav>
