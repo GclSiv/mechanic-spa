@@ -88,6 +88,7 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
         ->group(function () {
             
             // Ver panel de gestión de la orden
+            Route::get('/', 'index')->name('index');
             Route::get('/{order}', 'show')->name('show');
 
             // Gestión de conceptos (Refacciones y Mano de obra)

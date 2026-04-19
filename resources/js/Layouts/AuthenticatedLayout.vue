@@ -42,6 +42,9 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                             <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                 DASHBOARD
                             </NavLink>
+                            <NavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
+                                TALLER
+                            </NavLink>
                             <NavLink
                                 v-if="$page.props.auth.role === 'admin'"
                                 :href="route('mechanics.index')"
@@ -114,6 +117,9 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
                 <div class="space-y-1 pb-3 pt-2">
                     <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
                         Dashboard
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
+                        Taller
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
                         v-if="$page.props.auth.role === 'admin'"

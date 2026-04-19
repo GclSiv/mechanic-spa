@@ -12,8 +12,9 @@ defineProps({
     recepcion: Object,
     financial_breakdown: Object,
     settings: Object,
-    statuses: Array,  // Fase 3
-    mechanics: Array, // Fase 4
+    statuses: Array,
+    mechanics: Array,
+    parts: Array,    // Fase 8: refacciones con stock
 });
 
 const page = usePage();
@@ -30,9 +31,18 @@ function updateTax(newTax) {
 const form = useForm({
     description: '',
     type: 'part',
+    part_id: null,
     quantity: 1,
     unit_price: 0,
 });
+
+function selectPart(partId) {
+    const part = (page.props.parts ?? []).find(p => p.id === Number(partId));
+    if (part) {
+        form.unit_price = part.sale_price;
+        form.part_id = part.id;
+    }
+}
 
 function imprimirCotizacion() {
     window.open(route('repair-orders.pdf', page.props.orden?.id), '_blank');
@@ -182,14 +192,30 @@ function removeItem(itemId) {
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo *</label>
-                        <select v-model="form.type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="part">Refacción (Pieza)</option>
                             <option value="labor">Mano de Obra</option>
                         </select>
                     </div>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
+
+                    <!-- Refacción: select desde inventario -->
+                    <div v-if="form.type === 'part'">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Refacción *</label>
+                        <select v-model="form.part_id" @change="selectPart(form.part_id)"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                            <option :value="null" disabled>-- Seleccionar refacción --</option>
+                            <option v-for="p in (parts ?? [])" :key="p.id" :value="p.id">
+                                {{ p.name }} (Stock: {{ p.stock }})
+                            </option>
+                        </select>
+                        <p v-if="!parts || parts.length === 0" class="text-amber-600 text-xs mt-1">
+                            ⚠️ Sin refacciones con stock disponible.
+                        </p>
+                    </div>
+
+                    <!-- Mano de obra: texto libre -->
+                    <div v-if="form.type === 'labor'">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción *</label>
                         <input v-model="form.description" type="text" placeholder="Ej. Cambio de balatas"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                     </div>

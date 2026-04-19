@@ -16,27 +16,72 @@ class RepairOrderController extends Controller
 {
     public function addItem(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
-        $validated = $request->validate([
-            'description' => 'required|string',
+        $request->validate([
             'type'        => 'required|in:part,labor',
+            'description' => 'required_if:type,labor|nullable|string',
+            'part_id'     => 'required_if:type,part|nullable|exists:parts,id',
             'quantity'    => 'required|numeric|min:0.01',
             'unit_price'  => 'required|numeric|min:0',
         ]);
 
-        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
+        // Si es refacción, obtener descripción y validar stock
+        if ($request->type === 'part') {
+            $part = \App\Models\Part::findOrFail($request->part_id);
+            if ($part->stock < $request->quantity) {
+                return back()->withErrors(['quantity' => "Stock insuficiente. Disponible: {$part->stock}"]);
+            }
+        }
 
         try {
-            DB::transaction(function () use ($order, $validated, $calculator) {
-                $order->items()->create($validated);
-                return $calculator->execute($order);
+            DB::transaction(function () use ($request, $order, $calculator) {
+                $data = [
+                    'type'        => $request->type,
+                    'description' => $request->type === 'part'
+                        ? \App\Models\Part::find($request->part_id)->name
+                        : $request->description,
+                    'part_id'     => $request->type === 'part' ? $request->part_id : null,
+                    'quantity'    => $request->quantity,
+                    'unit_price'  => $request->unit_price,
+                    'subtotal'    => $request->quantity * $request->unit_price,
+                ];
+
+                $order->items()->create($data);
+
+                // Descontar stock si es refacción
+                if ($request->type === 'part' && $request->part_id) {
+                    \App\Models\Part::where('id', $request->part_id)
+                        ->decrement('stock', $request->quantity);
+                }
+
+                $calculator->execute($order);
             });
         } catch (\Throwable $e) {
             return back()->withErrors('Error al agregar el item.');
         }
 
-        // ✅ Corregido el mensaje
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Concepto agregado correctamente.');
+    }
+
+    public function index()
+    {
+        $statuses = RepairOrderStatus::orderBy('id')->get();
+
+        $orders = RepairOrder::with([
+            'status', 'mechanic',
+            'payments',
+            'recepcion.client',
+            'recepcion.vehicle.brand',
+            'recepcion.vehicle.vehicleModel',
+        ])
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy('status_id');
+
+        return Inertia::render('RepairOrders/Index', [
+            'statuses'     => $statuses,
+            'ordersByStatus' => $orders,
+        ]);
     }
 
     public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator)
@@ -58,7 +103,8 @@ class RepairOrderController extends Controller
             'financial_breakdown' => $breakdown,
             'settings'            => \App\Models\Setting::first(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
-            'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']), // Fase 4
+            'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
+            'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock']),
         ]);
     }
 
@@ -70,14 +116,18 @@ class RepairOrderController extends Controller
 
         try {
             DB::transaction(function () use ($item, $order, $calculator) {
+                // Devolver stock si era una refacción vinculada
+                if ($item->part_id) {
+                    \App\Models\Part::where('id', $item->part_id)
+                        ->increment('stock', $item->quantity);
+                }
                 $item->delete();
-                return $calculator->execute($order);
+                $calculator->execute($order);
             });
         } catch (\Throwable $e) {
             return back()->withErrors('Error al eliminar el item.');
         }
 
-        // ✅ Corregido el mensaje
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Concepto eliminado correctamente.');
     }
