@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { ref, watch, computed } from "vue";
 
@@ -34,10 +35,11 @@ watch(search, (value) => {
     }, 500);
 });
 
-const deleteRecord = (id) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este registro?")) {
-        router.delete(route("recepcion.destroy", id), { preserveScroll: true });
-    }
+const confirmDelete = ref({ show: false, id: null });
+const deleteRecord = (id) => { confirmDelete.value = { show: true, id }; };
+const doDelete = () => {
+    router.delete(route("recepcion.destroy", confirmDelete.value.id), { preserveScroll: true });
+    confirmDelete.value = { show: false, id: null };
 };
 
 function formatCurrency(val) {
@@ -273,5 +275,15 @@ function formatCurrency(val) {
             </div>
         </div>
 
+
+        <!-- Modal confirmación eliminar -->
+        <ConfirmModal
+            :show="confirmDelete.show"
+            title="Eliminar recepción"
+            message="¿Estás seguro? Se eliminará permanentemente este registro de recepción."
+            confirm-text="Sí, eliminar"
+            @confirm="doDelete"
+            @cancel="confirmDelete.show = false"
+        />
     </AuthenticatedLayout>
 </template>

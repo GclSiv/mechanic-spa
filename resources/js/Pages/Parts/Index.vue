@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -7,10 +8,11 @@ defineProps({ parts: Array });
 
 const flash = computed(() => usePage().props.flash);
 
-function destroy(id) {
-    if (confirm('¿Eliminar esta refacción del inventario?')) {
-        router.delete(route('parts.destroy', id), { preserveScroll: true });
-    }
+const confirmDel = ref({ show: false, id: null });
+function destroy(id) { confirmDel.value = { show: true, id }; }
+function doDel() {
+    router.delete(route('parts.destroy', confirmDel.value.id), { preserveScroll: true });
+    confirmDel.value = { show: false, id: null };
 }
 </script>
 
@@ -24,7 +26,11 @@ function destroy(id) {
                     + Nueva Refacción
                 </a>
             </div>
-        </template>
+        
+        <ConfirmModal :show="confirmDel.show" title="Eliminar refacción"
+            message="Se eliminará esta refacción del inventario permanentemente."
+            confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+</template>
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">

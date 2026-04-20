@@ -21,10 +21,21 @@ export default defineConfig({
             registerType: 'autoUpdate',
             injectRegister: 'auto',
 
-            // El SW se incluye en el build de Vite pero Laravel lo sirve desde /
-            // outDir apunta a public para que sea accesible directamente
+            // Para Laravel: el SW debe estar en la raíz pública, no en /build/
+            // Usamos strategies: 'generateSW' con scope correcto
+            strategies: 'generateSW',
+
+            // Vite con laravel-vite-plugin compila a public/build/
+            // El SW y el manifest deben estar en public/ (raíz)
             outDir: 'public',
-            buildBase: '/',
+            base: '/',
+
+            includeAssets: [
+                'images/pwa-192x192.png',
+                'images/pwa-512x512.png',
+                'images/pwa-apple-180x180.png',
+                'images/pwa-maskable-512x512.png',
+            ],
 
             manifest: {
                 name: 'JK Automotive ERP',
@@ -66,26 +77,48 @@ export default defineConfig({
             },
 
             workbox: {
-                // Cachear assets estáticos generados por Vite
-                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-                // Rutas que NO deben cachearse (dinámicas de Laravel)
-                navigateFallbackDenylist: [/^\/api/, /^\/sanctum/, /^\/_debugbar/],
+                // Solo cachear assets estáticos de public/ y public/build/
+                globDirectory: 'public',
+                globPatterns: [
+                    'build/**/*.{js,css}',
+                    'images/pwa-*.png',
+                ],
+                // NO usar navigateFallback en SPAs con Laravel (rompe el routing del servidor)
                 navigateFallback: null,
-                // Estrategia: Network First para navegación, Cache First para assets
+                navigateFallbackDenylist: [],
+                // Estrategia Network-First para assets de la app
                 runtimeCaching: [
                     {
+                        // Fuentes de Bunny.net - Cache First
                         urlPattern: /^https:\/\/fonts\.bunny\.net\/.*/i,
                         handler: 'CacheFirst',
                         options: {
-                            cacheName: 'google-fonts-cache',
-                            expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                            cacheName: 'bunny-fonts-cache',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 60 * 60 * 24 * 365,
+                            },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                    {
+                        // Assets de /build/ - Stale While Revalidate
+                        urlPattern: /\/build\/.*/i,
+                        handler: 'StaleWhileRevalidate',
+                        options: {
+                            cacheName: 'vite-build-cache',
+                            expiration: { maxEntries: 50 },
                         },
                     },
                 ],
             },
 
             devOptions: {
-                enabled: false, // Desactivar SW en desarrollo para no interferir con HMR
+                // Activado en dev para que Chrome pueda detectar el manifest
+                // y mostrar el botón de instalación incluso con php artisan serve
+                enabled: true,
+                type: 'module',
+                navigateFallback: null,
             },
         }),
     ],

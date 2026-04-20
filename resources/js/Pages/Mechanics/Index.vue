@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -9,10 +10,11 @@ defineProps({
 
 const flash = computed(() => usePage().props.flash);
 
-function destroy(id) {
-    if (confirm('¿Eliminar este mecánico? Esta acción no se puede deshacer.')) {
-        router.delete(route('mechanics.destroy', id), { preserveScroll: true });
-    }
+const confirmDel = ref({ show: false, id: null });
+function destroy(id) { confirmDel.value = { show: true, id }; }
+function doDel() {
+    router.delete(route('mechanics.destroy', confirmDel.value.id), { preserveScroll: true });
+    confirmDel.value = { show: false, id: null };
 }
 </script>
 
@@ -28,7 +30,11 @@ function destroy(id) {
                     + Nuevo Mecánico
                 </a>
             </div>
-        </template>
+        
+        <ConfirmModal :show="confirmDel.show" title="Eliminar mecánico"
+            message="Se eliminará el perfil y la cuenta de acceso de este mecánico."
+            confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+</template>
 
         <div class="py-12">
             <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">

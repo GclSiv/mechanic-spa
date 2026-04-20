@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { useForm, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -63,12 +64,14 @@ function submitFollowUp() {
     });
 }
 
-function deleteNote(noteId) {
-    if (!confirm('¿Eliminar esta nota de seguimiento?')) return;
+const confirmNote = ref({ show: false, id: null });
+function deleteNote(id) { confirmNote.value = { show: true, id }; }
+function doDeleteNote() {
     router.delete(route('repair-orders.follow-ups.destroy', {
         order: props.orden.id,
-        followUp: noteId,
+        followUp: confirmNote.value.id,
     }), { preserveScroll: true });
+    confirmNote.value = { show: false, id: null };
 }
 
 // ── Lightbox ───────────────────────────────────────────────────────────
@@ -269,4 +272,8 @@ function openLightbox(path) {
             </div>
         </div>
     </Teleport>
+
+    <ConfirmModal :show="confirmNote.show" title="Eliminar nota"
+        message="Se eliminará esta nota y sus fotos de evidencia permanentemente."
+        confirm-text="Sí, eliminar" @confirm="doDeleteNote" @cancel="confirmNote.show = false" />
 </template>

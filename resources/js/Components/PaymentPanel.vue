@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { useForm, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -28,12 +29,11 @@ function submit() {
     });
 }
 
-function eliminar(paymentId) {
-    if (confirm('¿Eliminar este pago?')) {
-        router.delete(route('payments.destroy', { order: props.orden.id, payment: paymentId }), {
-            preserveScroll: true,
-        });
-    }
+const confirmPay = ref({ show: false, id: null });
+function eliminar(id) { confirmPay.value = { show: true, id }; }
+function doEliminar() {
+    router.delete(route('payments.destroy', { order: props.orden.id, payment: confirmPay.value.id }), { preserveScroll: true });
+    confirmPay.value = { show: false, id: null };
 }
 
 const metodoBadge = {
@@ -129,4 +129,8 @@ const metodoBadge = {
             </div>
         </div>
     </div>
+
+    <ConfirmModal :show="confirmPay.show" title="Eliminar pago"
+        message="Se eliminará este pago del historial. El saldo pendiente se actualizará."
+        confirm-text="Sí, eliminar" @confirm="doEliminar" @cancel="confirmPay.show = false" />
 </template>

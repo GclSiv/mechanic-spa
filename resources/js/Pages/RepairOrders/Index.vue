@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -48,11 +49,11 @@ function changeStatus(order, statusId) {
     });
 }
 
-function deleteOrder(order) {
-    if (!confirm(`¿Eliminar la orden #${order.folio ?? order.id}? Esta acción no se puede deshacer.`)) return;
-    router.delete(route('recepcion.destroy', order.recepcion_id), {
-        preserveScroll: true,
-    });
+const confirmDel = ref({ show: false, order: null });
+function deleteOrder(order) { confirmDel.value = { show: true, order }; }
+function doDel() {
+    router.delete(route('recepcion.destroy', confirmDel.value.order.recepcion_id), { preserveScroll: true });
+    confirmDel.value = { show: false, order: null };
 }
 </script>
 
@@ -69,7 +70,13 @@ function deleteOrder(order) {
                     </span>
                 </div>
             </div>
-        </template>
+        
+    <!-- Modal confirmación -->
+    <ConfirmModal :show="confirmDel.show"
+        :title="\`Eliminar orden #\${confirmDel.order?.folio ?? confirmDel.order?.id}\`"
+        message="Se eliminará la orden y su recepción asociada permanentemente."
+        confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+</template>
 
         <div class="py-6">
             <div class="max-w-[1600px] mx-auto sm:px-4 lg:px-6">
