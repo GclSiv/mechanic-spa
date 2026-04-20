@@ -103,7 +103,8 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
 
             // Fase 4: Asignación de mecánico y bitácora
             Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign');
-            Route::post('/{order}/follow-ups', 'storeFollowUp')->name('follow-ups.store');
+            Route::post('/{order}/follow-ups', [\App\Http\Controllers\FollowUpController::class, 'store'])->name('follow-ups.store');
+            Route::delete('/{order}/follow-ups/{followUp}', [\App\Http\Controllers\FollowUpController::class, 'destroy'])->name('follow-ups.destroy');
     });
 
     // ========================================================

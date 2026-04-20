@@ -8,9 +8,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FollowUp extends Model
 {
-    /** @use HasFactory<\Database\Factories\FollowUpFactory> */
     use HasFactory;
-    protected $fillable = ['repair_order_id', 'mechanic_id', 'description', 'date'];
+
+    protected $fillable = [
+        'repair_order_id',
+        'mechanic_id',
+        'description',
+        'date',
+        'evidence_photos',
+    ];
+
+    protected $casts = [
+        'evidence_photos' => 'array',
+    ];
 
     public function mechanic(): BelongsTo
     {
