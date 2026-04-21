@@ -73,7 +73,7 @@ function doDel() {
         
     <!-- Modal confirmación -->
     <ConfirmModal :show="confirmDel.show"
-        :title="\`Eliminar orden #\${confirmDel.order?.folio ?? confirmDel.order?.id}\`"
+        :title="'Eliminar orden #' + (confirmDel.order?.folio ?? confirmDel.order?.id)"
         message="Se eliminará la orden y su recepción asociada permanentemente."
         confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>

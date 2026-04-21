@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 defineProps({
     mechanics: Array,
