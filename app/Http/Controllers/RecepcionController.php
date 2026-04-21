@@ -167,14 +167,66 @@ class RecepcionController extends Controller
 
     public function index()
     {
-        // Traemos las recepciones JUNTO con su cliente y vehículo para poder mostrarlos en la tabla
         $recepciones = Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])
             ->orderBy('id', 'desc')
             ->get();
 
         return Inertia::render('Recepciones/Index', [
-            'recepciones' => $recepciones
+            'recepciones' => $recepciones,
         ]);
+    }
+
+    /**
+     * Muestra el detalle de una Recepción (recepcion.show).
+     */
+    public function showRecepcion(Recepcion $recepcion)
+    {
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
+
+        // Si ya tiene orden de reparación, redirigir a ella
+        $orden = RepairOrder::where('recepcion_id', $recepcion->id)->first();
+        if ($orden) {
+            return redirect()->route('repair-orders.show', $orden->id);
+        }
+
+        // Si no, mostrar detalle básico de la recepción
+        return Inertia::render('Recepciones/Show', [
+            'recepcion' => $recepcion,
+        ]);
+    }
+
+    /**
+     * Muestra el formulario de edición de una recepción.
+     */
+    public function edit(Recepcion $recepcion)
+    {
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
+        $brands = Brand::with('vehicle_models')->get();
+
+        return Inertia::render('Recepciones/Edit', [
+            'recepcion' => $recepcion,
+            'brands'    => $brands,
+        ]);
+    }
+
+    /**
+     * Elimina una recepción y sus datos asociados.
+     */
+    public function destroy(Recepcion $recepcion)
+    {
+        DB::transaction(function () use ($recepcion) {
+            // Eliminar órdenes de reparación vinculadas
+            RepairOrder::where('recepcion_id', $recepcion->id)->each(function ($order) {
+                $order->items()->delete();
+                $order->payments()->delete();
+                $order->followUps()->delete();
+                $order->delete();
+            });
+            $recepcion->delete();
+        });
+
+        return redirect()->route('recepcion.index')
+            ->with('success', 'Recepción eliminada correctamente.');
     }
 
     /**

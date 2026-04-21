@@ -48,8 +48,9 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
             Route::post('/', 'store')->name('recepcion.store');
 
             // ✅ Route Model Binding: Inyectamos el modelo automáticamente
-            Route::get('/{recepcion}', 'show')->name('recepcion.show');
+            Route::get('/{recepcion}', 'showRecepcion')->name('recepcion.show');
             Route::get('/{recepcion}/edit', 'edit')->name('recepcion.edit');
+            Route::put('/{recepcion}', 'update')->name('recepcion.update');
             Route::delete('/{recepcion}', 'destroy')->name('recepcion.destroy');
             Route::get('/{recepcion}/pdf', 'print')->name('recepcion.pdf');
             Route::post('/{recepcion}/generate-order', 'generateOrder')->name('recepcion.generate-order');

@@ -219,7 +219,7 @@ function formatCurrency(val) {
                                     <td class="px-6 py-4">
                                         <div class="flex justify-center gap-2">
                                             <button
-                                                @click="openPhotoGallery(rec.client?.photos ?? [])"
+                                                @click="openPhotoGallery(rec.photos ?? [])"
                                                 title="Ver fotos del vehículo"
                                                 class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                                 📷
@@ -277,7 +277,7 @@ function formatCurrency(val) {
                 </div>
                 <div v-if="selectedPhotos.length" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <img v-for="(photo, i) in selectedPhotos" :key="i"
-                        :src="'/storage/' + photo.path"
+                        :src="'/storage/' + (typeof photo === 'string' ? photo : photo.path)"
                         class="rounded-xl object-cover w-full aspect-square cursor-zoom-in hover:opacity-90 transition" />
                 </div>
                 <p v-else class="text-center text-gray-400 italic py-8">Sin fotos registradas.</p>

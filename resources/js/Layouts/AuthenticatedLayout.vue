@@ -64,6 +64,9 @@ watch(
                             <NavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
                                 TALLER
                             </NavLink>
+                            <NavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
+                                RECEPCIONES
+                            </NavLink>
                             <NavLink
                                 v-if="$page.props.auth.role === 'admin'"
                                 :href="route('mechanics.index')"
@@ -139,6 +142,9 @@ watch(
                     </ResponsiveNavLink>
                     <ResponsiveNavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
                         Taller
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
+                        Recepciones
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
                         v-if="$page.props.auth.role === 'admin'"
