@@ -157,7 +157,15 @@ function formatCurrency(val) {
                         <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">
                             📋 Recepciones Recientes
                         </h3>
-                        <div class="relative w-full sm:w-72">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <!-- Exportar CSV (solo admin) -->
+                            <a v-if="isAdmin"
+                                :href="route('export.ordenes') + '?mes=' + new Date().toISOString().slice(0,7)"
+                                class="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase px-3 py-2 rounded-lg transition shadow-sm"
+                                title="Exportar órdenes del mes a Excel/CSV">
+                                📊 Exportar CSV
+                            </a>
+                            <div class="relative w-full sm:w-72">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
                             <input
                                 v-model="search"
@@ -166,6 +174,7 @@ function formatCurrency(val) {
                                 class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50"
                             />
                             <span v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sm">⟳</span>
+                        </div>
                         </div>
                         <Link :href="route('recepcion.create')"
                             class="shrink-0 bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">

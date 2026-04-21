@@ -40,18 +40,17 @@ class MechanicController extends Controller
             'gender_id'        => 'required|exists:genders,id',
             'mechanic_type_id' => 'required|exists:mechanic_types,id',
             'phone'            => 'nullable|string|max:20',
+            'role'             => 'required|in:admin,mechanic',
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Crear cuenta de usuario
             $user = User::create([
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'password' => Hash::make('password123'),
-                'role'     => 'mechanic',
+                'role'     => $request->role,
             ]);
 
-            // 2. Crear perfil de mecánico vinculado
             Mechanic::create([
                 'name'             => $request->name,
                 'email'            => $request->email,
@@ -63,7 +62,7 @@ class MechanicController extends Controller
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Mecánico registrado. Credenciales: ' . $request->email . ' / password123');
+            ->with('success', 'Personal registrado. Credenciales: ' . $request->email . ' / password123');
     }
 
     public function edit(Mechanic $mechanic)
@@ -111,14 +110,12 @@ class MechanicController extends Controller
     public function destroy(Mechanic $mechanic)
     {
         DB::transaction(function () use ($mechanic) {
-            $userId = $mechanic->user_id;
+            // Eliminar cuenta de usuario asociada si existe (null-safe para mecánicos legacy)
+            $mechanic->user?->delete();
             $mechanic->delete();
-            if ($userId) {
-                User::destroy($userId);
-            }
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Mecánico y cuenta de acceso eliminados.');
+            ->with('success', 'Personal eliminado correctamente.');
     }
 }

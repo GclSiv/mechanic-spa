@@ -64,7 +64,11 @@ Route::delete('/repair-orders/{order}/items/{item}', [RepairOrderController::cla
         ->middleware('role:admin');
 
     // ========================================================
-    // MÓDULO 6: INVENTARIO DE REFACCIONES (solo admin)
+    // MÓDULO DE EXPORTACIÓN (solo admin)
+    // ========================================================
+    Route::get('/exportar/ordenes', [\App\Http\Controllers\ExportController::class, 'ordenesCSV'])
+        ->name('export.ordenes')
+        ->middleware('role:admin');
     // ========================================================
     Route::resource('parts', \App\Http\Controllers\PartController::class)
         ->except(['show'])

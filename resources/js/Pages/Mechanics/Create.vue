@@ -60,6 +60,18 @@ function submit() {
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
                         </div>
 
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Rol del Sistema *</label>
+                            <select v-model="form.role"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                <option value="mechanic">Mecánico</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                            <p class="text-xs text-gray-400 mt-1">Los administradores tienen acceso completo al sistema.</p>
+                            <p v-if="form.errors.role" class="text-red-500 text-xs mt-1">{{ form.errors.role }}</p>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Especialidad *</label>

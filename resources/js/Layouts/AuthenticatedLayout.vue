@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -11,6 +11,25 @@ const showingNavigationDropdown = ref(false);
 
 const primaryColor = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
+
+// ── Toast global ──────────────────────────────────────────────────────
+const toast = ref(null);
+let toastTimer = null;
+
+watch(
+    () => page.props.flash,
+    (flash) => {
+        if (flash?.success || flash?.error) {
+            clearTimeout(toastTimer);
+            toast.value = {
+                type: flash.success ? 'success' : 'error',
+                message: flash.success || flash.error,
+            };
+            toastTimer = setTimeout(() => { toast.value = null; }, 4000);
+        }
+    },
+    { deep: true, immediate: true }
+);
 </script>
 
 <template>
@@ -139,11 +158,32 @@ const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#
             </div>
         </nav>
 
-        <!-- Flash error banner -->
-        <div v-if="$page.props.flash?.error"
-            class="bg-red-50 border-b border-red-200 px-4 py-3 text-center text-sm font-medium text-red-700">
-            ⚠️ {{ $page.props.flash.error }}
-        </div>
+        <!-- Flash error banner legacy (reemplazado por toast global) -->
+
+        <!-- Toast global (success + error) -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-300"
+                enter-from-class="opacity-0 translate-y-4"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 translate-y-4"
+            >
+                <div v-if="toast"
+                    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-bold max-w-md w-full mx-4"
+                    :class="toast.type === 'success'
+                        ? 'bg-[#10213E] text-white'
+                        : 'bg-[#EE2857] text-white'">
+                    <span class="text-lg leading-none shrink-0">
+                        {{ toast.type === 'success' ? '✅' : '⚠️' }}
+                    </span>
+                    <span class="flex-1 text-xs leading-snug">{{ toast.message }}</span>
+                    <button @click="toast = null"
+                        class="text-white/60 hover:text-white transition text-base leading-none shrink-0">✕</button>
+                </div>
+            </Transition>
+        </Teleport>
 
         <!-- Header de página -->
         <header v-if="$slots.header" class="bg-white shadow-sm">
