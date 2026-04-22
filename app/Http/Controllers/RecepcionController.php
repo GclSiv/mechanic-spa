@@ -201,7 +201,7 @@ class RecepcionController extends Controller
     public function edit(Recepcion $recepcion)
     {
         $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
-        $brands = Brand::with('vehicle_models')->get();
+        $brands = Brand::with('vehicleModels')->get();
 
         return Inertia::render('Recepciones/Edit', [
             'recepcion' => $recepcion,

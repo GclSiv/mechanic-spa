@@ -110,12 +110,20 @@ class MechanicController extends Controller
     public function destroy(Mechanic $mechanic)
     {
         DB::transaction(function () use ($mechanic) {
-            // Eliminar cuenta de usuario asociada si existe (null-safe para mecánicos legacy)
+            // Desvincular follow_ups (poner mechanic_id en null para no perder historial)
+            \App\Models\FollowUp::where('mechanic_id', $mechanic->id)
+                ->update(['mechanic_id' => null]);
+
+            // Desvincular repair_orders activas
+            \App\Models\RepairOrder::where('mechanic_id', $mechanic->id)
+                ->update(['mechanic_id' => null]);
+
+            // Eliminar cuenta de usuario asociada si existe (null-safe para legacy)
             $mechanic->user?->delete();
             $mechanic->delete();
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Personal eliminado correctamente.');
+            ->with('success', 'Mecánico eliminado correctamente.');
     }
 }

@@ -256,7 +256,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 </td>
 <td style="text-align: right; vertical-align: bottom;">
 <div class="photo-folio">Order #{{ str_pad($recepcion->id, 4, '0', STR_PAD_LEFT) }}</div>
-<div class="photo-vehicle-sub">{{ $recepcion->vehicle?->brand?->name }} / {{ $recepcion->vehicle?->vehicleModel?->name }} {{ $recepcion->vehicle?->year }}</div>
+<div class="photo-vehicle-sub">{{ is_string($recepcion->vehicle?->brand) ? $recepcion->vehicle->brand : ($recepcion->vehicle?->brand?->name ?? '—') }} / {{ is_string($recepcion->vehicle?->model) ? $recepcion->vehicle->model : ($recepcion->vehicle?->vehicleModel?->name ?? '—') }} {{ $recepcion->vehicle?->year }}</div>
 </td>
 </tr>
 </table>
