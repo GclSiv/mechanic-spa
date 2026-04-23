@@ -14,11 +14,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $user   = auth()->user();
-        $search = $request->input('search');
+        $user    = auth()->user();
+        $search  = $request->input('search');
         $isAdmin = $user->role === 'admin';
 
-        // Órdenes pendientes (no entregadas ni rechazadas)
+        // ── Quick Stats ────────────────────────────────────────────────
         $pendingStatuses = RepairOrderStatus::whereNotIn('slug', ['entregado', 'rechazado'])->pluck('id');
         $pendingQuery    = RepairOrder::whereIn('status_id', $pendingStatuses);
         if (!$isAdmin) {
@@ -26,19 +26,14 @@ class DashboardController extends Controller
             if ($mechanic) $pendingQuery->where('mechanic_id', $mechanic->id);
         }
         $ordenesActivas = $pendingQuery->count();
-
-        // Alertas de stock bajo
-        $stockAlertas = Part::whereColumn('stock', '<=', 'low_stock_threshold')->count();
-
-        // Ingresos del mes (solo admin)
-        $ingresosMes = null;
-        if ($isAdmin) {
-            $ingresosMes = Payment::whereMonth('created_at', now()->month)
+        $stockAlertas   = Part::whereColumn('stock', '<=', 'low_stock_threshold')->count();
+        $ingresosMes    = $isAdmin
+            ? Payment::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
-                ->sum('amount');
-        }
+                ->sum('amount')
+            : null;
 
-        // Lista recepciones recientes con buscador
+        // ── Recepciones recientes — paginado a 5, eager loading anti N+1 ──
         $recentRecepcions = Recepcion::query()
             ->with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])
             ->when($search, fn($q) => $q
@@ -52,8 +47,45 @@ class DashboardController extends Controller
                     ->orWhereHas('vehicleModel', fn($m) => $m->where('name', 'LIKE', "%{$search}%")))
                 ->orWhere('recepcions.id', 'LIKE', "%{$search}%"))
             ->latest()
-            ->paginate(10)
+            ->paginate(5)            // ← limitado a 5 por página
             ->withQueryString();
+
+        // ── Órdenes recientes con estado y saldo — solo admin ───────────
+        $recentOrders = null;
+        if ($isAdmin) {
+            $recentOrders = RepairOrder::with([
+                'status',                        // para el badge de color
+                'payments',                      // para calcular saldo
+                'recepcion.client',
+                'recepcion.vehicle.brand',
+                'recepcion.vehicle.vehicleModel',
+                'mechanic',
+            ])
+            ->orderByDesc('created_at')
+            ->take(8)
+            ->get()
+            ->map(function ($order) {
+                $totalPagado  = $order->payments->sum('amount');
+                $saldo        = round($order->estimated_cost - $totalPagado, 2);
+                return [
+                    'id'           => $order->id,
+                    'folio'        => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'cliente'      => trim(($order->recepcion->client->first_name ?? '') . ' ' . ($order->recepcion->client->last_name ?? '')),
+                    'vehiculo'     => trim((is_string($order->recepcion->vehicle->brand ?? null)
+                        ? ($order->recepcion->vehicle->brand ?? '')
+                        : ($order->recepcion->vehicle->brand->name ?? '')) . ' ' .
+                        ($order->recepcion->vehicle->vehicleModel->name ?? '')),
+                    'año'          => $order->recepcion->vehicle->year ?? '—',
+                    'mecanico'     => $order->mechanic->name ?? 'Sin asignar',
+                    'status_name'  => $order->status->name ?? '—',
+                    'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
+                    'total'        => round($order->estimated_cost, 2),
+                    'pagado'       => round($totalPagado, 2),
+                    'saldo'        => $saldo,
+                    'liquidado'    => $saldo <= 0,
+                ];
+            });
+        }
 
         return Inertia::render('Dashboard', [
             'stats' => [
@@ -64,6 +96,7 @@ class DashboardController extends Controller
                 'ingresosMes'    => $ingresosMes,
             ],
             'recentRecepcions' => $recentRecepcions,
+            'recentOrders'     => $recentOrders,
             'filters'          => $request->only(['search']),
         ]);
     }

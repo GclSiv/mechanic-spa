@@ -7,6 +7,7 @@ import { ref, watch, computed } from "vue";
 const props = defineProps({
     stats:             Object,
     recentRecepcions:  Object,
+    recentOrders:      Array,
     filters:           Object,
 });
 
@@ -244,10 +245,18 @@ function formatCurrency(val) {
                         </table>
                     </div>
 
+                    <!-- Ver todos -->
+                    <div class="px-6 py-3 border-t border-gray-100 flex justify-between items-center">
+                        <Link :href="route('recepcion.index')"
+                            class="text-xs text-[#10213E] font-black hover:underline flex items-center gap-1">
+                            Ver todas las recepciones →
+                        </Link>
+                    </div>
+
                     <!-- Paginación -->
                     <div v-if="recentRecepcions.last_page > 1"
                         class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span>Mostrando {{ recentRecepcions.from }}–{{ recentRecepcions.to }} de {{ recentRecepcions.total }}</span>
+                        <span>Mostrando {{ recentRecepcions.from }}–{{ recentRecepcions.to }} de {{ recentRecepcions.total }} recepciones</span>
                         <div class="flex gap-1">
                             <Link v-for="link in recentRecepcions.links" :key="link.label"
                                 :href="link.url ?? '#'"
@@ -265,6 +274,63 @@ function formatCurrency(val) {
 
             </div>
         </div>
+
+                <!-- ══ ÓRDENES RECIENTES - Estado + Saldo (admin) ══ -->
+                <div v-if="isAdmin && recentOrders && recentOrders.length"
+                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 Órdenes Recientes</h3>
+                        <Link :href="route('repair-orders.index')" class="text-xs text-[#10213E] font-black hover:underline">
+                            Ver tablero →
+                        </Link>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
+                                <tr>
+                                    <th class="px-4 py-3">Folio</th>
+                                    <th class="px-4 py-3">Cliente</th>
+                                    <th class="px-4 py-3">Vehículo</th>
+                                    <th class="px-4 py-3">Mecánico</th>
+                                    <th class="px-4 py-3 text-center">Estado</th>
+                                    <th class="px-4 py-3 text-center">Saldo</th>
+                                    <th class="px-4 py-3 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <tr v-for="ord in recentOrders" :key="ord.id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-3 font-black text-[#10213E] text-xs">{{ ord.folio }}</td>
+                                    <td class="px-4 py-3 font-medium text-gray-800 text-xs">{{ ord.cliente }}</td>
+                                    <td class="px-4 py-3 text-gray-600 text-xs">{{ ord.vehiculo }} <span class="text-gray-400">({{ ord.año }})</span></td>
+                                    <td class="px-4 py-3 text-xs" :class="ord.mecanico === 'Sin asignar' ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico }}</td>
+                                    <!-- Badge Estado -->
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-block px-2 py-1 rounded-full text-[10px] font-black uppercase" :class="ord.status_color">
+                                            {{ ord.status_name }}
+                                        </span>
+                                    </td>
+                                    <!-- Badge Saldo / Adeudo -->
+                                    <td class="px-4 py-3 text-center">
+                                        <span v-if="ord.liquidado"
+                                            class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
+                                            ✅ Pagado
+                                        </span>
+                                        <span v-else
+                                            class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
+                                            ⚠️ Adeudo ${{ ord.saldo.toFixed(2) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <Link :href="route('repair-orders.show', ord.id)"
+                                            class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
+                                            Abrir
+                                        </Link>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
         <!-- Modal fotos -->
         <div v-if="showPhotoModal"

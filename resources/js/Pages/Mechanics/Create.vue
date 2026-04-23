@@ -10,6 +10,7 @@ defineProps({
 const form = useForm({
     name:             '',
     email:            '',
+    role:             'mechanic',   // default: no falla la validación
     gender_id:        '',
     mechanic_type_id: '',
     phone:            '',
