@@ -20,7 +20,34 @@ const props = defineProps({
 const page = usePage();
 const currentStep = ref(1);
 const totalSteps = 2;
-const isNewClient = ref(true); 
+const isNewClient = ref(true);
+
+// ── Combobox de cliente existente ─────────────────────────────────────
+const clientSearch   = ref('');
+const showClientList = ref(false);
+const selectedClientName = ref('');
+
+const filteredClients = computed(() => {
+    const q = clientSearch.value.toLowerCase().trim();
+    if (!q || !props.clients) return props.clients?.slice(0, 30) ?? [];
+    return props.clients.filter(c =>
+        (c.first_name + ' ' + c.last_name).toLowerCase().includes(q) ||
+        (c.phone ?? '').toLowerCase().includes(q)
+    ).slice(0, 30);
+});
+
+function pickClient(client) {
+    form.client_id = client.id;
+    clientSearch.value = client.first_name + ' ' + client.last_name + ' — ' + (client.phone ?? '');
+    selectedClientName.value = clientSearch.value;
+    showClientList.value = false;
+}
+
+function clearClient() {
+    form.client_id = null;
+    clientSearch.value = '';
+    selectedClientName.value = '';
+}
 const goNext = () => {
     if (currentStep.value < totalSteps) currentStep.value++;
 };
@@ -251,14 +278,52 @@ const submit = () => {
                             </div>
 
                             <!-- VISTA: CLIENTE EXISTENTE -->
+                            <!-- COMBOBOX BUSCADOR DE CLIENTE EXISTENTE -->
                             <div v-if="!isNewClient" class="mb-6">
-                                <InputLabel for="client_id" value="Buscar Cliente en la Base de Datos *" />
-                                <select id="client_id" v-model="form.client_id" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" required>
-                                    <option :value="null" disabled>Seleccione un cliente...</option>
-                                    <option v-for="client in props.clients" :key="client.id" :value="client.id">
-                                        {{ client.first_name }} {{ client.last_name }} - Tel: {{ client.phone }}
-                                    </option>
-                                </select>
+                                <InputLabel for="client_search" value="Buscar Cliente *" />
+                                <div class="relative mt-1">
+                                    <input
+                                        id="client_search"
+                                        v-model="clientSearch"
+                                        @focus="showClientList = true"
+                                        @input="showClientList = true; form.client_id = null;"
+                                        type="text"
+                                        placeholder="Escribe nombre, apellido o teléfono..."
+                                        autocomplete="off"
+                                        class="block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm text-sm"
+                                    />
+                                    <!-- Botón limpiar -->
+                                    <button v-if="form.client_id"
+                                        @click="clearClient"
+                                        type="button"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition">
+                                        ✕
+                                    </button>
+                                    <!-- Dropdown lista -->
+                                    <div v-if="showClientList && filteredClients.length > 0"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+                                        <button v-for="client in filteredClients" :key="client.id"
+                                            type="button"
+                                            @mousedown.prevent="pickClient(client)"
+                                            class="w-full flex items-start gap-3 px-4 py-2.5 hover:bg-blue-50 transition text-left"
+                                            :class="form.client_id === client.id ? 'bg-blue-50 font-black' : ''">
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-800">{{ client.first_name }} {{ client.last_name }}</p>
+                                                <p class="text-xs text-gray-400">📞 {{ client.phone ?? '—' }}</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    <!-- Sin resultados -->
+                                    <div v-if="showClientList && clientSearch.length > 1 && filteredClients.length === 0"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 italic">
+                                        Sin resultados para "{{ clientSearch }}"
+                                    </div>
+                                </div>
+                                <!-- Badge cliente seleccionado -->
+                                <div v-if="form.client_id" class="mt-2 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                                    <span class="text-green-600 text-sm">✅</span>
+                                    <p class="text-xs font-bold text-green-800">Cliente seleccionado correctamente</p>
+                                </div>
                                 <InputError class="mt-2" :message="form.errors.client_id" />
                             </div>
 

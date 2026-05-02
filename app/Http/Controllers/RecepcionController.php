@@ -97,13 +97,17 @@ class RecepcionController extends Controller
             'client_id' => 'nullable|exists:clients,id',
             'first_name' => 'required_without:client_id|string|max:255',
             'last_name' => 'required_without:client_id|string|max:255',
-            
+
             'vehicle_id' => 'nullable|exists:vehicles,id',
             'brand_id' => 'required_without:vehicle_id|exists:brands,id',
             'vehicle_model_id' => 'required_without:vehicle_id|exists:vehicle_models,id',
             'year' => 'required_without:vehicle_id|numeric',
-            
+
             'fuel_level' => 'required|string',
+
+            // ── Seguridad OWASP: validación estricta de archivos ──────────────
+            'photos'   => 'nullable|array|max:10',
+            'photos.*' => 'file|mimes:jpg,jpeg,png,webp|max:5120',
         ]);
 
         // 2. Lógica del CLIENTE: ¿Es nuevo o ya existe?

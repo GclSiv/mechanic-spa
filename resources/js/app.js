@@ -5,6 +5,16 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import { i18n } from './i18n/index.js';
+
+// ── Dark Mode: aplicar preferencia guardada antes de renderizar ──────────
+(function initDarkMode() {
+    const saved = localStorage.getItem('jk_dark_mode');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.classList.add('dark');
+    }
+})();
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -75,6 +85,7 @@ createInertiaApp({
         return createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
+            .use(i18n)
             .mount(el);
     },
     progress: {
