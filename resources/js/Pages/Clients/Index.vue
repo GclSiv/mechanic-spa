@@ -44,7 +44,7 @@ defineProps({
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <!-- Iteramos sobre los clientes -->
-                                <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50 transition-colors">
+                                <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:border-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
@@ -58,7 +58,7 @@ defineProps({
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="text-sm text-gray-600">{{ client.phone || 'Sin registrar' }}</span>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ client.phone || 'Sin registrar' }}</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 uppercase">

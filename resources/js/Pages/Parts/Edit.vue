@@ -21,9 +21,9 @@ function submit() { form.put(route('parts.update', props.part.id)); }
         <template #header>
             <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">✏️ Editar Refacción</h2>
         </template>
-        <div class="py-12">
+        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
             <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">Editando: {{ part.name }}</p>
                     </div>
@@ -31,7 +31,7 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
                             <input v-model="form.name" type="text"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
                         </div>
                         <div>
@@ -44,24 +44,24 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio costo *</label>
                                 <input v-model="form.cost_price" type="number" step="0.01" min="0"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio venta *</label>
                                 <input v-model="form.sale_price" type="number" step="0.01" min="0"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Stock actual *</label>
                                 <input v-model="form.stock" type="number" min="0"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alerta mínimo *</label>
                                 <input v-model="form.low_stock_threshold" type="number" min="0"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             </div>
                         </div>
                         <div class="flex gap-3 pt-4 border-t border-gray-100">

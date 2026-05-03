@@ -102,7 +102,7 @@ function removeItem(itemId) {
             </div>
         </template>
 
-        <div class="py-12">
+        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <!-- DATOS DEL INGRESO -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#10213E]">
@@ -226,7 +226,7 @@ function removeItem(itemId) {
                             type="text"
                             placeholder="Escribe para buscar..."
                             autocomplete="off"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]"
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]"
                         />
                         <!-- Lista desplegable -->
                         <div v-if="showPartList && filteredParts.length > 0"
@@ -253,19 +253,19 @@ function removeItem(itemId) {
                     <div v-if="form.type === 'labor'">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción *</label>
                         <input v-model="form.description" type="text" placeholder="Ej. Cambio de balatas"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Cantidad</label>
                             <input v-model="form.quantity" type="number" min="0.01" step="0.01"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio Unitario</label>
                             <input v-model="form.unit_price" type="number" min="0" step="0.01"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                     </div>
                     

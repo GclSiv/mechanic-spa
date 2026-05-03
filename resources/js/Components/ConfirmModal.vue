@@ -34,7 +34,7 @@ const emit = defineEmits(['confirm', 'cancel']);
                     leave-to-class="opacity-0 scale-95"
                 >
                     <div v-if="show"
-                        class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
+                        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
 
                         <!-- Header con color según tipo -->
                         <div class="px-6 pt-6 pb-4 text-center">
@@ -44,17 +44,17 @@ const emit = defineEmits(['confirm', 'cancel']);
                                 {{ danger ? '🗑️' : '❓' }}
                             </div>
 
-                            <h3 class="text-lg font-black text-[#10213E] mb-2">{{ title }}</h3>
-                            <p class="text-sm text-gray-500 leading-relaxed">{{ message }}</p>
+                            <h3 class="text-lg font-black text-[#10213E] dark:text-white mb-2">{{ title }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ message }}</p>
                         </div>
 
                         <!-- Divisor -->
-                        <div class="border-t border-gray-100 mx-4"></div>
+                        <div class="border-t border-gray-100 dark:border-gray-700 mx-4"></div>
 
                         <!-- Botones -->
                         <div class="flex gap-3 p-4">
                             <button @click="emit('cancel')"
-                                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-bold hover:bg-gray-50 transition">
+                                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                                 {{ cancelText }}
                             </button>
                             <button @click="emit('confirm')"

@@ -4,6 +4,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 // 1. Recibimos los datos con sus relaciones cargadas desde el controlador
+const { t } = useI18n();
+
 const props = defineProps({
     brands: Array,
     recepcion: Object,

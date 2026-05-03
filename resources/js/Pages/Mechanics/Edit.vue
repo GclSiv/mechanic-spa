@@ -29,9 +29,9 @@ function submit() {
             </h2>
         </template>
 
-        <div class="py-12">
+        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
             <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
                             Editando: {{ mechanic.name }}
@@ -56,14 +56,14 @@ function submit() {
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre completo *</label>
                             <input v-model="form.name" type="text"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Correo electrónico *</label>
                             <input v-model="form.email" type="email"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
                         </div>
 
@@ -71,7 +71,7 @@ function submit() {
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Especialidad *</label>
                                 <select v-model="form.mechanic_type_id"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                                     <option value="" disabled>-- Seleccionar --</option>
                                     <option v-for="t in mechanicTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
                                 </select>
@@ -80,7 +80,7 @@ function submit() {
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Género *</label>
                                 <select v-model="form.gender_id"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                                     <option value="" disabled>-- Seleccionar --</option>
                                     <option v-for="g in genders" :key="g.id" :value="g.id">{{ g.name }}</option>
                                 </select>
@@ -91,7 +91,7 @@ function submit() {
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
                             <input v-model="form.phone" type="text"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.phone" class="text-red-500 text-xs mt-1">{{ form.errors.phone }}</p>
                         </div>
 

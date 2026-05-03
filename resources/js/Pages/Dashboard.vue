@@ -13,6 +13,7 @@ const props = defineProps({
 
 const page     = usePage();
 const isAdmin  = computed(() => page.props.auth.role === 'admin');
+const { t } = useI18n();
 const isSearching = ref(false);
 const search   = ref(props.filters.search || "");
 let timeout    = null;
@@ -59,7 +60,7 @@ function formatCurrency(val) {
             </h2>
         </template>
 
-        <div class="py-8 bg-gray-50 min-h-screen">
+        <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-8">
 
                 <!-- Flash -->
@@ -75,12 +76,12 @@ function formatCurrency(val) {
 
                     <!-- Órdenes activas -->
                     <a :href="route('repair-orders.index')"
-                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Órdenes Activas</p>
                                 <p class="text-3xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
-                                <p class="text-xs text-gray-400 mt-1">en progreso ahora</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ $t('dashboard.enProgreso') }}</p>
                             </div>
                             <span class="text-2xl bg-blue-50 p-2 rounded-xl group-hover:bg-blue-100 transition">🔧</span>
                         </div>
@@ -88,7 +89,7 @@ function formatCurrency(val) {
 
                     <!-- Recepciones hoy -->
                     <a :href="route('recepcion.create')"
-                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Recepciones Hoy</p>
@@ -134,7 +135,7 @@ function formatCurrency(val) {
                             <div>
                                 <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Ingresos del Mes</p>
                                 <p class="text-2xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
-                                <p class="text-xs text-blue-300 mt-1">pagos registrados</p>
+                                <p class="text-xs text-blue-300 mt-1">{{ $t('dashboard.pagosRegistrados') }}</p>
                             </div>
                             <span class="text-2xl bg-white/10 p-2 rounded-xl">💰</span>
                         </div>
@@ -151,12 +152,12 @@ function formatCurrency(val) {
                 <!-- ═══════════════════════════════════════════════ -->
                 <!-- BUSCADOR + TABLA RECEPCIONES                   -->
                 <!-- ═══════════════════════════════════════════════ -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
 
                     <!-- Header con buscador -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100">
                         <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">
-                            📋 Recepciones Recientes
+                            📋 {{ $t('dashboard.recientes') }}
                         </h3>
                         <div class="flex items-center gap-2 flex-wrap">
                             <!-- Exportar CSV (solo admin) -->
@@ -171,22 +172,22 @@ function formatCurrency(val) {
                             <input
                                 v-model="search"
                                 type="text"
-                                placeholder="Cliente, placa, folio..."
-                                class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50"
+                                placeholder="{{ $t('dashboard.buscar') }}"
+                                class="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
                             />
                             <span v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sm">⟳</span>
                         </div>
                         </div>
                         <Link :href="route('recepcion.create')"
                             class="shrink-0 bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">
-                            + Nueva Recepción
+                            {{ $t('dashboard.nuevaRecepcion') }}
                         </Link>
                     </div>
 
                     <!-- Tabla -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
+                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-bold border-b dark:border-gray-700">
                                 <tr>
                                     <th class="px-6 py-3">#</th>
                                     <th class="px-6 py-3">Cliente</th>
@@ -198,10 +199,10 @@ function formatCurrency(val) {
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 <tr v-for="rec in recentRecepcions.data" :key="rec.id"
-                                    class="hover:bg-gray-50 transition-colors group">
+                                    class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group dark:border-gray-700">
                                     <td class="px-6 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
                                     <td class="px-6 py-4">
-                                        <p class="font-bold text-[#10213E]">
+                                        <p class="font-bold text-[#10213E] dark:text-white">
                                             {{ rec.client?.first_name }} {{ rec.client?.last_name }}
                                         </p>
                                         <p class="text-xs text-gray-400">{{ rec.client?.phone ?? '—' }}</p>
@@ -277,16 +278,16 @@ function formatCurrency(val) {
 
                 <!-- ══ ÓRDENES RECIENTES - Estado + Saldo (admin) ══ -->
                 <div v-if="isAdmin && recentOrders && recentOrders.length"
-                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 Órdenes Recientes</h3>
+                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 {{ $t('dashboard.ordenesRecientes') }}</h3>
                         <Link :href="route('repair-orders.index')" class="text-xs text-[#10213E] font-black hover:underline">
                             Ver tablero →
                         </Link>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
+                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-bold border-b dark:border-gray-700">
                                 <tr>
                                     <th class="px-4 py-3">Folio</th>
                                     <th class="px-4 py-3">Cliente</th>

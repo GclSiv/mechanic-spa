@@ -113,6 +113,17 @@ class RecepcionController extends Controller
         // 2. Lógica del CLIENTE: ¿Es nuevo o ya existe?
         if ($request->client_id) {
             $client = Client::findOrFail($request->client_id);
+            // Actualizar datos de contacto si el usuario los modificó en el formulario
+            $updateData = array_filter([
+                'first_name' => $request->first_name ?: null,
+                'last_name'  => $request->last_name  ?: null,
+                'phone'      => $request->phone      ?: null,
+                'address'    => $request->address    ?: null,
+                'rfc'        => $request->rfc        ?: null,
+            ]);
+            if (!empty($updateData)) {
+                $client->update($updateData);
+            }
         } else {
             $client = Client::create($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc']));
         }
