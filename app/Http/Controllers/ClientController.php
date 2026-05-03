@@ -82,7 +82,7 @@ public function index()
     // Traemos todos los clientes ordenados por el más reciente
     $clients = \App\Models\Client::orderBy('id', 'desc')->get();
 
-    return \Inertia\Inertia::render('Clientes/Index', [
+    return Inertia::render('Clients/Index', [
         'clients' => $clients
     ]);
 }

@@ -43,7 +43,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             
             // ⚠️ Rutas estáticas van primero para evitar colisiones
             Route::get('/', 'index')->name('recepcion.index');
-            Route::get('/exportar', 'export')->name('recepcion.export');
             Route::get('/create', 'create')->name('recepcion.create');
             Route::post('/', 'store')->name('recepcion.store');
 

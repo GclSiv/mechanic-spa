@@ -79,27 +79,27 @@ watch(
                         </div>
                         <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex text-xs">
                             <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                                DASHBOARD
+                                {{ $t('nav.dashboard') }}
                             </NavLink>
                             <NavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
-                                TALLER
+                                {{ $t('nav.taller') }}
                             </NavLink>
                             <NavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
-                                RECEPCIONES
+                                {{ $t('nav.recepciones') }}
                             </NavLink>
                             <NavLink
                                 v-if="$page.props.auth.role === 'admin'"
                                 :href="route('mechanics.index')"
                                 :active="route().current('mechanics.*')"
                             >
-                                PERSONAL
+                                {{ $t('nav.personal') }}
                             </NavLink>
                             <NavLink
                                 v-if="$page.props.auth.role === 'admin'"
                                 :href="route('parts.index')"
                                 :active="route().current('parts.*')"
                             >
-                                INVENTARIO
+                                {{ $t('nav.inventario') }}
                             </NavLink>
                         </div>
                     </div>
@@ -173,27 +173,27 @@ watch(
             <div :class="{ block: showingNavigationDropdown, hidden: !showingNavigationDropdown }" class="sm:hidden">
                 <div class="space-y-1 pb-3 pt-2">
                     <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                        Dashboard
+                        {{ $t('nav.dashboard') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink :href="route('repair-orders.index')" :active="route().current('repair-orders.*')">
-                        Taller
+                        {{ $t('nav.taller') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
-                        Recepciones
+                        {{ $t('nav.recepciones') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
                         v-if="$page.props.auth.role === 'admin'"
                         :href="route('mechanics.index')"
                         :active="route().current('mechanics.*')"
                     >
-                        Personal
+                        {{ $t('nav.personal') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
                         v-if="$page.props.auth.role === 'admin'"
                         :href="route('parts.index')"
                         :active="route().current('parts.*')"
                     >
-                        Inventario
+                        {{ $t('nav.inventario') }}
                     </ResponsiveNavLink>
                 </div>
             </div>

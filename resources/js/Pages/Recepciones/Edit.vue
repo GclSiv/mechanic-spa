@@ -60,7 +60,7 @@ const submit = () => {
         preserveState: true,
         preserveScroll: true,
         onError: (errors) => {
-            console.error("🚨 Error de validación de Laravel:", errors);
+            // Errores de validación manejados por Inertia form.errors
             alert("Por favor, revisa los campos marcados en rojo.");
         }
     });
