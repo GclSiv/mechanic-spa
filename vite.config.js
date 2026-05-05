@@ -114,9 +114,9 @@ export default defineConfig({
             },
 
             devOptions: {
-                // Activado en dev para que Chrome pueda detectar el manifest
-                // y mostrar el botón de instalación incluso con php artisan serve
-                enabled: true,
+                // Desactivado en dev: evita el 404 de manifest.webmanifest
+                // Para probar PWA usar: npm run build && php artisan serve
+                enabled: false,
                 type: 'module',
                 navigateFallback: null,
             },

@@ -3,6 +3,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { ref, watch, computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps({
     stats:             Object,
