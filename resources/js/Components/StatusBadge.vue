@@ -74,7 +74,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                         v-for="status in statuses"
                         :key="status.id"
                         @click="selectStatus(status)"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50:bg-gray-700 transition-colors"
                         :class="status.id === orden.status_id ? 'font-black' : 'font-medium text-gray-700'"
                     >
                         <span

@@ -329,35 +329,35 @@ const submit = () => {
                                 </div>
                                 <!-- Badge + campos editables cliente existente -->
                                 <div v-if="form.client_id" class="mt-3 space-y-3">
-                                    <div class="flex items-center gap-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg px-3 py-2">
+                                    <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                                         <span class="text-green-600 text-sm">✅</span>
-                                        <p class="text-xs font-bold text-green-800 dark:text-green-300">{{ $t('recepcion.clienteSeleccionado') }} — puedes editar sus datos:</p>
+                                        <p class="text-xs font-bold text-green-800">{{ $t('recepcion.clienteSeleccionado') }} — puedes editar sus datos:</p>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                                    <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Nombre *</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
                                             <input v-model="form.first_name" type="text"
-                                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Apellido *</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido *</label>
                                             <input v-model="form.last_name" type="text"
-                                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Teléfono</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
                                             <input v-model="form.phone" type="text"
-                                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">RFC</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">RFC</label>
                                             <input v-model="form.rfc" type="text"
-                                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div class="col-span-2">
-                                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Dirección</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección</label>
                                             <input v-model="form.address" type="text"
-                                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                                class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                     </div>
                                 </div>

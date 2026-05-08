@@ -32,7 +32,7 @@ function doDel() {
             confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
-        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-12 min-h-screen transition-colors">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
                 <div v-if="flash?.success"
@@ -40,7 +40,7 @@ function doDel() {
                     ✅ {{ flash.success }}
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
                             {{ parts.length }} artículos en inventario
@@ -52,7 +52,7 @@ function doDel() {
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider font-bold border-b dark:border-gray-700">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-5 py-3">Nombre</th>
                                     <th class="px-5 py-3">SKU</th>
@@ -66,12 +66,12 @@ function doDel() {
                                 <tr v-for="p in parts" :key="p.id"
                                     class="hover:bg-gray-50 transition-colors"
                                     :class="p.is_low_stock ? 'bg-red-50' : ''">
-                                    <td class="px-5 py-4 font-bold text-[#10213E] dark:text-white">
+                                    <td class="px-5 py-4 font-bold text-[#10213E]">
                                         {{ p.name }}
                                         <span v-if="p.is_low_stock" class="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-black uppercase">Stock Bajo</span>
                                     </td>
-                                    <td class="px-5 py-4 font-mono text-gray-500 dark:text-gray-400 text-xs">{{ p.sku }}</td>
-                                    <td class="px-5 py-4 text-right text-gray-600 dark:text-gray-400">${{ Number(p.cost_price).toFixed(2) }}</td>
+                                    <td class="px-5 py-4 font-mono text-gray-500 text-xs">{{ p.sku }}</td>
+                                    <td class="px-5 py-4 text-right text-gray-600">${{ Number(p.cost_price).toFixed(2) }}</td>
                                     <td class="px-5 py-4 text-right font-bold text-green-700">${{ Number(p.sale_price).toFixed(2) }}</td>
                                     <td class="px-5 py-4 text-center">
                                         <span class="font-black text-lg" :class="p.is_low_stock ? 'text-red-600' : 'text-gray-700'">

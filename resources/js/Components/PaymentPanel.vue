@@ -44,23 +44,23 @@ const metodoBadge = {
 </script>
 
 <template>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-[#EE2857] p-6">
-        <h3 class="text-sm font-black text-[#10213E] dark:text-white uppercase tracking-widest border-b pb-2 mb-5">
+    <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#EE2857] p-6">
+        <h3 class="text-sm font-black text-[#10213E] uppercase tracking-widest border-b pb-2 mb-5">
             💳 Pagos y Anticipos
         </h3>
 
         <!-- Resumen financiero -->
         <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
-                <p class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold mb-1">Total Orden</p>
-                <p class="text-lg font-black text-[#10213E] dark:text-white">${{ Number(breakdown.total).toFixed(2) }}</p>
+            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Total Orden</p>
+                <p class="text-lg font-black text-[#10213E]">${{ Number(breakdown.total).toFixed(2) }}</p>
             </div>
             <div class="bg-green-50 rounded-lg p-3 text-center">
-                <p class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold mb-1">Total Pagado</p>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Total Pagado</p>
                 <p class="text-lg font-black text-green-700">${{ totalPagado.toFixed(2) }}</p>
             </div>
             <div class="rounded-lg p-3 text-center" :class="saldoPendiente <= 0 ? 'bg-emerald-100' : 'bg-red-50'">
-                <p class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold mb-1">Saldo Pendiente</p>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Saldo Pendiente</p>
                 <p class="text-lg font-black" :class="saldoPendiente <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
                     {{ saldoPendiente <= 0 ? '✅ Liquidado' : '$' + saldoPendiente.toFixed(2) }}
                 </p>
@@ -77,12 +77,12 @@ const metodoBadge = {
                         {{ p.payment_method }}
                     </span>
                     <div>
-                        <p class="text-sm font-black text-[#10213E] dark:text-white">${{ Number(p.amount).toFixed(2) }}</p>
+                        <p class="text-sm font-black text-[#10213E]">${{ Number(p.amount).toFixed(2) }}</p>
                         <p v-if="p.notes" class="text-xs text-gray-500">{{ p.notes }}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400 dark:text-gray-500">
+                    <span class="text-xs text-gray-400">
                         {{ new Date(p.created_at).toLocaleDateString('es-MX') }}
                     </span>
                     <button @click="eliminar(p.id)"
@@ -103,13 +103,13 @@ const metodoBadge = {
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Monto *</label>
                     <input v-model="form.amount" type="number" step="0.01" min="0.01"
                         placeholder="0.00"
-                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                     <p v-if="form.errors.amount" class="text-red-500 text-xs mt-1">{{ form.errors.amount }}</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Método *</label>
                     <select v-model="form.payment_method"
-                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                         <option>Efectivo</option>
                         <option>Tarjeta</option>
                         <option>Transferencia</option>
@@ -118,7 +118,7 @@ const metodoBadge = {
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Notas</label>
                     <input v-model="form.notes" type="text" placeholder="Ej. Anticipo inicial"
-                        class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                 </div>
             </div>
             <div class="flex justify-end mt-3">

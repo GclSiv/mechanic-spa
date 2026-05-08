@@ -37,52 +37,52 @@ const witnesses = {
             </div>
         </template>
 
-        <div class="py-8 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-8 min-h-screen transition-colors">
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-5">
 
                 <!-- Cliente -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
-                    <h3 class="text-xs font-black text-[#10213E] dark:text-blue-300 uppercase tracking-widest mb-3 border-b dark:border-gray-700 pb-2">👤 {{ $t('tabla.cliente') }}</h3>
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
+                    <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">👤 {{ $t('tabla.cliente') }}</h3>
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Nombre</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Nombre</span>
                             {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Teléfono</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Teléfono</span>
                             {{ recepcion.client?.phone ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">RFC</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">RFC</span>
                             {{ recepcion.client?.rfc ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Dirección</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Dirección</span>
                             {{ recepcion.client?.address ?? '—' }}</div>
                     </div>
                 </div>
 
                 <!-- Vehículo -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-blue-400 p-6">
-                    <h3 class="text-xs font-black text-[#10213E] dark:text-blue-300 uppercase tracking-widest mb-3 border-b dark:border-gray-700 pb-2">🚗 {{ $t('tabla.vehiculo') }}</h3>
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-blue-400 p-6">
+                    <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🚗 {{ $t('tabla.vehiculo') }}</h3>
                     <div class="grid grid-cols-3 gap-4 text-sm">
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Marca</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Marca</span>
                             {{ recepcion.vehicle?.brand?.name ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Modelo</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Modelo</span>
                             {{ recepcion.vehicle?.vehicleModel?.name ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Año</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Año</span>
                             {{ recepcion.vehicle?.year ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Placa</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Placa</span>
                             <span class="font-bold uppercase">{{ recepcion.vehicle?.plate ?? '—' }}</span></div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">VIN</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">VIN</span>
                             {{ recepcion.vehicle?.vin ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Motor</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Motor</span>
                             {{ recepcion.vehicle?.engine ?? '—' }}</div>
                     </div>
                 </div>
 
                 <!-- Inspección -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-yellow-400 p-6">
-                    <h3 class="text-xs font-black text-[#10213E] dark:text-blue-300 uppercase tracking-widest mb-3 border-b dark:border-gray-700 pb-2">🔍 {{ $t('inspeccion.titulo') }}</h3>
+                <div class="bg-white rounded-xl shadow-sm border-l-4 border-yellow-400 p-6">
+                    <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🔍 {{ $t('inspeccion.titulo') }}</h3>
                     <div class="grid grid-cols-3 gap-4 text-sm mb-4">
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Kilometraje</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Kilometraje</span>
                             {{ recepcion.miles ? Number(recepcion.miles).toLocaleString('es-MX') + ' km' : '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Gasolina</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Gasolina</span>
                             {{ recepcion.fuel_level ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 dark:text-gray-500 uppercase font-bold block">Fecha ingreso</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Fecha ingreso</span>
                             {{ new Date(recepcion.created_at).toLocaleDateString('es-MX') }}</div>
                     </div>
                     <div v-if="recepcion.witnesses?.length">
@@ -96,13 +96,13 @@ const witnesses = {
                     </div>
                     <div class="mt-4">
                         <span class="text-xs text-gray-400 uppercase font-bold block mb-1">{{ $t('inspeccion.sintomas') }}</span>
-                        <p class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">{{ recepcion.symptoms ?? '{{ $t(\"inspeccion.sinDescripcion\") }}' }}</p>
+                        <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{{ recepcion.symptoms ?? '{{ $t(\"inspeccion.sinDescripcion\") }}' }}</p>
                     </div>
                 </div>
 
                 <!-- Fotos -->
-                <div v-if="recepcion.photos?.length" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 border-green-400 p-6">
-                    <h3 class="text-xs font-black text-[#10213E] dark:text-blue-300 uppercase tracking-widest mb-3 border-b dark:border-gray-700 pb-2">📷 {{ $t('recepcion.evidencia') }}</h3>
+                <div v-if="recepcion.photos?.length" class="bg-white rounded-xl shadow-sm border-l-4 border-green-400 p-6">
+                    <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">📷 {{ $t('recepcion.evidencia') }}</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <a v-for="(photo, i) in recepcion.photos" :key="i"
                             :href="'/storage/' + photo" target="_blank"

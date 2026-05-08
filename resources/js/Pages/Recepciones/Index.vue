@@ -56,22 +56,22 @@ function doDel() {
             </div>
         </template>
 
-        <div class="py-8 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-8 min-h-screen transition-colors">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
 
                 <!-- Buscador -->
-                <div class="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm px-4 py-3 border border-gray-100 dark:border-gray-700">
+                <div class="flex items-center gap-3 bg-white rounded-xl shadow-sm px-4 py-3 border border-gray-100">
                     <span class="text-gray-400">🔍</span>
                     <input v-model="search" @input="onSearch" type="text"
-                        placeholder="{{ $t('recepcion.buscar') }}"
-                        class="flex-1 text-sm focus:outline-none bg-transparent dark:bg-transparent dark:text-gray-200 dark:placeholder-gray-500" />
+                        :placeholder=\"$t('recepcion.buscar')\"
+                        class="flex-1 text-sm focus:outline-none bg-transparent" />
                     <span class="text-xs text-gray-400 font-medium">
                         {{ filtered.length }} resultado{{ filtered.length !== 1 ? 's' : '' }}
                     </span>
                 </div>
 
                 <!-- Tabla -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                     <div class="bg-[#10213E] px-6 py-3 flex justify-between items-center">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
                             Historial de recepciones
@@ -80,7 +80,7 @@ function doDel() {
 
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-bold border-b dark:border-gray-700">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-5 py-3">#</th>
                                     <th class="px-5 py-3">Cliente</th>
@@ -93,13 +93,13 @@ function doDel() {
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 <tr v-for="rec in paginated" :key="rec.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    class="hover:bg-gray-50:bg-gray-700 transition-colors">
                                     <td class="px-5 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
                                     <td class="px-5 py-4">
-                                        <p class="font-bold text-[#10213E] dark:text-white">
+                                        <p class="font-bold text-[#10213E]">
                                             {{ rec.client?.first_name }} {{ rec.client?.last_name }}
                                         </p>
-                                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ rec.client?.phone ?? '—' }}</p>
+                                        <p class="text-xs text-gray-400">{{ rec.client?.phone ?? '—' }}</p>
                                     </td>
                                     <td class="px-5 py-4 text-gray-700">
                                         {{ rec.vehicle?.brand?.name ?? 'S/M' }}
@@ -137,7 +137,7 @@ function doDel() {
                                     </td>
                                 </tr>
                                 <tr v-if="paginated.length === 0">
-                                    <td colspan="7" class="px-6 py-12 text-center text-gray-300 dark:text-gray-600 italic text-sm">
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-300 italic text-sm">
                                         {{ search ? 'Sin resultados para "' + search + '"' : 'No hay recepciones registradas.' }}
                                     </td>
                                 </tr>
@@ -147,7 +147,7 @@ function doDel() {
 
                     <!-- Paginación -->
                     <div v-if="totalPages > 1"
-                        class="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        class="px-6 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
                         <span>Página {{ currentPage }} de {{ totalPages }}</span>
                         <div class="flex gap-1">
                             <button v-for="p in totalPages" :key="p" @click="currentPage = p"

@@ -61,7 +61,7 @@ function formatCurrency(val) {
             </h2>
         </template>
 
-        <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+        <div class="py-8 bg-gray-50 min-h-screen transition-colors duration-200">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-8">
 
                 <!-- Flash -->
@@ -77,7 +77,7 @@ function formatCurrency(val) {
 
                     <!-- Órdenes activas -->
                     <a :href="route('repair-orders.index')"
-                        class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Órdenes Activas</p>
@@ -90,7 +90,7 @@ function formatCurrency(val) {
 
                     <!-- Recepciones hoy -->
                     <a :href="route('recepcion.create')"
-                        class="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Recepciones Hoy</p>
@@ -153,7 +153,7 @@ function formatCurrency(val) {
                 <!-- ═══════════════════════════════════════════════ -->
                 <!-- BUSCADOR + TABLA RECEPCIONES                   -->
                 <!-- ═══════════════════════════════════════════════ -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
                     <!-- Header con buscador -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-gray-100">
@@ -173,8 +173,8 @@ function formatCurrency(val) {
                             <input
                                 v-model="search"
                                 type="text"
-                                placeholder="{{ $t('dashboard.buscar') }}"
-                                class="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
+                                :placeholder=\"$t('dashboard.buscar')\"
+                                class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50"
                             />
                             <span v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sm">⟳</span>
                         </div>
@@ -188,7 +188,7 @@ function formatCurrency(val) {
                     <!-- Tabla -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-bold border-b dark:border-gray-700">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-6 py-3">#</th>
                                     <th class="px-6 py-3">Cliente</th>
@@ -200,10 +200,10 @@ function formatCurrency(val) {
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 <tr v-for="rec in recentRecepcions.data" :key="rec.id"
-                                    class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group dark:border-gray-700">
+                                    class="hover:bg-gray-50:bg-gray-700 transition-colors group">
                                     <td class="px-6 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
                                     <td class="px-6 py-4">
-                                        <p class="font-bold text-[#10213E] dark:text-white">
+                                        <p class="font-bold text-[#10213E]">
                                             {{ rec.client?.first_name }} {{ rec.client?.last_name }}
                                         </p>
                                         <p class="text-xs text-gray-400">{{ rec.client?.phone ?? '—' }}</p>
@@ -279,7 +279,7 @@ function formatCurrency(val) {
 
                 <!-- ══ ÓRDENES RECIENTES - Estado + Saldo (admin) ══ -->
                 <div v-if="isAdmin && recentOrders && recentOrders.length"
-                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                         <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 {{ $t('dashboard.ordenesRecientes') }}</h3>
                         <Link :href="route('repair-orders.index')" class="text-xs text-[#10213E] font-black hover:underline">
@@ -288,7 +288,7 @@ function formatCurrency(val) {
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-bold border-b dark:border-gray-700">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-4 py-3">Folio</th>
                                     <th class="px-4 py-3">Cliente</th>

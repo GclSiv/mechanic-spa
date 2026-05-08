@@ -14,9 +14,9 @@ function submit() { form.post(route('parts.store')); }
         <template #header>
             <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">➕ Nueva Refacción</h2>
         </template>
-        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-12 min-h-screen transition-colors">
             <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">Datos de la refacción</p>
                     </div>
@@ -24,7 +24,7 @@ function submit() { form.post(route('parts.store')); }
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
                             <input v-model="form.name" type="text" placeholder="Ej. Filtro de aceite premium"
-                                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</p>
                         </div>
                         <div>
@@ -37,13 +37,13 @@ function submit() { form.post(route('parts.store')); }
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio costo *</label>
                                 <input v-model="form.cost_price" type="number" step="0.01" min="0"
-                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                 <p v-if="form.errors.cost_price" class="text-red-500 text-xs mt-1">{{ form.errors.cost_price }}</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio venta *</label>
                                 <input v-model="form.sale_price" type="number" step="0.01" min="0"
-                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                 <p v-if="form.errors.sale_price" class="text-red-500 text-xs mt-1">{{ form.errors.sale_price }}</p>
                             </div>
                         </div>
@@ -51,13 +51,13 @@ function submit() { form.post(route('parts.store')); }
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Stock inicial *</label>
                                 <input v-model="form.stock" type="number" min="0"
-                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                 <p v-if="form.errors.stock" class="text-red-500 text-xs mt-1">{{ form.errors.stock }}</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alerta mínimo *</label>
                                 <input v-model="form.low_stock_threshold" type="number" min="0"
-                                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                 <p class="text-gray-400 text-xs mt-1">Aviso cuando el stock llegue a este número</p>
                             </div>
                         </div>

@@ -1,36 +1,17 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { useI18n } from 'vue-i18n';
-import { setLocale } from '@/i18n/index.js';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
 const page = usePage();
-const { locale } = useI18n();
 const showingNavigationDropdown = ref(false);
 
 const primaryColor   = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
 
-// ── Dark Mode ────────────────────────────────────────────────────────
-const isDark = ref(document.documentElement.classList.contains('dark'));
-
-function toggleDark() {
-    isDark.value = !isDark.value;
-    document.documentElement.classList.toggle('dark', isDark.value);
-    localStorage.setItem('jk_dark_mode', isDark.value ? 'dark' : 'light');
-}
-
-// ── i18n ─────────────────────────────────────────────────────────────
-const currentLocale = ref(locale.value);
-function toggleLocale() {
-    const next = currentLocale.value === 'es' ? 'en' : 'es';
-    setLocale(next);
-    currentLocale.value = next;
-}
 
 // ── Toast global ──────────────────────────────────────────────────────
 const toast = ref(null);
@@ -53,7 +34,7 @@ watch(
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+    <div class="min-h-screen bg-gray-100 transition-colors duration-200">
 
         <component :is="'style'">
             :root {
@@ -66,7 +47,7 @@ watch(
             .text-jk-red { color: {{ secondaryColor }} !important; }
         </component>
 
-        <nav class="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
+        <nav class="border-b border-gray-100 bg-white shadow-sm transition-colors duration-200">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 justify-between">
 
@@ -105,23 +86,8 @@ watch(
                     </div>
 
                     <!-- Dropdown usuario escritorio -->
-                    <div class="hidden sm:ms-6 sm:flex sm:items-center gap-2">
-
-                        <!-- Toggle idioma EN/ES -->
-                        <button @click="toggleLocale"
-                            class="text-xs font-black text-gray-500 hover:text-[#10213E] dark:text-gray-300 dark:hover:text-white border border-gray-200 dark:border-gray-600 rounded-lg px-2.5 py-1.5 transition">
-                            {{ currentLocale === 'es' ? 'EN' : 'ES' }}
-                        </button>
-
-                        <!-- Toggle dark/light -->
-                        <button @click="toggleDark"
-                            class="text-gray-500 hover:text-[#10213E] dark:text-gray-300 dark:hover:text-white border border-gray-200 dark:border-gray-600 rounded-lg p-1.5 transition"
-                            :title="isDark ? 'Modo claro' : 'Modo oscuro'">
-                            <span v-if="isDark" class="text-base leading-none">☀️</span>
-                            <span v-else class="text-base leading-none">🌙</span>
-                        </button>
-
-                        <div class="relative ms-1">
+                    <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                        <div class="relative ms-3">
                             <Dropdown align="right" width="48">
                                 <template #trigger>
                                     <span class="inline-flex rounded-md">
@@ -227,7 +193,7 @@ watch(
         </Teleport>
 
         <!-- Header de página -->
-        <header v-if="$slots.header" class="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
+        <header v-if="$slots.header" class="bg-white shadow-sm transition-colors duration-200">
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <slot name="header" />
             </div>

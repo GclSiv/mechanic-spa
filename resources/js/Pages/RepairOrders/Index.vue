@@ -78,7 +78,7 @@ function doDel() {
         confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
-        <div class="py-6 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-6 min-h-screen transition-colors">
             <div class="max-w-[1600px] mx-auto sm:px-4 lg:px-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
                     <div v-for="col in columnas" :key="col.label" class="flex flex-col min-w-0">
@@ -94,13 +94,13 @@ function doDel() {
                         <!-- Tarjetas -->
                         <div class="space-y-3 flex-1">
                             <div v-for="order in ordersForColumn(col.slugs)" :key="order.id"
-                                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 p-3 relative"
+                                class="bg-white rounded-xl shadow-sm border-l-4 p-3 relative"
                                 :class="col.color">
 
                                 <!-- Folio + Dropdown estado (solo admin) -->
                                 <div class="flex justify-between items-start mb-2">
                                     <a :href="route('repair-orders.show', order.id)"
-                                        class="font-black text-[#10213E] dark:text-white text-sm hover:underline">
+                                        class="font-black text-[#10213E] text-sm hover:underline">
                                         {{ order.folio ?? '#' + order.id }}
                                     </a>
 
@@ -161,9 +161,8 @@ function doDel() {
                                 </div>
 
                                 <!-- Botones de accion -->
-                                <div class="mt-2 pt-2 border-t border-gray-100 space-y-1.5">
-                                    <!-- Fila 1: acciones principales -->
-                                    <div class="flex items-center gap-1">
+                                <div class="mt-2 pt-2 border-t border-gray-100">
+                                    <div class="flex flex-wrap gap-1 w-full">
                                         <a :href="route('repair-orders.show', order.id)"
                                             class="flex items-center gap-1 bg-[#10213E] hover:bg-blue-900 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             📋 Cotización
@@ -184,11 +183,9 @@ function doDel() {
                                             class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             📄 Recepción
                                         </a>
-                                    </div>
-                                    <!-- Fila 2: eliminar (solo admin, alineado derecha) -->
-                                    <div v-if="isAdmin" class="flex justify-end">
-                                        <button @click.prevent="deleteOrder(order)"
-                                            class="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-[#EE2857] text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
+                                        <button v-if="isAdmin"
+                                            @click.prevent="deleteOrder(order)"
+                                            class="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-[#EE2857] text-xs font-bold px-2.5 py-1.5 rounded-lg transition ml-auto">
                                             🗑️ Borrar
                                         </button>
                                     </div>

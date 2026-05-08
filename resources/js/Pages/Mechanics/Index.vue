@@ -36,7 +36,7 @@ function doDel() {
             confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
-        <div class="py-12 dark:bg-gray-900 min-h-screen transition-colors">
+        <div class="py-12 min-h-screen transition-colors">
             <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
                 <!-- Flash -->
@@ -45,7 +45,7 @@ function doDel() {
                     ✅ {{ flash.success }}
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
                             Total: {{ mechanics.length }} mecánicos registrados
@@ -53,7 +53,7 @@ function doDel() {
                     </div>
 
                     <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider font-bold border-b dark:border-gray-700">
+                        <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                             <tr>
                                 <th class="px-6 py-3">#</th>
                                 <th class="px-6 py-3">Nombre</th>
@@ -66,9 +66,9 @@ function doDel() {
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <tr v-for="m in mechanics" :key="m.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:border-gray-700">
+                                class="hover:bg-gray-50:bg-gray-700 transition-colors">
                                 <td class="px-6 py-4 text-gray-400 font-mono">{{ m.id }}</td>
-                                <td class="px-6 py-4 font-bold text-[#10213E] dark:text-white">{{ m.name }}</td>
+                                <td class="px-6 py-4 font-bold text-[#10213E]">{{ m.name }}</td>
                                 <td class="px-6 py-4 text-gray-600 text-xs">
                                     <span v-if="m.email">{{ m.email }}</span>
                                     <span v-else class="text-amber-500 font-medium">Sin cuenta</span>
@@ -78,8 +78,8 @@ function doDel() {
                                         {{ m.mechanic_type?.name ?? '—' }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ m.gender?.name ?? '—' }}</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">{{ m.phone ?? '—' }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ m.gender?.name ?? '—' }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ m.phone ?? '—' }}</td>
                                 <td class="px-6 py-4 text-center flex justify-center gap-2">
                                     <a :href="route('mechanics.edit', m.id)"
                                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-lg text-xs transition">

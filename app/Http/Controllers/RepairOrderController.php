@@ -112,7 +112,7 @@ class RepairOrderController extends Controller
             'settings'            => \App\Models\Setting::first(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
-            'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock']),
+            'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']),
             'isAdmin'             => auth()->user()->role === 'admin',
         ]);
     }
