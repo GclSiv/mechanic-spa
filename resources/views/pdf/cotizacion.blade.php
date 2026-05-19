@@ -56,12 +56,12 @@
     {{-- RESUMEN VEHÍCULO --}}
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
         <tr>
-            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>CLIENTE:</strong> {{ $recepcion->client->first_name ?? '' }} {{ $recepcion->client->last_name ?? '' }}</td>
-            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>VEHÍCULO:</strong> {{ $recepcion->vehicle?->brand?->name ?? 'S/M' }} {{ $recepcion->vehicle?->vehicleModel?->name ?? 'S/M' }} ({{ $recepcion->vehicle?->year ?? '—' }})</td>
+            <td style="width: 50%; padding: 5px; border: 1px solid #d0d0d0;"><strong>{{ __('Cliente') }}:</strong> {{ $recepcion->client->first_name ?? '' }} {{ $recepcion->client->last_name ?? '' }}</td>
+            <td style="padding: 5px; border: 1px solid #d0d0d0;"><strong>{{ __('Vehículo') }}:</strong> {{ $recepcion->vehicle?->brand?->name ?? 'S/M' }} {{ $recepcion->vehicle?->vehicleModel?->name ?? 'S/M' }} ({{ $recepcion->vehicle?->year ?? '—' }})</td>
         </tr>
     </table>
 
-    <div class="section-title">Detalle de Reparación y Repuestos</div>
+    <div class="section-title">{{ __('Detalle de Reparación y Repuestos') }}</div>
     <table class="items-table">
         <thead>
             <tr>
@@ -108,7 +108,7 @@
             <td style="width: 40%; padding: 0;">
                 <table style="width: 100%; border-collapse: collapse; border: 1px solid #d0d0d0;">
                     <tr class="total-row">
-                        <td style="font-weight: bold; color: #10213E;">SUBTOTAL</td>
+                        <td style="font-weight: bold; color: #10213E;">{{ __('Subtotal') }}</td>
                         <td style="text-align: right;">${{ number_format($subtotal, 2) }}</td>
                     </tr>
                     <tr class="total-row">
@@ -116,7 +116,7 @@
         <td>${{ number_format($iva, 2) }}</td>
                     </tr>
                     <tr class="total-row grand-total">
-                        <td>TOTAL NETO</td>
+                        <td>{{ __('Total Neto') }}</td>
                         <td style="text-align: right;">${{ number_format($total, 2) }}</td>
                     </tr>
                 </table>

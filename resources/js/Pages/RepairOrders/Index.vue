@@ -1,5 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -168,7 +169,7 @@ function doDel() {
                                             📋 Cotización
                                         </a>
                                         <a v-if="order.recepcion_id"
-                                            :href="route('recepcion.pdf', order.recepcion_id)"
+                                            :href="route('recepcion.pdf', order.recepcion_id) + '?lang=' + getLang()"
                                             target="_blank"
                                             class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             🖨️ PDF

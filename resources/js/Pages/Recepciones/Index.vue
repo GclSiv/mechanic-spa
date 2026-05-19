@@ -63,7 +63,7 @@ function doDel() {
                 <div class="flex items-center gap-3 bg-white rounded-xl shadow-sm px-4 py-3 border border-gray-100">
                     <span class="text-gray-400">🔍</span>
                     <input v-model="search" @input="onSearch" type="text"
-                        :placeholder=\"$t('recepcion.buscar')\"
+                        :placeholder="$t('recepcion.buscar')"
                         class="flex-1 text-sm focus:outline-none bg-transparent" />
                     <span class="text-xs text-gray-400 font-medium">
                         {{ filtered.length }} resultado{{ filtered.length !== 1 ? 's' : '' }}

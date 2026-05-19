@@ -251,7 +251,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <table class="photo-header">
 <tr>
 <td>
-<div class="photo-title">Photographic Evidence</div>
+<div class="photo-title">{{ __('Evidencia Fotográfica') }}</div>
 <div class="photo-client-sub">Client: {{ strtoupper($recepcion->client?->first_name . ' ' . $recepcion->client?->last_name) }}</div>
 </td>
 <td style="text-align: right; vertical-align: bottom;">

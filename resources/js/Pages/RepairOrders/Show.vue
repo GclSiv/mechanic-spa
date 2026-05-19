@@ -62,8 +62,9 @@ function pickPart(part) {
     showPartList.value = false;
 }
 
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 function imprimirCotizacion() {
-    window.open(route('repair-orders.pdf', page.props.orden?.id), '_blank');
+    window.open(route('repair-orders.pdf', page.props.orden?.id) + '?lang=' + getLang(), '_blank');
 }
 
 function submitItem() {

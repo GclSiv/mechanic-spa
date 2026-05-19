@@ -145,6 +145,8 @@ class RepairOrderController extends Controller
      */
     public function downloadPdf(RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
+        $lang = request()->input('lang', 'es');
+        \Illuminate\Support\Facades\App::setLocale(in_array($lang, ['es','en']) ? $lang : 'es');
         // Cargamos todas las relaciones necesarias para que no salga en blanco
         $order->load([
             'items', 

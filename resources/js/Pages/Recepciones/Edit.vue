@@ -6,6 +6,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 // 1. Recibimos los datos con sus relaciones cargadas desde el controlador
 const { t } = useI18n();
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 
 const props = defineProps({
     brands: Array,
@@ -28,6 +29,7 @@ const form = useForm({
     // Datos del Cliente
     first_name: client.first_name || '',
     last_name: client.last_name || '', // Agregado: Requerido en la BD
+    country: client.country || 'MX',
     phone: client.phone || '',
     address: client.address || '',
     rfc: client.rfc || '',

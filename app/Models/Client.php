@@ -9,7 +9,7 @@ class Client extends Model
 {
     use HasFactory; // 2. Activar el chip dentro de la clase
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'phone', 'address', // Campos correctos de identidad
+        'first_name', 'last_name', 'email', 'phone', 'address', 'rfc', 'country',
     ];
 
     public function vehicles()

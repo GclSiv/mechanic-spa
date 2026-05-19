@@ -22,6 +22,7 @@ const page = usePage();
 const currentStep = ref(1);
 const totalSteps = 2;
 const isNewClient = ref(true);
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 const { t } = useI18n();
 
 // ── Combobox de cliente existente ─────────────────────────────────────
@@ -87,6 +88,7 @@ const printPdf = (id) => {
 
 const form = useForm({
     // ─── Control de Registros Existentes (NUEVO) ───
+    country: 'MX',
     client_id: null,   // Si esto tiene valor, no validamos nombre/teléfono
     vehicle_id: null,  // Si esto tiene valor, no validamos placas/modelo
 

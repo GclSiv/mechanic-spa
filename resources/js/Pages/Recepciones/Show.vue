@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/vue3';
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({ recepcion: Object });
@@ -24,7 +25,7 @@ const witnesses = {
                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
                         ✏️ Editar
                     </Link>
-                    <a :href="route('recepcion.pdf', recepcion.id)" target="_blank"
+                    <a :href="route('recepcion.pdf', recepcion.id) + '?lang=' + getLang()" target="_blank"
                         class="bg-[#10213E] hover:bg-blue-900 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
                         🖨️ Imprimir PDF
                     </a>

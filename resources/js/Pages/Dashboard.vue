@@ -173,7 +173,7 @@ function formatCurrency(val) {
                             <input
                                 v-model="search"
                                 type="text"
-                                :placeholder=\"$t('dashboard.buscar')\"
+                                :placeholder="$t('dashboard.buscar')"
                                 class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-gray-50"
                             />
                             <span v-if="isSearching" class="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-sm">⟳</span>

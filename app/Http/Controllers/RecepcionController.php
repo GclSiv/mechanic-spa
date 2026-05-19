@@ -103,7 +103,9 @@ class RecepcionController extends Controller
             'vehicle_model_id' => 'required_without:vehicle_id|exists:vehicle_models,id',
             'year' => 'required_without:vehicle_id|numeric',
 
+            'country' => 'nullable|in:MX,US',
             'fuel_level' => 'required|string',
+            'rfc' => 'nullable|string|max:13',
 
             // ── Seguridad OWASP: validación estricta de archivos ──────────────
             'photos'   => 'nullable|array|max:10',
@@ -125,7 +127,7 @@ class RecepcionController extends Controller
                 $client->update($updateData);
             }
         } else {
-            $client = Client::create($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc']));
+            $client = Client::create($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc', 'country']));
         }
 
         // 3. Lógica del VEHÍCULO: ¿Es un carro ya registrado o compró uno nuevo?
@@ -253,7 +255,7 @@ class RecepcionController extends Controller
 
         // 1. Actualizar Cliente
         if ($recepcion->client) {
-            $recepcion->client->update($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc']));
+            $recepcion->client->update($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc', 'country']));
         }
 
         // 2. Actualizar Vehículo
@@ -330,6 +332,9 @@ class RecepcionController extends Controller
      */
     public function print(Recepcion $recepcion)
     {
+        $lang = request()->input('lang', 'es');
+        \Illuminate\Support\Facades\App::setLocale(in_array($lang, ['es','en']) ? $lang : 'es');
+
         // 1. Eager load de todas las relaciones que necesita el blade (¡ESTO ES CORRECTO!)
         $recepcion->load([
             'client',

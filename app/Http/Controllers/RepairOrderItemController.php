@@ -36,6 +36,9 @@ class RepairOrderItemController extends Controller
      */
     public function descargarCotizacion($id, CalculateOrderTotalsAction $calculator)
     {
+        $lang = request()->input('lang', 'es');
+        \Illuminate\Support\Facades\App::setLocale(in_array($lang, ['es','en']) ? $lang : 'es');
+
         // 1. Traemos todo (Cliente y Vehículo) para que no salga en blanco
         $orden = RepairOrder::with([
             'recepcion.client', 
