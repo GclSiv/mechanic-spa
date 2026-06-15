@@ -82,6 +82,13 @@ watch(
                             >
                                 {{ $t('nav.inventario') }}
                             </NavLink>
+                            <NavLink
+                                v-if="$page.props.auth.role === 'admin'"
+                                :href="route('reports.index')"
+                                :active="route().current('reports.*')"
+                            >
+                                {{ $t('nav.reportes') }}
+                            </NavLink>
                         </div>
                     </div>
 
@@ -160,6 +167,13 @@ watch(
                         :active="route().current('parts.*')"
                     >
                         {{ $t('nav.inventario') }}
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        v-if="$page.props.auth.role === 'admin'"
+                        :href="route('reports.index')"
+                        :active="route().current('reports.*')"
+                    >
+                        {{ $t('nav.reportes') }}
                     </ResponsiveNavLink>
                 </div>
             </div>

@@ -133,6 +133,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/profile', 'destroy')->name('profile.destroy');
     });
 
+    // ========================================================
+    // MÓDULO 8: REPORTES FINANCIEROS MENSUALES (solo admin)
+    // ========================================================
+    Route::prefix('reportes')
+        ->name('reports.')
+        ->middleware('role:admin')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\FinancialReportController::class, 'index'])
+                ->name('index');
+            Route::get('/pdf', [\App\Http\Controllers\FinancialReportController::class, 'downloadPdf'])
+                ->name('pdf');
+        });
+
 });
 
 require __DIR__.'/auth.php';
