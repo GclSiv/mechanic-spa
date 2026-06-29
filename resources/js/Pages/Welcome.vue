@@ -1,5 +1,9 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
+import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
+
+const { t } = useI18n();
 
 // Recibimos los datos que enviamos desde web.php
 const props = defineProps({
@@ -18,14 +22,16 @@ const props = defineProps({
         </div>
 
         <div class="relative z-10 flex flex-col min-h-screen">
-            <header class="flex justify-end p-6">
+            <header class="flex items-center justify-end gap-4 p-6">
+                <LanguageSwitcher />
+
                 <nav v-if="canLogin">
                     <Link
                         v-if="$page.props.auth.user"
                         :href="route('dashboard')"
                         class="px-4 py-2 font-semibold text-gray-700 hover:text-jk-blue transition"
                     >
-                        Panel de Control
+                        {{ t('common.panelControl') }}
                     </Link>
 
                     <template v-else>
@@ -33,7 +39,7 @@ const props = defineProps({
                             :href="route('login')"
                             class="px-4 py-2 font-semibold text-gray-700 hover:text-jk-blue transition"
                         >
-                            Iniciar Sesión
+                            {{ t('common.iniciarSesion') }}
                         </Link>
                     </template>
                 </nav>
@@ -62,7 +68,7 @@ const props = defineProps({
                         :href="route('login')"
                         class="px-8 py-4 bg-jk-blue text-white font-bold rounded-xl shadow-lg hover:scale-105 transition transform"
                     >
-                        COMENZAR AHORA
+                        {{ t('common.comenzarAhora') }}
                     </Link>
                 </div>
             </main>

@@ -1,5 +1,9 @@
 export default {
-    nav: {
+    common: {
+        panelControl:   'Panel de Control',
+        iniciarSesion:  'Iniciar Sesión',
+        comenzarAhora:  'COMENZAR AHORA',
+    },
         dashboard:     'Dashboard',
         taller:        'Taller',
         recepciones:   'Recepciones',
