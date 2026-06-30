@@ -13,7 +13,7 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head :title="'Bienvenido a ' + settings?.company_name || 'JKAutomotive'" />
+    <Head :title="t('welcome.tituloPagina') + ' ' + settings?.company_name || 'JKAutomotive'" />
 
     <div class="relative min-h-screen bg-gray-100 selection:bg-jk-blue selection:text-white">
         <div class="absolute inset-0 z-0 overflow-hidden">
@@ -39,7 +39,7 @@ const props = defineProps({
                             :href="route('login')"
                             class="px-4 py-2 font-semibold text-gray-700 hover:text-jk-blue transition"
                         >
-                            {{ t('common.iniciarSesion') }}
+                            {{ t('common.login') }}
                         </Link>
                     </template>
                 </nav>
@@ -59,8 +59,8 @@ const props = defineProps({
                 </h2>
                 
                 <p class="max-w-2xl text-lg text-gray-600 mb-8">
-                    Sistema Profesional de Recepción y Control de Vehículos. 
-                    Mantenemos tu motor en marcha con tecnología y precisión.
+                    {{ t('welcome.tagline') }}
+                    {{ t('welcome.taglineLinea2') }}
                 </p>
 
                 <div class="flex gap-4">
@@ -76,21 +76,21 @@ const props = defineProps({
             <footer class="py-10 bg-white/50 backdrop-blur-md border-t border-gray-200">
                 <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
                     <div>
-                        <h4 class="font-bold text-jk-blue uppercase mb-2">Ubicación</h4>
+                        <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.ubicacion') }}</h4>
                         <p class="text-gray-600 italic">{{ settings.address }}</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-jk-blue uppercase mb-2">Contacto</h4>
-                        <p class="text-gray-600">Tel: <span class="font-bold">{{ settings.phone }}</span></p>
+                        <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.contacto') }}</h4>
+                        <p class="text-gray-600">{{ t('welcome.telefono') }} <span class="font-bold">{{ settings.phone }}</span></p>
                         <p class="text-gray-600 text-xs">{{ settings.email }}</p>
                     </div>
                     <div>
-                        <h4 class="font-bold text-jk-blue uppercase mb-2">Licencia</h4>
+                        <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.licencia') }}</h4>
                         <p class="text-gray-600">#{{ settings.license_number }}</p>
                     </div>
                 </div>
                 <div class="mt-8 text-center text-xs text-gray-400">
-                    &copy; 2026 {{ settings.company_name }} - Todos los derechos reservados.
+                    &copy; 2026 {{ settings.company_name }} - {{ t('welcome.derechos') }}
                 </div>
             </footer>
         </div>

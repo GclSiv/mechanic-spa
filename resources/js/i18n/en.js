@@ -1,9 +1,10 @@
 export default {
     common: {
         panelControl:   'Control Panel',
-        iniciarSesion:  'Log In',
+        login:          'Log In',
         comenzarAhora:  'GET STARTED',
     },
+    nav: {
         dashboard:     'Dashboard',
         taller:        'Workshop',
         recepciones:   'Receptions',
@@ -117,5 +118,15 @@ export default {
             7:  'July',      8:  'August',   9:  'September',
             10: 'October',  11:  'November', 12: 'December',
         },
+    },
+    welcome: {
+        tituloPagina:    'Welcome to',
+        tagline:         'Professional Vehicle Reception & Control System.',
+        taglineLinea2:   'Keeping your engine running with technology and precision.',
+        ubicacion:       'Location',
+        contacto:        'Contact',
+        telefono:        'Phone:',
+        licencia:        'License',
+        derechos:        'All rights reserved.',
     },
 }

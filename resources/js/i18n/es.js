@@ -1,9 +1,10 @@
 export default {
     common: {
         panelControl:   'Panel de Control',
-        iniciarSesion:  'Iniciar Sesión',
+        login:          'Iniciar Sesión',
         comenzarAhora:  'COMENZAR AHORA',
     },
+    nav: {
         dashboard:     'Dashboard',
         taller:        'Taller',
         recepciones:   'Recepciones',
@@ -117,5 +118,15 @@ export default {
             7:  'Julio', 8:  'Agosto',  9:  'Septiembre',
             10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
         },
+    },
+    welcome: {
+        tituloPagina:    'Bienvenido a',
+        tagline:         'Sistema Profesional de Recepción y Control de Vehículos.',
+        taglineLinea2:   'Mantenemos tu motor en marcha con tecnología y precisión.',
+        ubicacion:       'Ubicación',
+        contacto:        'Contacto',
+        telefono:        'Tel:',
+        licencia:        'Licencia',
+        derechos:        'Todos los derechos reservados.',
     },
 }
