@@ -97,7 +97,7 @@ const witnesses = {
                     </div>
                     <div class="mt-4">
                         <span class="text-xs text-gray-400 uppercase font-bold block mb-1">{{ $t('inspeccion.sintomas') }}</span>
-                        <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{{ recepcion.symptoms ?? '{{ $t(\"inspeccion.sinDescripcion\") }}' }}</p>
+                        <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{{ recepcion.symptoms ?? $t('inspeccion.sinDescripcion') }}</p>
                     </div>
                 </div>
 
