@@ -51,12 +51,12 @@ function formatCurrency(val) {
 </script>
 
 <template>
-    <Head title="Panel de Control" />
+    <Head :title="$t('common.panelControl')" />
 
     <AuthenticatedLayout>
         <template #header>
             <h2 class="text-xl font-black leading-tight text-[#10213E] uppercase tracking-tighter">
-                Panel Principal
+                {{ $t('dashboard.title') }}
                 <span class="text-[#10213E]">JK</span><span class="text-[#EE2857]">Automotive</span>
             </h2>
         </template>
@@ -80,7 +80,7 @@ function formatCurrency(val) {
                         class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Órdenes Activas</p>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ $t('dashboard.ordenesActivas') }}</p>
                                 <p class="text-3xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
                                 <p class="text-xs text-gray-400 mt-1">{{ $t('dashboard.enProgreso') }}</p>
                             </div>
@@ -93,9 +93,9 @@ function formatCurrency(val) {
                         class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Recepciones Hoy</p>
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ $t('dashboard.recepcionesHoy') }}</p>
                                 <p class="text-3xl font-black text-[#10213E]">{{ stats.today ?? 0 }}</p>
-                                <p class="text-xs text-gray-400 mt-1">de {{ stats.total }} total</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ $t('dashboard.de') }} {{ stats.total }} {{ $t('dashboard.totalLabel') }}</p>
                             </div>
                             <span class="text-2xl bg-green-50 p-2 rounded-xl group-hover:bg-green-100 transition">🚗</span>
                         </div>
@@ -111,7 +111,7 @@ function formatCurrency(val) {
                             <div>
                                 <p class="text-xs font-bold uppercase tracking-widest mb-1"
                                     :class="stats.stockAlertas > 0 ? 'text-red-400' : 'text-gray-400'">
-                                    Alertas Inventario
+                                    {{ $t('dashboard.alertas') }}
                                 </p>
                                 <p class="text-3xl font-black"
                                     :class="stats.stockAlertas > 0 ? 'text-red-600' : 'text-[#10213E]'">
@@ -119,7 +119,7 @@ function formatCurrency(val) {
                                 </p>
                                 <p class="text-xs mt-1"
                                     :class="stats.stockAlertas > 0 ? 'text-red-400' : 'text-gray-400'">
-                                    {{ stats.stockAlertas > 0 ? 'refacciones con stock bajo' : 'sin alertas' }}
+                                    {{ stats.stockAlertas > 0 ? $t('inventario.stockBajo') : $t('dashboard.sinAlertas') }}
                                 </p>
                             </div>
                             <span class="text-2xl p-2 rounded-xl transition"
@@ -134,7 +134,7 @@ function formatCurrency(val) {
                         class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-2xl shadow-sm p-5">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Ingresos del Mes</p>
+                                <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">{{ $t('dashboard.ingresos') }}</p>
                                 <p class="text-2xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
                                 <p class="text-xs text-blue-300 mt-1">{{ $t('dashboard.pagosRegistrados') }}</p>
                             </div>
@@ -145,7 +145,7 @@ function formatCurrency(val) {
                     <!-- Placeholder para mechanic (no ve ingresos) -->
                     <div v-else
                         class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-center">
-                        <p class="text-xs text-gray-300 italic text-center">Bienvenido al taller</p>
+                        <p class="text-xs text-gray-300 italic text-center">{{ $t('dashboard.bienvenido') }}</p>
                     </div>
 
                 </div>
@@ -166,7 +166,7 @@ function formatCurrency(val) {
                                 :href="route('export.ordenes') + '?mes=' + new Date().toISOString().slice(0,7)"
                                 class="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase px-3 py-2 rounded-lg transition shadow-sm"
                                 title="Exportar órdenes del mes a Excel/CSV">
-                                📊 Exportar CSV
+                                {{ $t('dashboard.exportar') }}
                             </a>
                             <div class="relative w-full sm:w-72">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
@@ -191,11 +191,11 @@ function formatCurrency(val) {
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-6 py-3">#</th>
-                                    <th class="px-6 py-3">Cliente</th>
-                                    <th class="px-6 py-3">Vehículo</th>
-                                    <th class="px-6 py-3">Placa</th>
-                                    <th class="px-6 py-3">Fecha</th>
-                                    <th class="px-6 py-3 text-center">Acciones</th>
+                                    <th class="px-6 py-3">{{ $t('tabla.cliente') }}</th>
+                                    <th class="px-6 py-3">{{ $t('tabla.vehiculo') }}</th>
+                                    <th class="px-6 py-3">{{ $t('tabla.placa') }}</th>
+                                    <th class="px-6 py-3">{{ $t('tabla.fecha') }}</th>
+                                    <th class="px-6 py-3 text-center">{{ $t('tabla.acciones') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -229,7 +229,7 @@ function formatCurrency(val) {
                                             </button>
                                             <Link :href="route('recepcion.show', rec.id)"
                                                 class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                Ver
+                                                {{ $t('acciones.ver') }}
                                             </Link>
                                             <button v-if="isAdmin" @click="deleteRecord(rec.id)"
                                                 class="bg-red-50 hover:bg-red-100 text-[#EE2857] px-3 py-1.5 rounded-lg text-xs font-bold transition">
@@ -251,14 +251,14 @@ function formatCurrency(val) {
                     <div class="px-6 py-3 border-t border-gray-100 flex justify-between items-center">
                         <Link :href="route('recepcion.index')"
                             class="text-xs text-[#10213E] font-black hover:underline flex items-center gap-1">
-                            Ver todas las recepciones →
+                            {{ $t('dashboard.verTodos') }}
                         </Link>
                     </div>
 
                     <!-- Paginación -->
                     <div v-if="recentRecepcions.last_page > 1"
                         class="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span>Mostrando {{ recentRecepcions.from }}–{{ recentRecepcions.to }} de {{ recentRecepcions.total }} recepciones</span>
+                        <span>{{ $t('dashboard.mostrando') }} {{ recentRecepcions.from }}–{{ recentRecepcions.to }} {{ $t('dashboard.de') }} {{ recentRecepcions.total }} {{ $t('dashboard.recepciones') }}</span>
                         <div class="flex gap-1">
                             <Link v-for="link in recentRecepcions.links" :key="link.label"
                                 :href="link.url ?? '#'"
@@ -283,20 +283,20 @@ function formatCurrency(val) {
                     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                         <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 {{ $t('dashboard.ordenesRecientes') }}</h3>
                         <Link :href="route('repair-orders.index')" class="text-xs text-[#10213E] font-black hover:underline">
-                            Ver tablero →
+                            {{ $t('dashboard.verTablero') }}
                         </Link>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
-                                    <th class="px-4 py-3">Folio</th>
-                                    <th class="px-4 py-3">Cliente</th>
-                                    <th class="px-4 py-3">Vehículo</th>
-                                    <th class="px-4 py-3">Mecánico</th>
-                                    <th class="px-4 py-3 text-center">Estado</th>
-                                    <th class="px-4 py-3 text-center">Saldo</th>
-                                    <th class="px-4 py-3 text-center">Acción</th>
+                                    <th class="px-4 py-3">{{ $t('tabla.folio') }}</th>
+                                    <th class="px-4 py-3">{{ $t('tabla.cliente') }}</th>
+                                    <th class="px-4 py-3">{{ $t('tabla.vehiculo') }}</th>
+                                    <th class="px-4 py-3">{{ $t('tabla.mecanico') }}</th>
+                                    <th class="px-4 py-3 text-center">{{ $t('tabla.estado') }}</th>
+                                    <th class="px-4 py-3 text-center">{{ $t('tabla.saldo') }}</th>
+                                    <th class="px-4 py-3 text-center">{{ $t('acciones.ver') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -304,7 +304,7 @@ function formatCurrency(val) {
                                     <td class="px-4 py-3 font-black text-[#10213E] text-xs">{{ ord.folio }}</td>
                                     <td class="px-4 py-3 font-medium text-gray-800 text-xs">{{ ord.cliente }}</td>
                                     <td class="px-4 py-3 text-gray-600 text-xs">{{ ord.vehiculo }} <span class="text-gray-400">({{ ord.año }})</span></td>
-                                    <td class="px-4 py-3 text-xs" :class="ord.mecanico === 'Sin asignar' ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico }}</td>
+                                    <td class="px-4 py-3 text-xs" :class="ord.mecanico === 'Sin asignar' ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico === 'Sin asignar' ? $t('badges.sinAsignar') : ord.mecanico }}</td>
                                     <!-- Badge Estado -->
                                     <td class="px-4 py-3 text-center">
                                         <span class="inline-block px-2 py-1 rounded-full text-[10px] font-black uppercase" :class="ord.status_color">
@@ -315,17 +315,17 @@ function formatCurrency(val) {
                                     <td class="px-4 py-3 text-center">
                                         <span v-if="ord.liquidado"
                                             class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
-                                            ✅ Pagado
+                                            {{ $t('badges.liquidado') }}
                                         </span>
                                         <span v-else
                                             class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
-                                            ⚠️ Adeudo ${{ ord.saldo.toFixed(2) }}
+                                            {{ $t('badges.adeudo') }} ${{ ord.saldo.toFixed(2) }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <Link :href="route('repair-orders.show', ord.id)"
                                             class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
-                                            Abrir
+                                            {{ $t('acciones.abrir') }}
                                         </Link>
                                     </td>
                                 </tr>
@@ -340,7 +340,7 @@ function formatCurrency(val) {
             @click.self="showPhotoModal = false">
             <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-black text-[#10213E] uppercase tracking-wider text-sm">Evidencia Fotográfica</h3>
+                    <h3 class="font-black text-[#10213E] uppercase tracking-wider text-sm">{{ $t('recepcion.evidencia') }}</h3>
                     <button @click="showPhotoModal = false" class="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
                 </div>
                 <div v-if="selectedPhotos.length" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -348,7 +348,7 @@ function formatCurrency(val) {
                         :src="'/storage/' + (typeof photo === 'string' ? photo : photo.path)"
                         class="rounded-xl object-cover w-full aspect-square cursor-zoom-in hover:opacity-90 transition" />
                 </div>
-                <p v-else class="text-center text-gray-400 italic py-8">Sin fotos registradas.</p>
+                <p v-else class="text-center text-gray-400 italic py-8">{{ $t('recepcion.sinFotos') }}</p>
             </div>
         </div>
 
@@ -356,9 +356,9 @@ function formatCurrency(val) {
         <!-- Modal confirmación eliminar -->
         <ConfirmModal
             :show="confirmDelete.show"
-            title="Eliminar recepción"
-            message="¿Estás seguro? Se eliminará permanentemente este registro de recepción."
-            confirm-text="Sí, eliminar"
+            :title="$t('dashboard.eliminarTitulo')"
+            :message="$t('dashboard.eliminarMsg')"
+            :confirm-text="$t('acciones.eliminar')"
             @confirm="doDelete"
             @cancel="confirmDelete.show = false"
         />

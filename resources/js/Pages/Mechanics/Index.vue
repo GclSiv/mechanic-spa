@@ -3,6 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps({
     mechanics: Array,
@@ -19,21 +22,21 @@ function doDel() {
 </script>
 
 <template>
-    <AuthenticatedLayout title="Mecánicos">
+    <AuthenticatedLayout :title="$t('personal.titulo')">
         <template #header>
             <div class="flex justify-between items-center">
                 <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">
-                    🔧 Mecánicos
+                    🔧 {{ $t('personal.titulo') }}
                 </h2>
                 <a :href="route('mechanics.create')"
                     class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all text-sm uppercase tracking-wider">
-                    + Nuevo Mecánico
+                    {{ $t('personal.nuevo') }}
                 </a>
             </div>
         
-        <ConfirmModal :show="confirmDel.show" title="Eliminar mecánico"
-            message="Se eliminará el perfil y la cuenta de acceso de este mecánico."
-            confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+        <ConfirmModal :show="confirmDel.show" :title="$t('personal.eliminarTitulo')"
+            :message="$t('personal.eliminarMsg')"
+            :confirm-text="$t('acciones.eliminar')" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
         <div class="py-12 min-h-screen transition-colors">
@@ -48,7 +51,7 @@ function doDel() {
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
-                            Total: {{ mechanics.length }} mecánicos registrados
+                            {{ $t('personal.total', { n: mechanics.length }) }}
                         </p>
                     </div>
 
@@ -56,12 +59,12 @@ function doDel() {
                         <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                             <tr>
                                 <th class="px-6 py-3">#</th>
-                                <th class="px-6 py-3">Nombre</th>
-                                <th class="px-6 py-3">Email / Acceso</th>
-                                <th class="px-6 py-3">Especialidad</th>
-                                <th class="px-6 py-3">Género</th>
-                                <th class="px-6 py-3">Teléfono</th>
-                                <th class="px-6 py-3 text-center">Acciones</th>
+                                <th class="px-6 py-3">{{ $t('personal.nombre') }}</th>
+                                <th class="px-6 py-3">{{ $t('personal.email') }}</th>
+                                <th class="px-6 py-3">{{ $t('personal.especialidad') }}</th>
+                                <th class="px-6 py-3">{{ $t('personal.genero') }}</th>
+                                <th class="px-6 py-3">{{ $t('personal.telefono') }}</th>
+                                <th class="px-6 py-3 text-center">{{ $t('personal.acciones') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -71,7 +74,7 @@ function doDel() {
                                 <td class="px-6 py-4 font-bold text-[#10213E]">{{ m.name }}</td>
                                 <td class="px-6 py-4 text-gray-600 text-xs">
                                     <span v-if="m.email">{{ m.email }}</span>
-                                    <span v-else class="text-amber-500 font-medium">Sin cuenta</span>
+                                    <span v-else class="text-amber-500 font-medium">{{ $t('personal.sinCuenta') }}</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
@@ -93,7 +96,7 @@ function doDel() {
                             </tr>
                             <tr v-if="mechanics.length === 0">
                                 <td colspan="6" class="px-6 py-12 text-center text-gray-400 italic">
-                                    No hay mecánicos registrados. Agrega el primero.
+                                    {{ $t('personal.sinRegistros') }}
                                 </td>
                             </tr>
                         </tbody>

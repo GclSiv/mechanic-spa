@@ -3,6 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps({ parts: Array });
 
@@ -17,19 +20,19 @@ function doDel() {
 </script>
 
 <template>
-    <AuthenticatedLayout title="Inventario">
+    <AuthenticatedLayout :title="$t('inventario.titulo')">
         <template #header>
             <div class="flex justify-between items-center">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">📦 Inventario</h2>
+                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">📦 {{ $t('inventario.titulo') }}</h2>
                 <a :href="route('parts.create')"
                     class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all text-sm uppercase">
-                    + Nueva Refacción
+                    {{ $t('inventario.nueva') }}
                 </a>
             </div>
         
-        <ConfirmModal :show="confirmDel.show" title="Eliminar refacción"
-            message="Se eliminará esta refacción del inventario permanentemente."
-            confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+        <ConfirmModal :show="confirmDel.show" :title="$t('inventario.eliminarTitulo')"
+            :message="$t('inventario.eliminarMsg')"
+            :confirm-text="$t('acciones.eliminar')" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
         <div class="py-12 min-h-screen transition-colors">
@@ -43,10 +46,10 @@ function doDel() {
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
                         <p class="text-white text-xs font-bold uppercase tracking-widest">
-                            {{ parts.length }} artículos en inventario
+                            {{ parts.length }} {{ $t('inventario.articulos') }}
                         </p>
                         <p class="text-xs text-red-300 font-bold" v-if="parts.filter(p => p.is_low_stock).length">
-                            ⚠️ {{ parts.filter(p => p.is_low_stock).length }} con stock bajo
+                            ⚠️ {{ parts.filter(p => p.is_low_stock).length }} {{ $t('inventario.stockBajo') }}
                         </p>
                     </div>
 
@@ -54,12 +57,12 @@ function doDel() {
                         <table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                                 <tr>
-                                    <th class="px-5 py-3">Nombre</th>
-                                    <th class="px-5 py-3">SKU</th>
-                                    <th class="px-5 py-3 text-right">Costo</th>
-                                    <th class="px-5 py-3 text-right">Venta</th>
-                                    <th class="px-5 py-3 text-center">Stock</th>
-                                    <th class="px-5 py-3 text-center">Acciones</th>
+                                    <th class="px-5 py-3">{{ $t('inventario.nombre') }}</th>
+                                    <th class="px-5 py-3">{{ $t('inventario.sku') }}</th>
+                                    <th class="px-5 py-3 text-right">{{ $t('inventario.costo') }}</th>
+                                    <th class="px-5 py-3 text-right">{{ $t('inventario.venta') }}</th>
+                                    <th class="px-5 py-3 text-center">{{ $t('inventario.stock') }}</th>
+                                    <th class="px-5 py-3 text-center">{{ $t('inventario.acciones') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -68,7 +71,7 @@ function doDel() {
                                     :class="p.is_low_stock ? 'bg-red-50' : ''">
                                     <td class="px-5 py-4 font-bold text-[#10213E]">
                                         {{ p.name }}
-                                        <span v-if="p.is_low_stock" class="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-black uppercase">Stock Bajo</span>
+                                        <span v-if="p.is_low_stock" class="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-black uppercase">{{ $t('inventario.badgeStockBajo') }}</span>
                                     </td>
                                     <td class="px-5 py-4 font-mono text-gray-500 text-xs">{{ p.sku }}</td>
                                     <td class="px-5 py-4 text-right text-gray-600">${{ Number(p.cost_price).toFixed(2) }}</td>
@@ -94,7 +97,7 @@ function doDel() {
                                 </tr>
                                 <tr v-if="parts.length === 0">
                                     <td colspan="6" class="px-6 py-12 text-center text-gray-400 italic">
-                                        No hay refacciones registradas. Agrega la primera.
+                                        {{ $t('inventario.sinRegistros') }}
                                     </td>
                                 </tr>
                             </tbody>

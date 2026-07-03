@@ -1,9 +1,12 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
+const { t } = useI18n();
 
 const props = defineProps({
     statuses:        Array,
@@ -27,13 +30,13 @@ function ordersForColumn(slugs) {
 }
 
 // Columnas Kanban — incluye Rechazado
-const columnas = [
-    { slugs: ['recibido', 'diagnostico'], label: '🔍 Pendientes',      color: 'border-gray-400',   bg: 'bg-gray-50'   },
-    { slugs: ['espera-piezas'],           label: '📦 Esp. Piezas',     color: 'border-yellow-400', bg: 'bg-yellow-50' },
-    { slugs: ['reparado'],                label: '🔧 En Taller',        color: 'border-blue-400',   bg: 'bg-blue-50'   },
-    { slugs: ['entregado'],               label: '✅ Terminadas',        color: 'border-green-400',  bg: 'bg-green-50'  },
-    { slugs: ['rechazado'],               label: '❌ Rechazadas',        color: 'border-red-400',    bg: 'bg-red-50'    },
-];
+const columnas = computed(() => [
+    { slugs: ['recibido', 'diagnostico'], label: t('taller.pendientes'),    color: 'border-gray-400',   bg: 'bg-gray-50'   },
+    { slugs: ['espera-piezas'],           label: t('taller.esperaPiezas'), color: 'border-yellow-400', bg: 'bg-yellow-50' },
+    { slugs: ['reparado'],                label: t('taller.enTaller'),      color: 'border-blue-400',   bg: 'bg-blue-50'   },
+    { slugs: ['entregado'],               label: t('taller.terminadas'),    color: 'border-green-400',  bg: 'bg-green-50'  },
+    { slugs: ['rechazado'],               label: t('taller.rechazadas'),    color: 'border-red-400',    bg: 'bg-red-50'    },
+]);
 
 // Dropdown de estado en tarjeta
 const openDropdown = ref(null);
@@ -59,24 +62,24 @@ function doDel() {
 </script>
 
 <template>
-    <AuthenticatedLayout title="Tablero de Taller">
+    <AuthenticatedLayout :title="$t('taller.titulo')">
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">🏭 Tablero de Taller</h2>
+                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">🏭 {{ $t('taller.titulo') }}</h2>
                 <div class="flex gap-2 text-xs text-gray-500">
                     <span v-for="s in statuses" :key="s.id"
                         class="px-2 py-1 rounded-full font-bold"
                         :class="s.color_class">
-                        {{ s.name }}: {{ ordersForStatus(s.id).length }}
+                        {{ $t('status.' + s.slug) }}: {{ ordersForStatus(s.id).length }}
                     </span>
                 </div>
             </div>
         
     <!-- Modal confirmación -->
     <ConfirmModal :show="confirmDel.show"
-        :title="'Eliminar orden #' + (confirmDel.order?.folio ?? confirmDel.order?.id)"
-        message="Se eliminará la orden y su recepción asociada permanentemente."
-        confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
+        :title="$t('acciones.eliminar') + ' #' + (confirmDel.order?.folio ?? confirmDel.order?.id)"
+        :message="$t('taller.eliminarMsg')"
+        :confirm-text="$t('acciones.eliminar')" @confirm="doDel" @cancel="confirmDel.show = false" />
 </template>
 
         <div class="py-6 min-h-screen transition-colors">
@@ -110,18 +113,18 @@ function doDel() {
                                         <button @click.stop="toggleDropdown(order.id)"
                                             class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full hover:opacity-75 transition"
                                             :class="order.status?.color_class ?? 'bg-gray-100 text-gray-600'">
-                                            {{ order.status?.name ?? '—' }} ▾
+                                            {{ order.status?.slug ? $t('status.' + order.status.slug) : '—' }} ▾
                                         </button>
 
                                         <div v-if="openDropdown === order.id"
                                             class="absolute right-0 top-6 z-50 bg-white rounded-xl shadow-xl border border-gray-100 w-44 py-1 overflow-hidden">
-                                            <p class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase border-b">Cambiar estado</p>
+                                            <p class="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase border-b">{{ $t('taller.cambiarEstado') }}</p>
                                             <button v-for="s in statuses" :key="s.id"
                                                 @click="changeStatus(order, s.id)"
                                                 class="w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 transition"
                                                 :class="s.id === order.status_id ? 'font-black' : 'font-medium text-gray-700'">
                                                 <span class="w-2 h-2 rounded-full shrink-0" :class="s.color_class"></span>
-                                                {{ s.name }}
+                                                {{ $t('status.' + s.slug) }}
                                                 <span v-if="s.id === order.status_id" class="ml-auto">✓</span>
                                             </button>
                                         </div>
@@ -131,7 +134,7 @@ function doDel() {
                                     <span v-else
                                         class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
                                         :class="order.status?.color_class ?? 'bg-gray-100 text-gray-600'">
-                                        {{ order.status?.name ?? '—' }}
+                                        {{ order.status?.slug ? $t('status.' + order.status.slug) : '—' }}
                                     </span>
                                 </div>
 
@@ -149,15 +152,15 @@ function doDel() {
 
                                 <!-- Mecánico -->
                                 <p class="text-xs mt-1" :class="order.mechanic ? 'text-blue-600' : 'text-amber-500'">
-                                    🔧 {{ order.mechanic?.name ?? 'Sin asignar' }}
+                                    🔧 {{ order.mechanic?.name ?? $t('taller.sinAsignar') }}
                                 </p>
 
                                 <!-- Saldo — oculto para mecánico -->
                                 <div v-if="isAdmin" class="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
-                                    <span class="text-xs text-gray-400">Saldo</span>
+                                    <span class="text-xs text-gray-400">{{ $t('taller.saldo') }}</span>
                                     <span class="font-black text-xs"
                                         :class="saldoPendiente(order) <= 0 ? 'text-green-600' : 'text-[#EE2857]'">
-                                        {{ saldoPendiente(order) <= 0 ? '✅ Liquidado' : '$' + saldoPendiente(order).toFixed(2) }}
+                                        {{ saldoPendiente(order) <= 0 ? $t('taller.liquidado') : '$' + saldoPendiente(order).toFixed(2) }}
                                     </span>
                                 </div>
 
@@ -166,7 +169,7 @@ function doDel() {
                                     <div class="flex flex-wrap gap-1 w-full">
                                         <a :href="route('repair-orders.show', order.id)"
                                             class="flex items-center gap-1 bg-[#10213E] hover:bg-blue-900 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
-                                            📋 Cotización
+                                            {{ $t('taller.cotizacion') }}
                                         </a>
                                         <a v-if="order.recepcion_id"
                                             :href="route('recepcion.pdf', order.recepcion_id) + '?lang=' + getLang()"
@@ -196,7 +199,7 @@ function doDel() {
                             <!-- Columna vacía -->
                             <div v-if="ordersForColumn(col.slugs).length === 0"
                                 class="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center text-gray-300 text-xs">
-                                Vacío
+                                {{ $t('taller.vacio') }}
                             </div>
                         </div>
                     </div>

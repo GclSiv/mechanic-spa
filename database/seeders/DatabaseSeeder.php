@@ -17,20 +17,21 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,      // ✅ Aquí ya se configura JK Automotive y el IVA
         ]);
 
-        \App\Models\Gender::create(['name' => 'Masculino']);
-        \App\Models\Gender::create(['name' => 'Femenino']);
+        \App\Models\Gender::create(['name' => 'Male']);
+        \App\Models\Gender::create(['name' => 'Female']);
 
-        \App\Models\ClientStatus::create(['name' => 'Activo', 'color' => 'bg-green-500']);
-        \App\Models\ClientStatus::create(['name' => 'Deudor', 'color' => 'bg-red-500']);
+        \App\Models\ClientStatus::create(['name' => 'Active', 'color' => 'bg-green-500']);
+        \App\Models\ClientStatus::create(['name' => 'Debtor', 'color' => 'bg-red-500']);
 
-        \App\Models\MechanicType::create(['name' => 'Mecánico General']);
-        \App\Models\MechanicType::create(['name' => 'Electromecánico']);
+        \App\Models\MechanicType::create(['name' => 'General Mechanic']);
+        \App\Models\MechanicType::create(['name' => 'Electromechanic']);
 
-        \App\Models\RepairOrderStatus::create(['name' => 'Recibido', 'slug' => 'recibido', 'color_class' => 'bg-gray-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'En Diagnóstico', 'slug' => 'diagnostico', 'color_class' => 'bg-yellow-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Esperando Piezas', 'slug' => 'espera-piezas', 'color_class' => 'bg-orange-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Reparado', 'slug' => 'reparado', 'color_class' => 'bg-green-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Entregado', 'slug' => 'entregado', 'color_class' => 'bg-blue-600']);
+        \App\Models\RepairOrderStatus::create(['name' => 'Received', 'slug' => 'recibido', 'color_class' => 'bg-gray-500']);
+        \App\Models\RepairOrderStatus::create(['name' => 'In Diagnosis', 'slug' => 'diagnostico', 'color_class' => 'bg-yellow-500']);
+        \App\Models\RepairOrderStatus::create(['name' => 'Awaiting Parts', 'slug' => 'espera-piezas', 'color_class' => 'bg-orange-500']);
+        \App\Models\RepairOrderStatus::create(['name' => 'Repaired', 'slug' => 'reparado', 'color_class' => 'bg-green-500']);
+        \App\Models\RepairOrderStatus::create(['name' => 'Delivered', 'slug' => 'entregado', 'color_class' => 'bg-blue-600']);
+        \App\Models\RepairOrderStatus::create(['name' => 'Rejected', 'slug' => 'rechazado', 'color_class' => 'bg-red-600']);
 
         // --- 2. USUARIOS Y PERSONAL ---
         \App\Models\User::factory()->create([
@@ -55,7 +56,7 @@ class DatabaseSeeder extends Seeder
 
         // --- 4. INVENTARIO DE PIEZAS ---
         \App\Models\Part::create([
-            'name' => 'Aceite Sintético 5W-30 (Full Synthetic)',
+            'name' => 'Synthetic Oil 5W-30 (Full Synthetic)',
             'sku' => 'OIL-5W30-FS',
             'cost_price' => 120.00,
             'sale_price' => 210.00,
@@ -63,7 +64,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         \App\Models\Part::create([
-            'name' => 'Filtro de Aceite Premium',
+            'name' => 'Premium Oil Filter',
             'sku' => 'FIL-OIL-001',
             'cost_price' => 85.00,
             'sale_price' => 150.00,
