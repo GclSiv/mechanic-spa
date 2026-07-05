@@ -240,7 +240,7 @@ function formatCurrency(val) {
                                 </tr>
                                 <tr v-if="!recentRecepcions.data?.length">
                                     <td colspan="6" class="px-6 py-12 text-center text-gray-300 italic text-sm">
-                                        {{ search ? 'Sin resultados para "' + search + '"' : 'No hay recepciones registradas.' }}
+                                        {{ search ? $t('dashboard.sinResultadosBusqueda') + ' \"' + search + '\"' : $t('dashboard.sinRecepciones') }}
                                     </td>
                                 </tr>
                             </tbody>
