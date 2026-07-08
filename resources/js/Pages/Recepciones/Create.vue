@@ -158,13 +158,13 @@ watch(() => form.client_id, () => {
 
 const fuelLevels = ["E", "1/4", "1/2", "3/4", "F"];
 
-const witnessOptions = [
-    { key: "engine", label: "ENGINE" },
-    { key: "abs", label: "ABS" },
-    { key: "oil", label: "ACEITE" },
-    { key: "battery", label: "BATERÍA" },
-    { key: "temp", label: "TEMP" },
-];
+const witnessOptions = computed(() => [
+    { key: "engine", label: t('inspeccion.engine') },
+    { key: "abs",    label: t('inspeccion.abs') },
+    { key: "oil",    label: t('inspeccion.oil') },
+    { key: "battery",label: t('inspeccion.battery') },
+    { key: "temp",   label: t('inspeccion.temp') },
+]);
 
 const toggleWitness = (key) => {
     const idx = form.witnesses.indexOf(key);
@@ -231,15 +231,15 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Nueva Recepción - JK Automotive" />
+    <Head :title="$t('recepcion_form.titulo') + ' - JK Automotive'" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight uppercase tracking-wider">
-                    Registrar Entrada de Vehículo
+                    {{ $t('recepcion_form.titulo') }}
                 </h2>
                 <a :href="route('dashboard')" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                    ← Volver al Panel
+                    {{ $t('recepcion_form.volverPanel') }}
                 </a>
             </div>
         </template>
@@ -256,7 +256,7 @@ const submit = () => {
                             <span v-else>{{ step }}</span>
                         </div>
                         <span class="text-sm font-medium" :class="step === currentStep ? 'text-jk-blue' : 'text-gray-400'">
-                            {{ step === 1 ? "Datos del Cliente" : "Datos del Vehículo" }}
+                            {{ step === 1 ? $t('recepcion_form.datosCliente') : $t('recepcion_form.datosVehiculo') }}
                         </span>
                         <span v-if="step < totalSteps" class="text-gray-300 ml-2">──</span>
                     </div>
@@ -270,7 +270,7 @@ const submit = () => {
                         ════════════════════════════════════════════════ -->
                         <div v-show="currentStep === 1" class="p-8">
                             <h3 class="font-bold text-lg text-jk-blue border-b-2 border-jk-blue pb-2 uppercase tracking-wider mb-6">
-                                Datos del Cliente
+                                {{ $t('recepcion_form.datosCliente') }}
                             </h3>
 
                             <!-- SWITCHER: ¿Cliente Nuevo o Registrado? -->
@@ -278,19 +278,19 @@ const submit = () => {
                                 <button type="button" @click="isNewClient = false" 
                                     :class="!isNewClient ? 'bg-white shadow-sm text-jk-blue font-bold' : 'text-gray-500 hover:text-gray-700'" 
                                     class="px-6 py-2 rounded-md text-sm transition-all flex items-center gap-2">
-                                    👤 Cliente Registrado
+                                    {{ $t('recepcion_form.clienteRegistrado') }}
                                 </button>
                                 <button type="button" @click="isNewClient = true; form.client_id = null;" 
                                     :class="isNewClient ? 'bg-white shadow-sm text-jk-blue font-bold' : 'text-gray-500 hover:text-gray-700'" 
                                     class="px-6 py-2 rounded-md text-sm transition-all flex items-center gap-2">
-                                    ➕ Cliente Nuevo
+                                    {{ $t('recepcion_form.clienteNuevo') }}
                                 </button>
                             </div>
 
                             <!-- VISTA: CLIENTE EXISTENTE -->
                             <!-- COMBOBOX BUSCADOR DE CLIENTE EXISTENTE -->
                             <div v-if="!isNewClient" class="mb-6">
-                                <InputLabel for="client_search" value="Buscar Cliente *" />
+                                <InputLabel for="client_search" :value="$t('recepcion_form.buscarCliente')" />
                                 <div class="relative mt-1">
                                     <input
                                         id="client_search"
@@ -298,7 +298,7 @@ const submit = () => {
                                         @focus="showClientList = true"
                                         @input="showClientList = true; form.client_id = null;"
                                         type="text"
-                                        placeholder="Escribe nombre, apellido o teléfono..."
+                                        :placeholder="$t('recepcion_form.buscarPlaceholder')"
                                         autocomplete="off"
                                         class="block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm text-sm"
                                     />
@@ -326,38 +326,38 @@ const submit = () => {
                                     <!-- Sin resultados -->
                                     <div v-if="showClientList && clientSearch.length > 1 && filteredClients.length === 0"
                                         class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 italic">
-                                        Sin resultados para "{{ clientSearch }}"
+                                        {{ $t('recepcion_form.sinResultados') }} "{{ clientSearch }}"
                                     </div>
                                 </div>
                                 <!-- Badge + campos editables cliente existente -->
                                 <div v-if="form.client_id" class="mt-3 space-y-3">
                                     <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                                         <span class="text-green-600 text-sm">✅</span>
-                                        <p class="text-xs font-bold text-green-800">{{ $t('recepcion.clienteSeleccionado') }} — puedes editar sus datos:</p>
+                                        <p class="text-xs font-bold text-green-800">{{ $t('recepcion.clienteSeleccionado') }} — {{ $t('recepcion_form.clienteEditarDatos') }}</p>
                                     </div>
                                     <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('recepcion_form.nombre') }}</label>
                                             <input v-model="form.first_name" type="text"
                                                 class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido *</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('recepcion_form.apellidos') }}</label>
                                             <input v-model="form.last_name" type="text"
                                                 class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('recepcion_form.telefono') }}</label>
                                             <input v-model="form.phone" type="text"
                                                 class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">RFC</label>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">RFC</label>
                                             <input v-model="form.rfc" type="text"
                                                 class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
                                         <div class="col-span-2">
-                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección</label>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('recepcion_form.direccion') }}</label>
                                             <input v-model="form.address" type="text"
                                                 class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                                         </div>
@@ -369,28 +369,28 @@ const submit = () => {
                             <!-- VISTA: CLIENTE NUEVO -->
                             <div v-if="isNewClient" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <InputLabel for="first_name" value="Nombre(s) *" />
-                                    <TextInput id="first_name" type="text" class="mt-1 block w-full" v-model="form.first_name" required placeholder="Ej. Juan" />
+                                    <InputLabel for="first_name" :value="$t('recepcion_form.nombre')" />
+                                    <TextInput id="first_name" type="text" class="mt-1 block w-full" v-model="form.first_name" required :placeholder="$t('recepcion_form.nombrePh')" />
                                     <InputError class="mt-2" :message="form.errors.first_name" />
                                 </div>
                                 <div>
-                                    <InputLabel for="last_name" value="Apellidos *" />
-                                    <TextInput id="last_name" type="text" class="mt-1 block w-full" v-model="form.last_name" required placeholder="Ej. García López" />
+                                    <InputLabel for="last_name" :value="$t('recepcion_form.apellidos')" />
+                                    <TextInput id="last_name" type="text" class="mt-1 block w-full" v-model="form.last_name" required :placeholder="$t('recepcion_form.apellidosPh')" />
                                     <InputError class="mt-2" :message="form.errors.last_name" />
                                 </div>
                                 <div>
-                                    <InputLabel for="phone" value="Teléfono / WhatsApp" />
-                                    <TextInput id="phone" type="tel" class="mt-1 block w-full" v-model="form.phone" placeholder="Ej. 9515087464" />
+                                    <InputLabel for="phone" :value="$t('recepcion_form.telefono')" />
+                                    <TextInput id="phone" type="tel" class="mt-1 block w-full" v-model="form.phone" :placeholder="$t('recepcion_form.telefonoPh')" />
                                     <InputError class="mt-2" :message="form.errors.phone" />
                                 </div>
                                 <div>
                                     <InputLabel for="rfc" value="RFC" />
-                                    <TextInput id="rfc" type="text" class="mt-1 block w-full uppercase" v-model="form.rfc" placeholder="Ej. GARL850101ABC" maxlength="13" />
+                                    <TextInput id="rfc" type="text" class="mt-1 block w-full uppercase" v-model="form.rfc" :placeholder="$t('recepcion_form.rfcPh')" maxlength="13" />
                                     <InputError class="mt-2" :message="form.errors.rfc" />
                                 </div>
                                 <div class="md:col-span-2">
-                                    <InputLabel for="address" value="Dirección" />
-                                    <TextInput id="address" type="text" class="mt-1 block w-full" v-model="form.address" placeholder="Calle, número, colonia, ciudad..." />
+                                    <InputLabel for="address" :value="$t('recepcion_form.direccion')" />
+                                    <TextInput id="address" type="text" class="mt-1 block w-full" v-model="form.address" :placeholder="$t('recepcion_form.direccionPh')" />
                                     <InputError class="mt-2" :message="form.errors.address" />
                                 </div>
                             </div>
@@ -400,7 +400,7 @@ const submit = () => {
                                 <button type="button" @click="goNext" 
                                     :disabled="(isNewClient && (!form.first_name || !form.last_name)) || (!isNewClient && !form.client_id)"
                                     class="bg-jk-blue text-white px-8 py-3 rounded-lg font-bold uppercase tracking-wider hover:bg-blue-900 disabled:opacity-40 transition-all">
-                                    Continuar →
+                                    {{ $t('recepcion_form.continuar') }}
                                 </button>
                             </div>
                         </div>
@@ -410,45 +410,45 @@ const submit = () => {
                         ════════════════════════════════════════════════ -->
                         <div v-show="currentStep === 2" class="p-8">
                             <h3 class="font-bold text-lg text-jk-red border-b-2 border-jk-red pb-2 uppercase tracking-wider mb-6">
-                                Vehículo y Estado al Ingreso
+                                {{ $t('recepcion_form.vehiculoTitulo') }}
                             </h3>
 
                             <!-- Vehículos Existentes del Cliente Seleccionado -->
                             <div v-if="!isNewClient && availableVehicles.length > 0" class="mb-6 bg-blue-50 p-5 rounded-xl border border-blue-100">
-                                <InputLabel for="vehicle_id" value="Vehículos Registrados de este Cliente" class="text-blue-800" />
+                                <InputLabel for="vehicle_id" :value="$t('recepcion_form.vehiculosRegistrados')" class="text-blue-800" />
                                 <select id="vehicle_id" v-model="form.vehicle_id" class="mt-2 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm">
-                                    <option :value="null">➕ Registrar un vehículo NUEVO para este cliente...</option>
+                                    <option :value="null">{{ $t('recepcion_form.vehiculoNuevo') }}</option>
                                     <option v-for="vehicle in availableVehicles" :key="vehicle.id" :value="vehicle.id">
-                                        {{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.year }}) - Placas: {{ vehicle.plate }}
+                                        {{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.year }}) - {{ $t('recepcion_form.placas') }}: {{ vehicle.plate }}
                                     </option>
                                 </select>
                             </div>
 
                             <!-- Formulario de Vehículo Nuevo (Se oculta si elige un carro existente) -->
                             <div v-if="!form.vehicle_id" class="bg-gray-50 border border-gray-200 p-6 rounded-xl mb-8">
-                                <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase">Datos del Vehículo a Registrar</h4>
+                                <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase">{{ $t('recepcion_form.datosVehiculoSub') }}</h4>
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
                                     <div>
-                                        <InputLabel for="brand" value="Marca *" />
+                                        <InputLabel for="brand" :value="$t('recepcion_form.marca')" />
                                         <select id="brand" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" v-model="form.brand_id" required>
-                                            <option value="" disabled>Seleccione...</option>
+                                            <option value="" disabled>{{ $t('recepcion_form.seleccione') }}</option>
                                             <option v-for="brand in props.brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
                                         </select>
                                         <InputError class="mt-2" :message="form.errors.brand_id" />
                                     </div>
                                     <div>
-                                        <InputLabel for="model" value="Modelo *" />
+                                        <InputLabel for="model" :value="$t('recepcion_form.modelo')" />
                                         <select id="model" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" v-model="form.vehicle_model_id" :disabled="!form.brand_id" required>
-                                            <option value="" disabled>{{ form.brand_id ? "Seleccione..." : "Primero marca" }}</option>
+                                            <option value="" disabled>{{ form.brand_id ? $t('recepcion_form.seleccione') + '' : $t('recepcion_form.primerMarca') }}</option>
                                             <option v-for="m in availableModels" :key="m.id" :value="m.id">{{ m.name }}</option>
                                         </select>
                                         <InputError class="mt-2" :message="form.errors.vehicle_model_id" />
                                     </div>
                                     <div>
-                                        <InputLabel for="year" value="Año *" />
+                                        <InputLabel for="year" :value="$t('recepcion_form.anio')" />
                                         <select id="year" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" v-model="form.year" required>
-                                            <option value="" disabled>Año...</option>
+                                            <option value="" disabled>{{ $t('recepcion_form.anio') }}</option>
                                             <option v-for="y in Array.from({ length: 35 }, (_, i) => 2026 - i)" :key="y" :value="String(y)">{{ y }}</option>
                                         </select>
                                         <InputError class="mt-2" :message="form.errors.year" />
@@ -457,30 +457,30 @@ const submit = () => {
 
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
-                                        <InputLabel for="plate" value="Placas" />
-                                        <TextInput id="plate" type="text" class="mt-1 block w-full uppercase" v-model="form.plate" placeholder="Ej. ABC-123-D" />
+                                        <InputLabel for="plate" :value="$t('recepcion_form.placas')" />
+                                        <TextInput id="plate" type="text" class="mt-1 block w-full uppercase" v-model="form.plate" :placeholder="$t('recepcion_form.placasPh')" />
                                         <InputError class="mt-2" :message="form.errors.plate" />
                                     </div>
                                     <div>
-                                        <InputLabel for="vin" value="Número de Serie (VIN)" />
+                                        <InputLabel for="vin" :value="$t('recepcion_form.serie')" />
                                         <TextInput id="vin" type="text" class="mt-1 block w-full uppercase" v-model="form.vin" placeholder="17 caracteres" maxlength="17" />
                                         <InputError class="mt-2" :message="form.errors.vin" />
                                     </div>
                                     <div>
-                                        <InputLabel for="engine" value="Motor" />
-                                        <TextInput id="engine" type="text" class="mt-1 block w-full uppercase" v-model="form.engine" placeholder="Ej. 2.0L o V6" />
+                                        <InputLabel for="engine" :value="$t('recepcion_form.motor')" />
+                                        <TextInput id="engine" type="text" class="mt-1 block w-full uppercase" v-model="form.engine" :placeholder="$t('recepcion_form.motorPh')" />
                                         <InputError class="mt-2" :message="form.errors.engine" />
                                     </div>
                                 </div>
                             </div>
 
                             <!-- ════ DATOS TRANSACCIONALES (SIEMPRE VISIBLES) ════ -->
-                            <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase border-b pb-2">Condiciones de Ingreso al Taller</h4>
+                            <h4 class="font-bold text-gray-700 mb-4 text-sm uppercase border-b pb-2">{{ $t('recepcion_form.condiciones') }}</h4>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                                 <!-- Odómetro visual -->
                                 <div>
-                                    <InputLabel value="Kilometraje / Millaje" />
+                                    <InputLabel :value="$t('recepcion_form.kilometraje')" />
                                     <div class="mt-2 flex items-center gap-4">
                                         <div class="flex gap-1">
                                             <div v-for="(digit, i) in odometerDisplay" :key="i" class="w-9 h-12 bg-gray-900 text-green-400 flex items-center justify-center text-xl font-mono font-bold rounded-sm border border-gray-700 shadow-inner">
@@ -493,7 +493,7 @@ const submit = () => {
 
                                 <!-- Nivel de Gasolina -->
                                 <div>
-                                    <InputLabel value="Nivel de Gasolina *" />
+                                    <InputLabel :value="$t('recepcion_form.gasolina')" />
                                     <div class="mt-3 flex gap-3">
                                         <button v-for="level in fuelLevels" :key="level" type="button" @click="form.fuel_level = level" 
                                             class="w-14 h-14 rounded-full border-2 font-bold text-sm transition-all"
@@ -507,7 +507,7 @@ const submit = () => {
 
                             <!-- Testigos del Tablero -->
                             <div class="mb-6">
-                                <InputLabel value="Testigos Encendidos en el Tablero" />
+                                <InputLabel :value="$t('recepcion_form.testigos')" />
                                 <div class="mt-3 flex flex-wrap gap-4">
                                     <button v-for="w in witnessOptions" :key="w.key" type="button" @click="toggleWitness(w.key)" 
                                         class="flex flex-col items-center gap-2 w-20 py-3 rounded-xl border-2 transition-all duration-200"
@@ -526,20 +526,20 @@ const submit = () => {
 
                             <!-- Fallas reportadas -->
                             <div class="mb-6">
-                                <InputLabel for="symptoms" value="Fallas Reportadas / Observaciones del Cliente" />
-                                <textarea id="symptoms" rows="3" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" v-model="form.symptoms" placeholder="Describa el problema reportado, ruidos, servicios solicitados..."></textarea>
+                                <InputLabel for="symptoms" :value="$t('recepcion_form.fallas')" />
+                                <textarea id="symptoms" rows="3" class="mt-1 block w-full border-gray-300 focus:border-jk-blue focus:ring-jk-blue rounded-md shadow-sm" v-model="form.symptoms" :placeholder="$t('recepcion_form.fallasPh')"></textarea>
                                 <InputError class="mt-2" :message="form.errors.symptoms" />
                             </div>
 
                             <!-- Evidencia Fotográfica -->
                             <div class="pt-6 border-t border-gray-100 mt-6">
-                                <label class="block text-sm font-bold text-gray-700 mb-3">Evidencia Fotográfica (Opcional)</label>
+                                <label class="block text-sm font-bold text-gray-700 mb-3">{{ $t('recepcion_form.evidencia') }}</label>
                                 <div class="flex items-center justify-center w-full">
                                     <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-jk-blue transition-all">
                                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                             <span class="text-3xl mb-2">📸</span>
-                                            <p class="mb-2 text-sm text-gray-500"><span class="font-bold">Haz clic para subir fotos</span> o arrástralas aquí</p>
-                                            <p class="text-xs text-gray-400">PNG, JPG o WEBP (Max. 5MB)</p>
+                                            <p class="mb-2 text-sm text-gray-500"><span class="font-bold">{{ $t('recepcion_form.subirFotos') }}</span> {{ $t('recepcion_form.arrastraFotos') }}</p>
+                                            <p class="text-xs text-gray-400">{{ $t('recepcion_form.formatoFotos') }}</p>
                                         </div>
                                         <input type="file" class="hidden" multiple accept="image/*" @change="handlePhotoUpload" />
                                     </label>
@@ -556,11 +556,11 @@ const submit = () => {
                             <!-- Botones de navegación finales -->
                             <div class="flex justify-between mt-8">
                                 <button type="button" @click="goPrev" class="bg-gray-100 text-gray-600 px-6 py-3 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 transition-all">
-                                    ← Anterior
+                                    {{ $t('recepcion_form.anterior') }}
                                 </button>
                                 <PrimaryButton class="bg-jk-blue hover:bg-blue-900 text-white px-10 py-3" :disabled="form.processing">
-                                    <span v-if="form.processing">⏳ Guardando...</span>
-                                    <span v-else>✓ Finalizar Recepción</span>
+                                    <span v-if="form.processing">{{ $t('recepcion_form.guardando') }}</span>
+                                    <span v-else>{{ $t('recepcion_form.finalizar') }}</span>
                                 </PrimaryButton>
                             </div>
                         </div>
@@ -580,36 +580,36 @@ const submit = () => {
                     ⚠️
                 </div>
                 <h2 class="text-xl font-black text-[#10213E] uppercase mb-2">
-                    Vehículo ya registrado
+                    {{ $t('recepcion_form.vehiculoDuplicado') }}
                 </h2>
                 <p class="text-gray-500 text-sm mb-4">
-                    Se encontró un vehículo con
-                    <strong>{{ duplicateAlert?.type === 'plate' ? 'la placa' : 'el número de serie (VIN)' }}</strong>
+                    {{ $t('recepcion_form.duplicadoDesc') }}
+                    <strong>{{ duplicateAlert?.type === 'plate' ? $t('recepcion_form.laPlaca') : $t('recepcion_form.elVin') }}</strong>
                     ingresada:
                 </p>
 
                 <!-- Tarjeta del vehículo encontrado -->
                 <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-left mb-6">
-                    <p class="text-xs text-orange-600 font-bold uppercase tracking-widest mb-2">Vehículo encontrado</p>
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-widest mb-2">{{ $t('recepcion_form.vehiculoEncontrado') }}</p>
                     <p class="font-black text-[#10213E]">
                         {{ duplicateAlert?.vehicle.brand }} {{ duplicateAlert?.vehicle.model }} ({{ duplicateAlert?.vehicle.year }})
                     </p>
                     <p class="text-sm text-gray-600 mt-1">
-                        🔖 Placa: <strong>{{ duplicateAlert?.vehicle.plate ?? '—' }}</strong>
+                        {{ $t('recepcion_form.placaLabel') }} <strong>{{ duplicateAlert?.vehicle.plate ?? '—' }}</strong>
                     </p>
                     <p class="text-sm text-gray-600">
-                        🔢 VIN: <strong>{{ duplicateAlert?.vehicle.vin ?? '—' }}</strong>
+                        {{ $t('recepcion_form.vinLabel') }} <strong>{{ duplicateAlert?.vehicle.vin ?? '—' }}</strong>
                     </p>
                 </div>
 
                 <div class="space-y-3">
                     <button @click="useDuplicateVehicle"
                         class="w-full bg-[#10213E] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow hover:opacity-90 transition flex items-center justify-center gap-2">
-                        ✅ Usar este vehículo existente
+                        {{ $t('recepcion_form.usarExistente') }}
                     </button>
                     <button @click="ignoreDuplicate"
                         class="w-full bg-gray-100 text-gray-500 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
-                        Continuar con datos nuevos
+                        {{ $t('recepcion_form.continuarNuevos') }}
                     </button>
                 </div>
             </div>
@@ -626,17 +626,17 @@ const submit = () => {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
-                <h2 class="text-2xl font-black text-jk-blue uppercase mb-2">¡Ingreso Exitoso!</h2>
-                <p class="text-gray-500 text-sm mb-1 font-medium">Se ha registrado la recepción con el folio:</p>
+                <h2 class="text-2xl font-black text-jk-blue uppercase mb-2">{{ $t('recepcion_form.ingresoExitoso') }}</h2>
+                <p class="text-gray-500 text-sm mb-1 font-medium">{{ $t('recepcion_form.folioRegistrado') }}</p>
                 <p class="text-jk-red font-black text-4xl mb-6">#{{ page.props.flash?.last_id }}</p>
                 <div class="space-y-3">
                     <button @click="printPdf(page.props.flash?.last_id)"
                         class="w-full bg-jk-blue text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg hover:opacity-90 transition flex items-center justify-center gap-2">
-                        🖨️ Imprimir Nota de Recepción
+                        {{ $t('recepcion_form.imprimirNota') }}
                     </button>
                     <button @click="closeModal"
                         class="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
-                        Ir al Dashboard
+                        {{ $t('recepcion_form.irDashboard') }}
                     </button>
                 </div>
             </div>
