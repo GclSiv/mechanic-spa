@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { Link, usePage } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -112,13 +111,13 @@ watch(
                                     </span>
                                 </template>
                                 <template #content>
-                                    <DropdownLink :href="route('profile.edit')">{{ t('nav.miPerfil') }}</DropdownLink>
+                                    <DropdownLink :href="route('profile.edit')">{{ $t('nav.miPerfil') }}</DropdownLink>
                                     <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue">
-                                        {{ t('nav.configuracion2') }}
+                                        {{ $t('nav.configuracion2') }}
                                     </DropdownLink>
                                     <div class="border-t border-gray-100" />
                                     <DropdownLink :href="route('logout')" method="post" as="button">
-                                        {{ t('nav.cerrarSesion2') }}
+                                        {{ $t('nav.cerrarSesion2') }}
                                     </DropdownLink>
                                 </template>
                             </Dropdown>
