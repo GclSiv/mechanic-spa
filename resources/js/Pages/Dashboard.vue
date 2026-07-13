@@ -130,17 +130,19 @@ function formatCurrency(val) {
                     </a>
 
                     <!-- Ingresos del mes — solo admin -->
-                    <div v-if="isAdmin"
-                        class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-2xl shadow-sm p-5">
+                    <a v-if="isAdmin"
+                        :href="route('reports.index')"
+                        class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-2xl shadow-sm p-5 block hover:opacity-90 transition-opacity">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">{{ $t('dashboard.ingresos') }}</p>
                                 <p class="text-2xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
                                 <p class="text-xs text-blue-300 mt-1">{{ $t('dashboard.pagosRegistrados') }}</p>
                             </div>
-                            <span class="text-2xl bg-white/10 p-2 rounded-xl">💰</span>
+                            <span class="text-2xl bg-white/10 p-2 rounded-xl">📊</span>
                         </div>
-                    </div>
+                        <p class="text-[10px] text-blue-300 mt-3 font-bold uppercase tracking-widest">{{ $t('dashboard.verReporte') }} →</p>
+                    </a>
 
                     <!-- Placeholder para mechanic (no ve ingresos) -->
                     <div v-else
