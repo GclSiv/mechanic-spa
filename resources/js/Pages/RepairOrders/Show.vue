@@ -6,6 +6,9 @@ import PaymentPanel from '@/Components/PaymentPanel.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { ref, computed } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps({
     orden: Object,
@@ -77,7 +80,7 @@ function submitItem() {
 }
 
 function removeItem(itemId) {
-    if (confirm('¿Eliminar este concepto?')) {
+    if (confirm(t('cotizacion.eliminarConfirm'))) {
         router.delete(route('repair-orders.items.destroy', {
             order: page.props.orden?.id,
             item: itemId,
@@ -87,18 +90,18 @@ function removeItem(itemId) {
 </script>
 
 <template>
-    <AuthenticatedLayout title="Gestión de Cotización">
+    <AuthenticatedLayout :title="$t('cotizacion.gestionTitulo')">
         <template #header>
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider leading-tight">
-                        Cotización JK - Orden #{{ orden.id }}
+                        {{ $t('cotizacion.titulo') }}{{ orden.id }}
                     </h2>
                     <StatusBadge :orden="orden" :statuses="statuses ?? []" />
                 </div>
                 <button @click="imprimirCotizacion"
                     class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all flex items-center gap-2">
-                    🖨️ Descargar PDF
+                    {{ $t('cotizacion.descargarPdf') }}
                 </button>
             </div>
         </template>
@@ -107,21 +110,21 @@ function removeItem(itemId) {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <!-- DATOS DEL INGRESO -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#10213E]">
-                    <h3 class="text-sm font-black mb-4 text-[#10213E] uppercase tracking-widest border-b pb-2">Datos del Ingreso</h3>
+                    <h3 class="text-sm font-black mb-4 text-[#10213E] uppercase tracking-widest border-b pb-2">{{ $t('cotizacion.datosIngreso') }}</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">Cliente</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">Vehículo</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">Placas/VIN</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}</div>
+                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.cliente') }}</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
+                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.vehiculo') }}</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
+                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}</div>
                     </div>
                 </div>
 
                 <!-- CONCEPTOS DE LA COTIZACIÓN -->
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-xl">
                     <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
-                        <h3 class="text-white font-black text-sm uppercase tracking-wider">Conceptos de la Cotización</h3>
+                        <h3 class="text-white font-black text-sm uppercase tracking-wider">{{ $t('cotizacion.conceptos') }}</h3>
                         <button @click="showModal = true"
                             class="bg-[#EE2857] hover:bg-red-700 text-white px-5 py-2 rounded-lg font-bold shadow-md transition-all text-xs uppercase">
-                            + Agregar Concepto
+                            {{ $t('cotizacion.agregarConcepto') }}
                         </button>
                     </div>
                     
@@ -129,12 +132,12 @@ function removeItem(itemId) {
                         <table class="w-full text-left border-collapse mb-6">
                             <thead>
                                 <tr class="bg-gray-100 text-gray-500 uppercase text-xs tracking-wider font-bold border-b border-gray-200">
-                                    <th class="p-3">Cant</th>
-                                    <th class="p-3">Tipo</th>
-                                    <th class="p-3">Descripción</th>
-                                    <th class="p-3 text-right">Unitario</th>
-                                    <th class="p-3 text-right">Total Parcial</th>
-                                    <th class="p-3 text-center">Acción</th>
+                                    <th class="p-3">{{ $t('cotizacion.cant') }}</th>
+                                    <th class="p-3">{{ $t('cotizacion.tipo') }}</th>
+                                    <th class="p-3">{{ $t('cotizacion.descripcion') }}</th>
+                                    <th class="p-3 text-right">{{ $t('cotizacion.unitario') }}</th>
+                                    <th class="p-3 text-right">{{ $t('cotizacion.totalParcial') }}</th>
+                                    <th class="p-3 text-center">{{ $t('cotizacion.accion') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="text-gray-700 text-sm">
@@ -143,7 +146,7 @@ function removeItem(itemId) {
                                     <td class="p-3">
                                         <span :class="item.type === 'part' ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'"
                                               class="px-2 py-1 rounded-md text-[10px] font-black uppercase">
-                                            {{ item.type === 'part' ? 'Refacción' : 'Mano de Obra' }}
+                                            {{ item.type === 'part' ? $t('cotizacion.refaccion') : $t('cotizacion.manoDeObra') }}
                                         </span>
                                     </td>
                                     <td class="p-3">{{ item.description }}</td>
@@ -156,7 +159,7 @@ function removeItem(itemId) {
                                     </td>
                                 </tr>
                                 <tr v-if="!orden.items || orden.items.length === 0">
-                                    <td colspan="6" class="p-10 text-center text-gray-400 italic font-medium">No hay artículos agregados. Comienza por "+ Agregar Concepto".</td>
+                                    <td colspan="6" class="p-10 text-center text-gray-400 italic font-medium">{{ $t('cotizacion.sinArticulos') }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -186,7 +189,7 @@ function removeItem(itemId) {
                 <!-- Header Dinámico con los Colores y Nombre de tu empresa -->
                 <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
                     <h3 class="text-white font-black text-sm tracking-wider uppercase">
-                        Agregar Concepto - {{ settings?.company_name || 'Taller' }}
+                        {{ $t('cotizacion.modalTitulo') }} - {{ settings?.company_name || 'Taller' }}
                     </h3>
                     <button @click="showModal = false; form.reset()" class="text-gray-400 hover:text-white transition-colors text-xl font-bold"> ✕ </button>
                 </div>
@@ -194,7 +197,7 @@ function removeItem(itemId) {
                 <div class="p-6 space-y-4">
                     <!-- BOTONES DE CONFIGURACIÓN FISCAL FUNCIONALES -->
                     <div class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
-                        <span class="text-xs font-bold text-gray-500 pl-3">Configuración Fiscal:</span>
+                        <span class="text-xs font-bold text-gray-500 pl-3">{{ $t('cotizacion.fiscalConfig') }}</span>
                         <div class="flex gap-1">
                             <button type="button" @click="updateTax(8.75)"
                                     :class="settings?.iva == 8.75 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
@@ -210,22 +213,22 @@ function removeItem(itemId) {
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo *</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.tipoLabel') }}</label>
                         <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
-                            <option value="part">Refacción (Pieza)</option>
-                            <option value="labor">Mano de Obra</option>
+                            <option value="part">{{ $t('cotizacion.refaccion') }}</option>
+                            <option value="labor">{{ $t('cotizacion.manoDeObra') }}</option>
                         </select>
                     </div>
 
                     <!-- Refacción: combobox buscador -->
                     <div v-if="form.type === 'part'" class="relative">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Refacción *</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.refaccionLabel') }}</label>
                         <input
                             v-model="partSearch"
                             @focus="showPartList = true"
                             @input="showPartList = true"
                             type="text"
-                            placeholder="Escribe para buscar..."
+                            :placeholder="$t('cotizacion.buscarPh')"
                             autocomplete="off"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]"
                         />
@@ -243,46 +246,46 @@ function removeItem(itemId) {
                         </div>
                         <div v-if="showPartList && filteredParts.length === 0 && partSearch"
                             class="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl px-4 py-3 text-sm text-gray-400 italic">
-                            Sin resultados para "{{ partSearch }}"
+                            {{ $t('cotizacion.sinResultados') }} "{{ partSearch }}"
                         </div>
                         <p v-if="!page.props.parts || page.props.parts.length === 0" class="text-amber-600 text-xs mt-1">
-                            ⚠️ Sin refacciones con stock disponible.
+                            {{ $t('cotizacion.sinStock') }}
                         </p>
                     </div>
 
                     <!-- Mano de obra: texto libre -->
                     <div v-if="form.type === 'labor'">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción *</label>
-                        <input v-model="form.description" type="text" placeholder="Ej. Cambio de balatas"
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.descripcionLabel') }}</label>
+                        <input v-model="form.description" type="text" :placeholder="$t('cotizacion.descripcionPh')"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Cantidad</label>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.cantidad') }}</label>
                             <input v-model="form.quantity" type="number" min="0.01" step="0.01"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Precio Unitario</label>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.precioUnitario') }}</label>
                             <input v-model="form.unit_price" type="number" min="0" step="0.01"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                     </div>
                     
                     <div class="bg-gray-100 rounded-lg px-4 py-3 flex justify-between text-sm font-black text-[#10213E] border border-gray-200 mt-2">
-                        <span>Subtotal estimado:</span>
+                        <span>{{ $t('cotizacion.subtotalEst') }}</span>
                         <span>${{ (Number(form.quantity) * Number(form.unit_price)).toFixed(2) }}</span>
                     </div>
                     
                     <div class="flex gap-3 mt-6 pt-4 border-t border-gray-100">
                         <button @click="showModal = false; form.reset()"
                             class="flex-1 text-gray-500 font-bold py-2 rounded-lg hover:bg-gray-100 transition text-sm uppercase tracking-wider">
-                            Cancelar
+                            {{ $t('cotizacion.cancelar') }}
                         </button>
                         <button @click="submitItem" :disabled="form.processing"
                             class="flex-1 bg-[#10213E] hover:bg-blue-900 disabled:opacity-50 text-white font-black py-2 rounded-lg transition text-sm uppercase tracking-wider shadow-md">
-                            {{ form.processing ? 'Guardando...' : 'Agregar Concepto' }}
+                            {{ form.processing ? $t('cotizacion.guardando') : $t('cotizacion.agregar') }}
                         </button>
                     </div>
                 </div>

@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     orden: { type: Object, required: true },
@@ -50,7 +53,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
         >
             <span v-if="isLoading" class="animate-spin">⟳</span>
             <span v-else>●</span>
-            {{ currentStatus()?.name ?? 'Sin Estado' }}
+            {{ currentStatus()?.slug ? t('status.' + currentStatus().slug) : $t('badges.sinEstado') }}
             <span class="ml-1 opacity-60">▾</span>
         </button>
 
@@ -68,7 +71,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
             >
                 <div class="py-1">
                     <p class="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                        Cambiar Estado
+                        {{ $t('taller.cambiarEstado') }}
                     </p>
                     <button
                         v-for="status in statuses"
@@ -81,7 +84,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                             class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                             :class="status.color_class || fallbackColor"
                         ></span>
-                        {{ status.name }}
+                        {{ status.slug ? t('status.' + status.slug) : status.name }}
                         <span v-if="status.id === orden.status_id" class="ml-auto text-[#10213E]">✓</span>
                     </button>
                 </div>
