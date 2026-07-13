@@ -9,4 +9,6 @@ class MechanicType extends Model
 {
     /** @use HasFactory<\Database\Factories\MechanicTypeFactory> */
     use HasFactory;
+
+    protected $fillable = ['name'];
 }

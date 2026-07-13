@@ -76,8 +76,8 @@ class DashboardController extends Controller
                         : ($order->recepcion->vehicle->brand->name ?? '')) . ' ' .
                         ($order->recepcion->vehicle->vehicleModel->name ?? '')),
                     'año'          => $order->recepcion->vehicle->year ?? '—',
-                    'mecanico'     => $order->mechanic->name ?? 'Sin asignar',
-                    'status_name'  => $order->status->name ?? '—',
+                    'mecanico'     => $order->mechanic?->name,
+                    'status_slug'  => $order->status->slug ?? null,
                     'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
                     'total'        => round($order->estimated_cost, 2),
                     'pagado'       => round($totalPagado, 2),

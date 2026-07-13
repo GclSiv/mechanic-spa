@@ -13,6 +13,7 @@ use App\Models\Setting;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
+use App\Http\Requests\StoreRecepcionRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -90,27 +91,9 @@ class RecepcionController extends Controller
         return response()->json($result);
     }
 
-    public function store(Request $request)
+    public function store(StoreRecepcionRequest $request)
     {
-        // 1. Validar la petición inteligentemente
-        $request->validate([
-            'client_id' => 'nullable|exists:clients,id',
-            'first_name' => 'required_without:client_id|string|max:255',
-            'last_name' => 'required_without:client_id|string|max:255',
-
-            'vehicle_id' => 'nullable|exists:vehicles,id',
-            'brand_id' => 'required_without:vehicle_id|exists:brands,id',
-            'vehicle_model_id' => 'required_without:vehicle_id|exists:vehicle_models,id',
-            'year' => 'required_without:vehicle_id|numeric',
-
-            'country' => 'nullable|in:MX,US',
-            'fuel_level' => 'required|string',
-            'rfc' => 'nullable|string|max:13',
-
-            // ── Seguridad OWASP: validación estricta de archivos ──────────────
-            'photos'   => 'nullable|array|max:10',
-            'photos.*' => 'file|mimes:jpg,jpeg,png,webp|max:5120',
-        ]);
+        // Validation handled by StoreRecepcionRequest
 
         // 2. Lógica del CLIENTE: ¿Es nuevo o ya existe?
         if ($request->client_id) {
@@ -169,11 +152,10 @@ class RecepcionController extends Controller
             'vehicle_id' => $vehicle->id,
             'fuel_level' => $request->fuel_level,
             'miles'      => $request->miles,
-            'witnesses'  => $request->witnesses, 
-            'inventory'  => $request->inventory, 
+            'witnesses'  => $request->witnesses,
+            'inventory'  => $request->inventory,
             'photos'     => !empty($photoPaths) ? $photoPaths : null,
             'symptoms'   => $request->symptoms,
-            'status'     => 'Pendiente',
         ]);
 
         return redirect()->route('recepcion.index')->with([
@@ -356,37 +338,10 @@ class RecepcionController extends Controller
         // 4. Mostrar en el navegador
         return $pdf->stream("Recepcion-{$recepcion->id}.pdf");
     }
-    public function generateOrder(Recepcion $recepcion)
+    public function generateOrder(Recepcion $recepcion, \App\Actions\RepairOrders\CreateRepairOrderAction $action)
     {
-        try {
-            // 1. Buscamos el primer registro válido que exista en tu base de datos 
-            // para no forzar el "ID 1" que podría no existir.
-            $mechanic = \App\Models\Mechanic::first();
-            $status   = \App\Models\RepairOrderStatus::first();
-            $client   = \App\Models\Client::first();
-            $vehicle  = \App\Models\Vehicle::first();
+        $order = $action->execute($recepcion);
 
-            // 2. Buscamos o creamos la orden
-            $order = \App\Models\RepairOrder::firstOrCreate(
-                ['recepcion_id' => $recepcion->id],
-                [
-                    'folio'               => 'Q-' . str_pad($recepcion->id, 4, '0', STR_PAD_LEFT),
-                    'client_id'           => $recepcion->client_id ?? ($client ? $client->id : null),
-                    'vehicle_id'          => $recepcion->vehicle_id ?? ($vehicle ? $vehicle->id : null),
-                    'mechanic_id'         => $mechanic ? $mechanic->id : null,
-                    'status_id'           => $status ? $status->id : null,
-                    'problem_description' => $recepcion->symptoms ?? 'Diagnóstico general',
-                    'entry_date'          => now(),
-                ]
-            );
-
-            // 3. Redirige exitosamente
-            return redirect()->route('repair-orders.show', $order->id);
-
-        } catch (\Exception $e) {
-            // ¡EL SALVAVIDAS! Si la base de datos bloquea el guardado,
-            // esto te mostrará en letras gigantes EXACTAMENTE cuál es el problema.
-            dd('Error SQL al intentar crear la cotización: ' . $e->getMessage());
-        }
+        return redirect()->route('repair-orders.show', $order->id);
     }
 }

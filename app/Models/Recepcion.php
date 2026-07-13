@@ -2,24 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Recepcion extends Model
 {
+    use HasFactory;
+
     /**
      * Los atributos transaccionales puros.
      * Observa que quitamos los datos del cliente/vehículo y agregamos los IDs.
      */
     protected $fillable = [
-        'client_id',     // NUEVO: Llave foránea del cliente
-        'vehicle_id',    // NUEVO: Llave foránea del vehículo
+        'client_id',
+        'vehicle_id',
         'fuel_level',
         'miles',
         'symptoms',
         'witnesses',
         'inventory',
-        'photos',        // Preparado para las evidencias gráficas
-        'status',
+        'photos',
     ];
 
     /**

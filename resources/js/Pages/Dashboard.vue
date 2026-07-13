@@ -306,11 +306,11 @@ function formatCurrency(val) {
                                     <td class="px-4 py-3 font-black text-[#10213E] text-xs">{{ ord.folio }}</td>
                                     <td class="px-4 py-3 font-medium text-gray-800 text-xs">{{ ord.cliente }}</td>
                                     <td class="px-4 py-3 text-gray-600 text-xs">{{ ord.vehiculo }} <span class="text-gray-400">({{ ord.año }})</span></td>
-                                    <td class="px-4 py-3 text-xs" :class="ord.mecanico === 'Sin asignar' ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico === 'Sin asignar' ? $t('badges.sinAsignar') : ord.mecanico }}</td>
+                                    <td class="px-4 py-3 text-xs" :class="!ord.mecanico ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico ?? $t('badges.sinAsignar') }}</td>
                                     <!-- Badge Estado -->
                                     <td class="px-4 py-3 text-center">
                                         <span class="inline-block px-2 py-1 rounded-full text-[10px] font-black uppercase" :class="ord.status_color">
-                                            {{ ord.status_name }}
+                                            {{ ord.status_slug ? $t('status.' + ord.status_slug) : '—' }}
                                         </span>
                                     </td>
                                     <!-- Badge Saldo / Adeudo -->

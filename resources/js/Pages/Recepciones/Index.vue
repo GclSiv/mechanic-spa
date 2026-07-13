@@ -83,12 +83,12 @@ function doDel() {
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-5 py-3">#</th>
-                                    <th class="px-5 py-3">Cliente</th>
-                                    <th class="px-5 py-3">Vehículo</th>
-                                    <th class="px-5 py-3">Placa</th>
-                                    <th class="px-5 py-3">Síntomas</th>
-                                    <th class="px-5 py-3">Fecha</th>
-                                    <th class="px-5 py-3 text-center">Acciones</th>
+                                    <th class="px-5 py-3">{{ $t('tabla.cliente') }}</th>
+                                    <th class="px-5 py-3">{{ $t('tabla.vehiculo') }}</th>
+                                    <th class="px-5 py-3">{{ $t('tabla.placa') }}</th>
+                                    <th class="px-5 py-3">{{ $t('inspeccion.sintomas') }}</th>
+                                    <th class="px-5 py-3">{{ $t('tabla.fecha') }}</th>
+                                    <th class="px-5 py-3 text-center">{{ $t('tabla.acciones') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50">
@@ -148,7 +148,7 @@ function doDel() {
                     <!-- Paginación -->
                     <div v-if="totalPages > 1"
                         class="px-6 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span>Página {{ currentPage }} de {{ totalPages }}</span>
+                        <span>{{ $t('dashboard.mostrando') }} {{ currentPage }} / {{ totalPages }}</span>
                         <div class="flex gap-1">
                             <button v-for="p in totalPages" :key="p" @click="currentPage = p"
                                 class="w-8 h-8 rounded-lg border transition font-bold"

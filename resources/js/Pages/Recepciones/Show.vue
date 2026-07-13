@@ -1,38 +1,34 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/vue3';
-function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({ recepcion: Object });
 const { t } = useI18n();
 
-const witnesses = {
-    engine: '🔴 Motor', abs: '🔴 ABS', oil: '🔴 Aceite',
-    battery: '🔴 Batería', temp: '🔴 Temperatura',
-};
+function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 </script>
 
 <template>
-    <AuthenticatedLayout title="Detalle de Recepción">
+    <AuthenticatedLayout :title="$t('recepcion.detalleTitulo')">
         <template #header>
             <div class="flex justify-between items-center">
                 <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">
-                    🚗 Recepción #{{ recepcion.id }}
+                    🚗 {{ $t('recepcion.detalleTitulo') }} #{{ recepcion.id }}
                 </h2>
                 <div class="flex gap-2">
                     <Link :href="route('recepcion.edit', recepcion.id)"
                         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
-                        ✏️ Editar
+                        ✏️ {{ $t('acciones.editar') }}
                     </Link>
                     <a :href="route('recepcion.pdf', recepcion.id) + '?lang=' + getLang()" target="_blank"
                         class="bg-[#10213E] hover:bg-blue-900 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
-                        🖨️ Imprimir PDF
+                        🖨️ {{ $t('recepcion.imprimirPdf') }}
                     </a>
                     <Link :href="route('recepcion.generate-order', recepcion.id)"
                         method="post" as="button"
                         class="bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-lg transition shadow">
-                        📋 Generar Cotización
+                        📋 {{ $t('recepcion.generarCotizacion') }}
                     </Link>
                 </div>
             </div>
@@ -45,13 +41,13 @@ const witnesses = {
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">👤 {{ $t('tabla.cliente') }}</h3>
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Nombre</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.nombre') }}</span>
                             {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Teléfono</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.telefono') }}</span>
                             {{ recepcion.client?.phone ?? '—' }}</div>
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">RFC</span>
                             {{ recepcion.client?.rfc ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Dirección</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.direccion') }}</span>
                             {{ recepcion.client?.address ?? '—' }}</div>
                     </div>
                 </div>
@@ -60,17 +56,17 @@ const witnesses = {
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-blue-400 p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🚗 {{ $t('tabla.vehiculo') }}</h3>
                     <div class="grid grid-cols-3 gap-4 text-sm">
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Marca</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.marca') }}</span>
                             {{ recepcion.vehicle?.brand?.name ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Modelo</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.modelo') }}</span>
                             {{ recepcion.vehicle?.vehicleModel?.name ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Año</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.anio') }}</span>
                             {{ recepcion.vehicle?.year ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Placa</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.placas') }}</span>
                             <span class="font-bold uppercase">{{ recepcion.vehicle?.plate ?? '—' }}</span></div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">VIN</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.serie') }}</span>
                             {{ recepcion.vehicle?.vin ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Motor</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.motor') }}</span>
                             {{ recepcion.vehicle?.engine ?? '—' }}</div>
                     </div>
                 </div>
@@ -79,19 +75,19 @@ const witnesses = {
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-yellow-400 p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🔍 {{ $t('inspeccion.titulo') }}</h3>
                     <div class="grid grid-cols-3 gap-4 text-sm mb-4">
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Kilometraje</span>
-                            {{ recepcion.miles ? Number(recepcion.miles).toLocaleString('es-MX') + ' km' : '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Gasolina</span>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.kilometraje') }}</span>
+                            {{ recepcion.miles ? Number(recepcion.miles).toLocaleString('en-US') + ' mi' : '—' }}</div>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.gasolina') }}</span>
                             {{ recepcion.fuel_level ?? '—' }}</div>
-                        <div><span class="text-xs text-gray-400 uppercase font-bold block">Fecha ingreso</span>
-                            {{ new Date(recepcion.created_at).toLocaleDateString('es-MX') }}</div>
+                        <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('inspeccion.fechaIngreso') }}</span>
+                            {{ new Date(recepcion.created_at).toLocaleDateString('en-US') }}</div>
                     </div>
                     <div v-if="recepcion.witnesses?.length">
-                        <span class="text-xs text-gray-400 uppercase font-bold block mb-2">Testigos del tablero</span>
+                        <span class="text-xs text-gray-400 uppercase font-bold block mb-2">{{ $t('recepcion_form.testigos') }}</span>
                         <div class="flex gap-2 flex-wrap">
                             <span v-for="w in recepcion.witnesses" :key="w"
                                 class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-lg">
-                                {{ witnesses[w] ?? w }}
+                                {{ $t('inspeccion.' + w) }}
                             </span>
                         </div>
                     </div>
@@ -108,7 +104,7 @@ const witnesses = {
                         <a v-for="(photo, i) in recepcion.photos" :key="i"
                             :href="'/storage/' + photo" target="_blank"
                             class="aspect-square rounded-xl overflow-hidden border border-gray-200 hover:opacity-80 transition">
-                            <img :src="'/storage/' + photo" class="w-full h-full object-cover" :alt="'Foto ' + (i+1)" />
+                            <img :src="'/storage/' + photo" class="w-full h-full object-cover" :alt="$t('recepcion.evidencia') + ' ' + (i+1)" />
                         </a>
                     </div>
                 </div>
