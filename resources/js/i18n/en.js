@@ -362,5 +362,6 @@ export default {
         telefono:        'Phone:',
         licencia:        'License',
         derechos:        'All rights reserved.',
+        poweredBy:       'Developed by',
     },
 }

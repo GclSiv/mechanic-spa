@@ -171,9 +171,9 @@ function removeItem(itemId) {
                     </div>
                 </div>
 
-                <!-- FASE 4: MECÁNICO + BITÁCORA (solo cuando la orden está activa) -->
+                <!-- MECÁNICO + BITÁCORA — visible desde Recibido en adelante -->
                 <FollowUpLogger
-                    v-if="['espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
+                    v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
                     :orden="orden"
                     :mechanics="mechanics ?? []"
                 />

@@ -217,6 +217,13 @@ watch(
             <slot />
         </main>
 
+        <!-- Footer CarbaFix -->
+        <footer class="mt-8 py-4 text-center text-xs text-gray-400 border-t border-gray-100">
+            {{ $t('welcome.poweredBy') }}
+            <a href="https://www.instagram.com/carbafix/" target="_blank" rel="noopener noreferrer"
+               class="font-bold text-[#10213E] hover:underline">CarbaFix</a>
+        </footer>
+
     </div>
 </template>
 

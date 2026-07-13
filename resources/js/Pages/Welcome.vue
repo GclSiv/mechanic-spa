@@ -91,6 +91,9 @@ const props = defineProps({
                 </div>
                 <div class="mt-8 text-center text-xs text-gray-400">
                     &copy; 2026 {{ settings.company_name }} - {{ t('welcome.derechos') }}
+                    &mdash; {{ t('welcome.poweredBy') }}
+                    <a href="https://www.instagram.com/carbafix/" target="_blank" rel="noopener noreferrer"
+                       class="font-bold text-[#10213E] hover:underline">CarbaFix</a>
                 </div>
             </footer>
         </div>
