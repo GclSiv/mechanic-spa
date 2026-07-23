@@ -22,7 +22,7 @@ Route::get('/', function () {
 // --- 2. RUTAS PROTEGIDAS (SISTEMA JK AUTOMOTIVE) ---
 Route::middleware(['auth'])->group(function () {
 
-    Route::post('/settings/tax', [SettingController::class, 'updateTax'])->name('settings.updateTax');
+    Route::post('/settings/tax', [SettingController::class, 'updateTax'])->name('settings.updateTax')->middleware('role:admin');
 
     // Verificación de placa/VIN duplicado (AJAX)
     Route::get('/vehicles/check', [\App\Http\Controllers\RecepcionController::class, 'checkVehicle'])
@@ -122,7 +122,7 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================
     // MÓDULO 4: CONFIGURACIÓN Y PERFIL
     // ========================================================
-    Route::controller(SettingController::class)->group(function () {
+    Route::controller(SettingController::class)->middleware('role:admin')->group(function () {
         Route::get('/configuracion', 'edit')->name('settings.edit');
         Route::put('/configuracion', 'update')->name('settings.update');
     });

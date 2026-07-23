@@ -112,7 +112,7 @@ watch(
                                 </template>
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')">{{ $t('nav.miPerfil') }}</DropdownLink>
-                                    <DropdownLink :href="route('settings.edit')" class="font-bold text-jk-blue">
+                                    <DropdownLink v-if="$page.props.auth.role === 'admin'" :href="route('settings.edit')" class="font-bold text-jk-blue">
                                         {{ $t('nav.configuracion2') }}
                                     </DropdownLink>
                                     <div class="border-t border-gray-100" />
