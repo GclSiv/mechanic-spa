@@ -28,9 +28,24 @@ class DashboardController extends Controller
         $ordenesActivas = $pendingQuery->count();
         $stockAlertas   = Part::whereColumn('stock', '<=', 'low_stock_threshold')->count();
         $ingresosMes    = $isAdmin
-            ? Payment::whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->sum('amount')
+            ? (function () {
+                // Pagos registrados en el mes
+                $pagosRegistrados = Payment::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('amount');
+
+                // Total de órdenes entregadas en el mes (para mostrar ingresos aunque no estén liquidadas)
+                $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
+                $ordenesEntregadas = $statusEntregado
+                    ? RepairOrder::where('status_id', $statusEntregado->id)
+                        ->whereMonth('updated_at', now()->month)
+                        ->whereYear('updated_at', now()->year)
+                        ->sum('estimated_cost')
+                    : 0;
+
+                // Mostrar el mayor de los dos valores (pagos reales vs facturado)
+                return max($pagosRegistrados, $ordenesEntregadas);
+            })()
             : null;
 
         // ── Recepciones recientes — paginado a 5, eager loading anti N+1 ──

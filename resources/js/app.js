@@ -1,14 +1,14 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, usePage } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { i18n } from './i18n/index.js';
 
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'CarbaFix';
 
 // ── PWA Service Worker: auto-actualización ──────────────────────────────
 // En producción, cuando Vite genera un nuevo SW, el usuario ve una
@@ -67,7 +67,11 @@ if ('serviceWorker' in navigator) {
 }
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => {
+        const page = usePage();
+        const company = page.props.settings?.company_name || appName;
+        return title ? `${title} — ${company}` : company;
+    },
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.vue`,
