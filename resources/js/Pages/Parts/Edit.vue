@@ -5,14 +5,15 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-const props = defineProps({ part: Object });
+const props = defineProps({ part: Object, categories: Array });
 
 const form = useForm({
-    name: props.part.name,
-    sku: props.part.sku,
-    cost_price: props.part.cost_price,
-    sale_price: props.part.sale_price,
-    stock: props.part.stock,
+    category_id:         props.part.category_id ?? '',
+    name:                props.part.name,
+    sku:                 props.part.sku,
+    cost_price:          props.part.cost_price,
+    sale_price:          props.part.sale_price,
+    stock:               props.part.stock,
     low_stock_threshold: props.part.low_stock_threshold,
 });
 
@@ -31,6 +32,15 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                         <p class="text-white text-xs font-bold uppercase tracking-widest">{{ t('parts_form.editarTitulo') }}: {{ part.name }}</p>
                     </div>
                     <div class="p-6 space-y-5">
+                        <!-- Categoría -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('inventario.categoria') }}</label>
+                            <select v-model="form.category_id"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                <option value="">{{ $t('inventario.sinCategoria') }}</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                            </select>
+                        </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.nombre') }}</label>
                             <input v-model="form.name" type="text"

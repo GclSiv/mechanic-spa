@@ -5,8 +5,10 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
+const props = defineProps({ categories: Array });
+
 const form = useForm({
-    name: '', sku: '', cost_price: '', sale_price: '', stock: 0, low_stock_threshold: 2,
+    category_id: '', name: '', sku: '', cost_price: '', sale_price: '', stock: 0, low_stock_threshold: 2,
 });
 
 function submit() { form.post(route('parts.store')); }
@@ -24,6 +26,16 @@ function submit() { form.post(route('parts.store')); }
                         <p class="text-white text-xs font-bold uppercase tracking-widest">t('parts_form.datosRefaccion')</p>
                     </div>
                     <div class="p-6 space-y-5">
+                        <!-- Categoría -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('inventario.categoria') }}</label>
+                            <select v-model="form.category_id"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                <option value="">{{ $t('inventario.sinCategoria') }}</option>
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                            </select>
+                            <p v-if="form.errors.category_id" class="text-red-500 text-xs mt-1">{{ form.errors.category_id }}</p>
+                        </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.nombre') }}</label>
                             <input v-model="form.name" type="text" :placeholder="t('parts_form.nombre')"
