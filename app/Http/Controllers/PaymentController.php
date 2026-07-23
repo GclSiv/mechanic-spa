@@ -13,7 +13,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'amount'         => 'required|numeric|min:0.01',
-            'payment_method' => 'required|in:Efectivo,Tarjeta,Transferencia',
+            'payment_method' => 'required|in:Cash,Card,Transfer,Efectivo,Tarjeta,Transferencia',
             'notes'          => 'nullable|string|max:500',
         ]);
 
