@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import draggable from 'vuedraggable';
 import { router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
@@ -63,32 +63,33 @@ function toggleActionsDropdown(orderId) {
 }
 
 // ── Drag & Drop ───────────────────────────────────────────────────────
-// Construimos listas reactivas por columna para vuedraggable
-const columnLists = ref({});
+// vuedraggable necesita arrays mutables — los construimos desde los props
+// y los mantenemos sincronizados via watchEffect
+const columnArrays = ref({});
 
-// Inicializar listas cuando cambian los datos
+watchEffect(() => {
+    columnas.value.forEach(col => {
+        const key = col.slugs.join('-');
+        columnArrays.value[key] = [...ordersForColumn(col.slugs)];
+    });
+});
+
 function getColumnList(col) {
-    const key = col.slugs.join('-');
-    if (!columnLists.value[key]) {
-        columnLists.value[key] = [...ordersForColumn(col.slugs)];
-    }
-    return columnLists.value[key];
+    return columnArrays.value[col.slugs.join('-')] ?? [];
 }
 
 function onDragEnd(event, targetCol) {
-    // Si no se movió entre columnas, ignorar
     if (!event.added) return;
 
     const order = event.added.element;
-    // Encontrar el primer status de la columna destino
     const targetStatuses = statusesForColumn(targetCol.slugs);
     if (!targetStatuses.length) return;
 
-    // Preferir el primer slug de la columna (más general)
     const targetStatus = targetStatuses[0];
     if (targetStatus.id === order.status_id) return;
 
-    router.patch(route('repair-orders.status.update', order.id),
+    router.patch(
+        route('repair-orders.status.update', order.id),
         { status_id: targetStatus.id },
         { preserveScroll: true }
     );
