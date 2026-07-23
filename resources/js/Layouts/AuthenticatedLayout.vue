@@ -89,6 +89,15 @@ watch(
                             >
                                 {{ $t('nav.reportes') }}
                             </NavLink>
+                            <NavLink
+                                v-if="$page.props.auth.role === 'admin'"
+                                :href="route('finance.index')"
+                                :active="route().current('finance.*')"
+                                class="font-black"
+                                style="color: #EE2857"
+                            >
+                                {{ $t('nav.cuentas') }}
+                            </NavLink>
                         </div>
                     </div>
 
@@ -174,6 +183,13 @@ watch(
                         :active="route().current('reports.*')"
                     >
                         {{ $t('nav.reportes') }}
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        v-if="$page.props.auth.role === 'admin'"
+                        :href="route('finance.index')"
+                        :active="route().current('finance.*')"
+                    >
+                        {{ $t('nav.cuentas') }}
                     </ResponsiveNavLink>
                 </div>
             </div>

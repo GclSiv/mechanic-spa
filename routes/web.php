@@ -28,6 +28,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/vehicles/check', [\App\Http\Controllers\RecepcionController::class, 'checkVehicle'])
         ->name('vehicles.check');
 
+    // ── Módulo de Cuentas / Finanzas (solo admin) ─────────────────────────
+    Route::get('/cuentas', [\App\Http\Controllers\FinanceController::class, 'index'])
+        ->name('finance.index')
+        ->middleware('role:admin');
+
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

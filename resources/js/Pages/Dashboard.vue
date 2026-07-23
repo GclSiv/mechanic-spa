@@ -8,8 +8,6 @@ import { useI18n } from "vue-i18n";
 const props = defineProps({
     stats:              Object,
     recentRecepcions:   Object,
-    recentOrders:       Array,
-    cuentasPorCobrar:   Array,
     filters:            Object,
 });
 
@@ -309,120 +307,19 @@ function formatCurrency(val) {
             </div>
         </div>
 
-                <!-- ══ ÓRDENES RECIENTES - Estado + Saldo (admin) ══ -->
-                <div v-if="isAdmin && recentOrders && recentOrders.length"
-                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">🔧 {{ $t('dashboard.ordenesRecientes') }}</h3>
-                        <Link :href="route('repair-orders.index')" class="text-xs text-[#10213E] font-black hover:underline">
-                            {{ $t('dashboard.verTablero') }}
-                        </Link>
+                <!-- ── Enlace rápido a módulo Cuentas ── -->
+                <div v-if="isAdmin"
+                    class="bg-gradient-to-r from-[#10213E] to-blue-900 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p class="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">{{ $t('finance.titulo') }}</p>
+                        <p class="text-white text-sm">{{ $t('finance.cuentasCobrar') }} · {{ $t('finance.ordenesRecientes') }}</p>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
-                                <tr>
-                                    <th class="px-4 py-3">{{ $t('tabla.folio') }}</th>
-                                    <th class="px-4 py-3">{{ $t('tabla.cliente') }}</th>
-                                    <th class="px-4 py-3">{{ $t('tabla.vehiculo') }}</th>
-                                    <th class="px-4 py-3">{{ $t('tabla.mecanico') }}</th>
-                                    <th class="px-4 py-3 text-center">{{ $t('tabla.estado') }}</th>
-                                    <th class="px-4 py-3 text-center">{{ $t('tabla.saldo') }}</th>
-                                    <th class="px-4 py-3 text-center">{{ $t('acciones.ver') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                <tr v-for="ord in recentOrders" :key="ord.id" class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-4 py-3 font-black text-[#10213E] text-xs">{{ ord.folio }}</td>
-                                    <td class="px-4 py-3 font-medium text-gray-800 text-xs">{{ ord.cliente }}</td>
-                                    <td class="px-4 py-3 text-gray-600 text-xs">{{ ord.vehiculo }} <span class="text-gray-400">({{ ord.año }})</span></td>
-                                    <td class="px-4 py-3 text-xs" :class="!ord.mecanico ? 'text-amber-500 font-bold' : 'text-gray-600'">{{ ord.mecanico ?? $t('badges.sinAsignar') }}</td>
-                                    <!-- Badge Estado -->
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="inline-block px-2 py-1 rounded-full text-[10px] font-black uppercase" :class="ord.status_color">
-                                            {{ ord.status_slug ? $t('status.' + ord.status_slug) : '—' }}
-                                        </span>
-                                    </td>
-                                    <!-- Badge Saldo / Adeudo -->
-                                    <td class="px-4 py-3 text-center">
-                                        <span v-if="ord.liquidado"
-                                            class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
-                                            {{ $t('badges.liquidado') }}
-                                        </span>
-                                        <span v-else
-                                            class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">
-                                            {{ $t('badges.adeudo') }} ${{ ord.saldo.toFixed(2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <Link :href="route('repair-orders.show', ord.id)"
-                                            class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
-                                            {{ $t('acciones.abrir') }}
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <Link :href="route('finance.index')"
+                        class="bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2.5 rounded-lg transition shadow-md shrink-0">
+                        {{ $t('nav.cuentas') }} →
+                    </Link>
                 </div>
 
-                <!-- ══ CUENTAS POR COBRAR (solo admin) ══ -->
-                <div v-if="isAdmin && cuentasPorCobrar"
-                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">
-                            {{ $t('dashboard.cuentasCobrar') }}
-                        </h3>
-                        <span v-if="cuentasPorCobrar.length > 0"
-                            class="bg-red-100 text-red-700 text-xs font-black px-2.5 py-1 rounded-full">
-                            {{ cuentasPorCobrar.length }}
-                        </span>
-                    </div>
-
-                    <div v-if="cuentasPorCobrar.length === 0"
-                        class="px-6 py-8 text-center text-gray-400 text-sm italic">
-                        ✅ {{ $t('dashboard.sinDeudas') }}
-                    </div>
-
-                    <div v-else class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b border-gray-100">
-                                <tr>
-                                    <th class="px-5 py-3">{{ $t('dashboard.folio') }}</th>
-                                    <th class="px-5 py-3">{{ $t('dashboard.cliente') }}</th>
-                                    <th class="px-5 py-3">{{ $t('dashboard.vehiculo') }}</th>
-                                    <th class="px-5 py-3 text-right">{{ $t('dashboard.saldo') }}</th>
-                                    <th class="px-5 py-3 text-center">{{ $t('dashboard.verOrden') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                <tr v-for="cuenta in cuentasPorCobrar" :key="cuenta.id"
-                                    class="hover:bg-red-50 transition-colors">
-                                    <td class="px-5 py-3 font-black text-[#10213E] text-xs">
-                                        {{ cuenta.folio }}
-                                    </td>
-                                    <td class="px-5 py-3 font-medium text-gray-800 text-xs">
-                                        {{ cuenta.cliente }}
-                                    </td>
-                                    <td class="px-5 py-3 text-gray-500 text-xs">
-                                        {{ cuenta.vehiculo }}
-                                    </td>
-                                    <td class="px-5 py-3 text-right">
-                                        <span class="font-black text-[#EE2857] text-sm">
-                                            ${{ cuenta.saldo.toFixed(2) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3 text-center">
-                                        <Link :href="route('repair-orders.show', cuenta.id)"
-                                            class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
-                                            {{ $t('dashboard.verOrden') }}
-                                        </Link>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
 
         <!-- Modal fotos -->
         <div v-if="showPhotoModal"

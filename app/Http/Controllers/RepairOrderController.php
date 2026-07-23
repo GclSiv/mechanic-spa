@@ -83,6 +83,16 @@ class RepairOrderController extends Controller
             $query->where('mechanic_id', $mechanic?->id ?? 0);
         }
 
+        // ── Órdenes entregadas: solo las de las últimas 48h en el Kanban ──
+        // Las más antiguas existen en BD pero no "ensucian" el tablero operativo
+        $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
+        if ($statusEntregado) {
+            $query->where(function ($q) use ($statusEntregado) {
+                $q->where('status_id', '!=', $statusEntregado->id)
+                  ->orWhere('updated_at', '>=', now()->subHours(48));
+            });
+        }
+
         $orders = $query->get()->groupBy('status_id');
 
         return Inertia::render('RepairOrders/Index', [

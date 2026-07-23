@@ -157,9 +157,9 @@ function closeAll() {
                             </span>
                         </div>
 
-                        <!-- Zona de drop -->
+                        <!-- Zona de drop con scroll interno -->
                         <div
-                            class="space-y-3 flex-1 min-h-[80px] rounded-xl transition-colors duration-150 p-1"
+                            class="space-y-3 flex-1 min-h-[80px] max-h-[calc(100vh-250px)] overflow-y-auto rounded-xl transition-colors duration-150 p-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
                             :class="dragOverCol === col.slugs.join('-') ? 'bg-blue-50 ring-2 ring-blue-300' : ''"
                             @dragover="onDragOver($event, col)"
                             @dragleave="onDragLeave"

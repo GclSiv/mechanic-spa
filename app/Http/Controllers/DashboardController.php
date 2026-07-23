@@ -167,8 +167,8 @@ class DashboardController extends Controller
                 'pendingPickupCount' => $pendingPickupCount,
             ],
             'recentRecepcions'  => $recentRecepcions,
-            'recentOrders'      => $recentOrders,
-            'cuentasPorCobrar'  => $cuentasPorCobrar,
+            // Movido a FinanceController
+            // Movido a FinanceController
             'filters'           => $request->only(['search']),
         ]);
     }
