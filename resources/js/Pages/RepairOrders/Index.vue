@@ -159,7 +159,7 @@ function closeAll() {
                             @change="onDragEnd($event, col)"
                         >
                             <template #item="{ element: order }">
-                                <!-- ── TARJETA ── -->
+                                <!-- ── TARJETA — un único div raíz ── -->
                                 <div class="bg-white rounded-xl shadow-sm border-l-4 p-3 relative cursor-grab active:cursor-grabbing"
                                     :class="col.color">
 
@@ -280,15 +280,13 @@ function closeAll() {
                                     </div>
                                 </div>
                             </template>
-
-                            <!-- Slot para columna vacía -->
-                            <template #footer>
-                                <div v-if="ordersForColumn(col.slugs).length === 0"
-                                    class="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center text-gray-300 text-xs">
-                                    {{ $t('taller.vacio') }}
-                                </div>
-                            </template>
                         </draggable>
+
+                        <!-- Estado vacío — fuera del draggable (footer slot no existe en vuedraggable v4) -->
+                        <div v-if="ordersForColumn(col.slugs).length === 0"
+                            class="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center text-gray-300 text-xs mt-1">
+                            {{ $t('taller.vacio') }}
+                        </div>
                     </div>
                 </div>
             </div>
