@@ -48,7 +48,62 @@ class DashboardController extends Controller
             })()
             : null;
 
-        // ── Recepciones recientes — paginado a 5, eager loading anti N+1 ──
+        // ── Vehículos por recoger (+48h) — regla de almacenamiento ────────
+        $pendingPickupCount = 0;
+        $cuentasPorCobrar   = collect();
+
+        if ($isAdmin) {
+            $statusReparado  = RepairOrderStatus::where('slug', 'reparado')->first();
+            $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
+            $repEntregadoIds = array_filter([
+                $statusReparado?->id,
+                $statusEntregado?->id,
+            ]);
+
+            // Órdenes reparadas pero sin entregar desde hace más de 48 horas
+            if ($statusReparado) {
+                $pendingPickupCount = RepairOrder::where('status_id', $statusReparado->id)
+                    ->where('updated_at', '<=', now()->subHours(48))
+                    ->count();
+            }
+
+            // Cuentas por cobrar: órdenes reparadas/entregadas con saldo pendiente
+            if (!empty($repEntregadoIds)) {
+                $cuentasPorCobrar = RepairOrder::with([
+                    'payments',
+                    'recepcion.client',
+                    'recepcion.vehicle.brand',
+                    'recepcion.vehicle.vehicleModel',
+                ])
+                ->whereIn('status_id', $repEntregadoIds)
+                ->where('is_paid', false)
+                ->orderByDesc('updated_at')
+                ->get()
+                ->map(function ($order) {
+                    $totalPagado = $order->payments->sum('amount');
+                    $saldo       = round($order->estimated_cost - $totalPagado, 2);
+                    if ($saldo <= 0) return null; // ya liquidada aunque is_paid no se actualizó
+                    return [
+                        'id'      => $order->id,
+                        'folio'   => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                        'cliente' => trim(
+                            ($order->recepcion->client->first_name ?? '') . ' ' .
+                            ($order->recepcion->client->last_name  ?? '')
+                        ),
+                        'vehiculo' => trim(
+                            (is_string($order->recepcion->vehicle->brand ?? null)
+                                ? ($order->recepcion->vehicle->brand ?? '')
+                                : ($order->recepcion->vehicle->brand->name ?? '')) . ' ' .
+                            ($order->recepcion->vehicle->vehicleModel->name ?? '') . ' ' .
+                            ($order->recepcion->vehicle->year ?? '')
+                        ),
+                        'saldo' => $saldo,
+                    ];
+                })
+                ->filter()   // elimina los nulls
+                ->values();
+            }
+        }
         $recentRecepcions = Recepcion::query()
             ->with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])
             ->when($search, fn($q) => $q
@@ -104,15 +159,17 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'stats' => [
-                'total'          => Recepcion::count(),
-                'today'          => Recepcion::whereDate('created_at', now())->count(),
-                'ordenesActivas' => $ordenesActivas,
-                'stockAlertas'   => $stockAlertas,
-                'ingresosMes'    => $ingresosMes,
+                'total'              => Recepcion::count(),
+                'today'              => Recepcion::whereDate('created_at', now())->count(),
+                'ordenesActivas'     => $ordenesActivas,
+                'stockAlertas'       => $stockAlertas,
+                'ingresosMes'        => $ingresosMes,
+                'pendingPickupCount' => $pendingPickupCount,
             ],
-            'recentRecepcions' => $recentRecepcions,
-            'recentOrders'     => $recentOrders,
-            'filters'          => $request->only(['search']),
+            'recentRecepcions'  => $recentRecepcions,
+            'recentOrders'      => $recentOrders,
+            'cuentasPorCobrar'  => $cuentasPorCobrar,
+            'filters'           => $request->only(['search']),
         ]);
     }
 }

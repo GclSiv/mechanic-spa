@@ -105,6 +105,12 @@ class RepairOrderController extends Controller
             'recepcion.vehicle.vehicleModel',
         ]);
 
+        // Aseguramos que photos esté disponible (columna JSON en recepcions)
+        $recepcion = $order->recepcion;
+        if ($recepcion && !isset($recepcion->photos)) {
+            $recepcion->photos = [];
+        }
+
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,
             'recepcion'           => $order->recepcion,

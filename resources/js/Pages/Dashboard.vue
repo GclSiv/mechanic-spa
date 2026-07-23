@@ -6,10 +6,11 @@ import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps({
-    stats:             Object,
-    recentRecepcions:  Object,
-    recentOrders:      Array,
-    filters:           Object,
+    stats:              Object,
+    recentRecepcions:   Object,
+    recentOrders:       Array,
+    cuentasPorCobrar:   Array,
+    filters:            Object,
 });
 
 const page     = usePage();
@@ -125,6 +126,35 @@ function formatCurrency(val) {
                             <span class="text-2xl p-2 rounded-xl transition"
                                 :class="stats.stockAlertas > 0 ? 'bg-red-100 group-hover:bg-red-200' : 'bg-gray-50 group-hover:bg-gray-100'">
                                 📦
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- Por Recoger +48h — solo admin -->
+                    <a v-if="isAdmin"
+                        :href="route('repair-orders.index')"
+                        class="group rounded-2xl shadow-sm border p-5 transition-all hover:-translate-y-0.5"
+                        :class="stats.pendingPickupCount > 0
+                            ? 'bg-orange-50 border-orange-200 hover:shadow-md'
+                            : 'bg-white border-gray-100 hover:shadow-md'">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-widest mb-1"
+                                    :class="stats.pendingPickupCount > 0 ? 'text-orange-500' : 'text-gray-400'">
+                                    {{ $t('dashboard.porRecoger') }}
+                                </p>
+                                <p class="text-3xl font-black"
+                                    :class="stats.pendingPickupCount > 0 ? 'text-orange-600' : 'text-[#10213E]'">
+                                    {{ stats.pendingPickupCount ?? 0 }}
+                                </p>
+                                <p class="text-xs mt-1"
+                                    :class="stats.pendingPickupCount > 0 ? 'text-orange-400' : 'text-gray-400'">
+                                    {{ $t('dashboard.porRecogerDesc') }}
+                                </p>
+                            </div>
+                            <span class="text-2xl p-2 rounded-xl transition"
+                                :class="stats.pendingPickupCount > 0 ? 'bg-orange-100 group-hover:bg-orange-200' : 'bg-gray-50 group-hover:bg-gray-100'">
+                                🚗
                             </span>
                         </div>
                     </a>
@@ -328,6 +358,64 @@ function formatCurrency(val) {
                                         <Link :href="route('repair-orders.show', ord.id)"
                                             class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
                                             {{ $t('acciones.abrir') }}
+                                        </Link>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ══ CUENTAS POR COBRAR (solo admin) ══ -->
+                <div v-if="isAdmin && cuentasPorCobrar"
+                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <h3 class="font-black text-sm text-[#10213E] uppercase tracking-wider">
+                            {{ $t('dashboard.cuentasCobrar') }}
+                        </h3>
+                        <span v-if="cuentasPorCobrar.length > 0"
+                            class="bg-red-100 text-red-700 text-xs font-black px-2.5 py-1 rounded-full">
+                            {{ cuentasPorCobrar.length }}
+                        </span>
+                    </div>
+
+                    <div v-if="cuentasPorCobrar.length === 0"
+                        class="px-6 py-8 text-center text-gray-400 text-sm italic">
+                        ✅ {{ $t('dashboard.sinDeudas') }}
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b border-gray-100">
+                                <tr>
+                                    <th class="px-5 py-3">{{ $t('dashboard.folio') }}</th>
+                                    <th class="px-5 py-3">{{ $t('dashboard.cliente') }}</th>
+                                    <th class="px-5 py-3">{{ $t('dashboard.vehiculo') }}</th>
+                                    <th class="px-5 py-3 text-right">{{ $t('dashboard.saldo') }}</th>
+                                    <th class="px-5 py-3 text-center">{{ $t('dashboard.verOrden') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50">
+                                <tr v-for="cuenta in cuentasPorCobrar" :key="cuenta.id"
+                                    class="hover:bg-red-50 transition-colors">
+                                    <td class="px-5 py-3 font-black text-[#10213E] text-xs">
+                                        {{ cuenta.folio }}
+                                    </td>
+                                    <td class="px-5 py-3 font-medium text-gray-800 text-xs">
+                                        {{ cuenta.cliente }}
+                                    </td>
+                                    <td class="px-5 py-3 text-gray-500 text-xs">
+                                        {{ cuenta.vehiculo }}
+                                    </td>
+                                    <td class="px-5 py-3 text-right">
+                                        <span class="font-black text-[#EE2857] text-sm">
+                                            ${{ cuenta.saldo.toFixed(2) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3 text-center">
+                                        <Link :href="route('repair-orders.show', cuenta.id)"
+                                            class="bg-[#10213E] hover:bg-blue-900 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition">
+                                            {{ $t('dashboard.verOrden') }}
                                         </Link>
                                     </td>
                                 </tr>

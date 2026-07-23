@@ -24,6 +24,11 @@ defineProps({
 const page = usePage();
 const showModal = ref(false);
 
+// ── Lightbox fotos de recepción ───────────────────────────────────────
+const lightboxSrc = ref(null);
+function openPhotoLightbox(src) { lightboxSrc.value = src; }
+function closeLightbox() { lightboxSrc.value = null; }
+
 // Función ÚNICA para actualizar el impuesto sin recargar/cerrar el modal
 function updateTax(newTax) {
     router.post(route('settings.updateTax'), { iva: newTax }, {
@@ -115,6 +120,27 @@ function removeItem(itemId) {
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.cliente') }}</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.vehiculo') }}</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}</div>
+                    </div>
+
+                    <!-- Fotos de evidencia — visibles para todos los roles (lectura) -->
+                    <div v-if="recepcion.photos && recepcion.photos.length > 0" class="mt-5 pt-4 border-t border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                            📷 {{ $t('cotizacion.evidenciaFotos') }}
+                        </p>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
+                            <button
+                                v-for="(photo, i) in recepcion.photos"
+                                :key="i"
+                                @click="openPhotoLightbox('/storage/' + photo)"
+                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-[#10213E] hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-[#10213E]"
+                            >
+                                <img
+                                    :src="'/storage/' + photo"
+                                    class="w-full h-full object-cover"
+                                    :alt="'Foto ' + (i + 1)"
+                                />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -291,5 +317,19 @@ function removeItem(itemId) {
                 </div>
             </div>
         </div>
+        <!-- Lightbox fotos de recepción -->
+        <Teleport to="body">
+            <div v-if="lightboxSrc"
+                class="fixed inset-0 bg-black/85 flex items-center justify-center z-[200] p-4 backdrop-blur-sm"
+                @click.self="closeLightbox">
+                <div class="relative max-w-4xl w-full">
+                    <button @click="closeLightbox"
+                        class="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-gray-300 transition">
+                        ✕
+                    </button>
+                    <img :src="lightboxSrc" class="w-full rounded-xl shadow-2xl max-h-[85vh] object-contain" />
+                </div>
+            </div>
+        </Teleport>
     </AuthenticatedLayout>
 </template>
