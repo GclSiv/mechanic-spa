@@ -166,7 +166,7 @@ function doDel() {
 
                                 <!-- Botones de accion -->
                                 <div class="mt-2 pt-2 border-t border-gray-100">
-                                    <div class="flex flex-wrap gap-1 w-full">
+                                    <div class="flex flex-wrap gap-1 w-full items-center">
                                         <a :href="route('repair-orders.show', order.id)"
                                             class="flex items-center gap-1 bg-[#10213E] hover:bg-blue-900 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             {{ $t('taller.cotizacion') }}
@@ -187,9 +187,10 @@ function doDel() {
                                             class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             📄 Recepción
                                         </a>
+                                        <span class="flex-1 min-w-0"></span>
                                         <button v-if="isAdmin"
                                             @click.prevent="deleteOrder(order)"
-                                            class="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-[#EE2857] text-xs font-bold px-2.5 py-1.5 rounded-lg transition ml-auto">
+                                            class="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-[#EE2857] text-xs font-bold px-2.5 py-1.5 rounded-lg transition">
                                             🗑️ Borrar
                                         </button>
                                     </div>

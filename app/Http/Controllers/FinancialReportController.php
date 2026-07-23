@@ -46,14 +46,15 @@ class FinancialReportController extends Controller
         // ── 4. Consultar órdenes del mes/año con las relaciones necesarias ────
         $orders = RepairOrder::with([
             'status',
+            'items',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',
         ])
         ->whereIn('status_id', $statusIds)
-        ->whereYear('delivery_date', $year)
-        ->whereMonth('delivery_date', $month)
-        ->orderBy('delivery_date')
+        ->whereYear('updated_at', $year)
+        ->whereMonth('updated_at', $month)
+        ->orderBy('updated_at')
         ->get();
 
         // ── 5. Calcular totales por orden usando la Action existente ──────────
@@ -61,8 +62,8 @@ class FinancialReportController extends Controller
             $breakdown = $calculator->execute($order);
             return [
                 'folio'          => $order->folio ?? ('ORD-' . str_pad($order->id, 4, '0', STR_PAD_LEFT)),
-                'fecha'          => $order->delivery_date
-                    ? \Carbon\Carbon::parse($order->delivery_date)->format('d/m/Y')
+                'fecha'          => $order->updated_at
+                    ? $order->updated_at->format('d/m/Y')
                     : '—',
                 'cliente'        => trim(
                     ($order->recepcion->client->first_name ?? '') . ' ' .

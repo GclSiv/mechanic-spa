@@ -24,7 +24,12 @@ class RepairOrder extends Model
         'problem_description', 
         'estimated_cost', 
         'entry_date',
-        'delivery_date'
+        'delivery_date',
+        'is_paid',
+    ];
+
+    protected $casts = [
+        'is_paid' => 'boolean',
     ];
 
     /**
