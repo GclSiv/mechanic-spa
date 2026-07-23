@@ -159,7 +159,6 @@ function closeAll() {
                             @change="onDragEnd($event, col)"
                         >
                             <template #item="{ element: order }">
-                                <!-- ── TARJETA — un único div raíz ── -->
                                 <div class="bg-white rounded-xl shadow-sm border-l-4 p-3 relative cursor-grab active:cursor-grabbing"
                                     :class="col.color">
 
