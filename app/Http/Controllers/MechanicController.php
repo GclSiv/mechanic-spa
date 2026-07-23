@@ -45,10 +45,11 @@ class MechanicController extends Controller
 
         DB::transaction(function () use ($request) {
             $user = User::create([
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'password' => Hash::make('password123'),
-                'role'     => $request->role,
+                'name'              => $request->name,
+                'email'             => $request->email,
+                'password'          => Hash::make('password123'),
+                'role'              => $request->role,
+                'email_verified_at' => now(), // Auto-verificado: mecánicos no tienen acceso a email
             ]);
 
             Mechanic::create([

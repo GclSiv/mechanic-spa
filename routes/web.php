@@ -20,7 +20,7 @@ Route::get('/', function () {
 });
 
 // --- 2. RUTAS PROTEGIDAS (SISTEMA JK AUTOMOTIVE) ---
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::post('/settings/tax', [SettingController::class, 'updateTax'])->name('settings.updateTax');
 
