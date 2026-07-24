@@ -36,6 +36,14 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ── Categorías de inventario (solo admin) ─────────────────────────────
+    Route::middleware('role:admin')->prefix('categories')->name('categories.')->group(function () {
+        Route::get('/',          [\App\Http\Controllers\CategoryController::class, 'index'])->name('index');
+        Route::post('/',         [\App\Http\Controllers\CategoryController::class, 'store'])->name('store');
+        Route::put('/{category}',[\App\Http\Controllers\CategoryController::class, 'update'])->name('update');
+        Route::delete('/{category}', [\App\Http\Controllers\CategoryController::class, 'destroy'])->name('destroy');
+    });
+
     // Listado de clientes
     Route::get('/clientes', [\App\Http\Controllers\ClientController::class, 'index'])->name('clients.index');
 

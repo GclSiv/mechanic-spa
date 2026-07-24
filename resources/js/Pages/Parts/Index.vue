@@ -51,10 +51,16 @@ function doDel() {
                 <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider shrink-0">
                     📦 {{ $t('inventario.titulo') }}
                 </h2>
-                <a :href="route('parts.create')"
-                    class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg shadow-md transition text-sm uppercase shrink-0">
-                    {{ $t('inventario.nueva') }}
-                </a>
+                <div class="flex items-center gap-3">
+                    <a :href="route('categories.index')"
+                        class="text-sm text-gray-500 hover:text-[#10213E] font-bold transition border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
+                        🏷️ {{ $t('categories.gestionar') }}
+                    </a>
+                    <a :href="route('parts.create')"
+                        class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg shadow-md transition text-sm uppercase shrink-0">
+                        {{ $t('inventario.nueva') }}
+                    </a>
+                </div>
             </div>
         </template>
 
@@ -135,9 +141,11 @@ function doDel() {
                                             class="inline-block bg-blue-100 text-blue-700 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                                             {{ p.category.name }}
                                         </span>
-                                        <span v-else class="text-gray-400 text-xs italic">
-                                            {{ $t('inventario.sinCategoria') }}
-                                        </span>
+                                        <a v-else :href="route('parts.edit', p.id)"
+                                            class="text-gray-400 text-xs italic hover:text-[#EE2857] hover:underline transition"
+                                            :title="$t('inventario.clicParaAsignar')">
+                                            {{ $t('inventario.sinCategoria') }} →
+                                        </a>
                                     </td>
 
                                     <td class="px-5 py-4 font-mono text-gray-500 text-xs">{{ p.sku }}</td>
