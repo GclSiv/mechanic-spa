@@ -72,37 +72,37 @@ function formatCurrency(val) {
                 <!-- ═══════════════════════════════════════════════ -->
                 <!-- QUICK STATS                                     -->
                 <!-- ═══════════════════════════════════════════════ -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
 
                     <!-- Órdenes activas -->
                     <a :href="route('repair-orders.index')"
-                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ $t('dashboard.ordenesActivas') }}</p>
-                                <p class="text-3xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
-                                <p class="text-xs text-gray-400 mt-1">{{ $t('dashboard.enProgreso') }}</p>
+                                <p class="text-2xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">{{ $t('dashboard.enProgreso') }}</p>
                             </div>
-                            <span class="text-2xl bg-blue-50 p-2 rounded-xl group-hover:bg-blue-100 transition">🔧</span>
+                            <span class="text-xl bg-blue-50 p-1.5 rounded-lg group-hover:bg-blue-100 transition">🔧</span>
                         </div>
                     </a>
 
                     <!-- Recepciones hoy -->
                     <a :href="route('recepcion.create')"
-                        class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                        class="group bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all hover:-translate-y-0.5">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ $t('dashboard.recepcionesHoy') }}</p>
-                                <p class="text-3xl font-black text-[#10213E]">{{ stats.today ?? 0 }}</p>
-                                <p class="text-xs text-gray-400 mt-1">{{ $t('dashboard.de') }} {{ stats.total }} {{ $t('dashboard.totalLabel') }}</p>
+                                <p class="text-2xl font-black text-[#10213E]">{{ stats.today ?? 0 }}</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">{{ $t('dashboard.de') }} {{ stats.total }} {{ $t('dashboard.totalLabel') }}</p>
                             </div>
-                            <span class="text-2xl bg-green-50 p-2 rounded-xl group-hover:bg-green-100 transition">🚗</span>
+                            <span class="text-xl bg-green-50 p-1.5 rounded-lg group-hover:bg-green-100 transition">🚗</span>
                         </div>
                     </a>
 
                     <!-- Alertas stock -->
                     <a :href="isAdmin ? route('parts.index') : '#'"
-                        class="group rounded-2xl shadow-sm border p-5 transition-all hover:-translate-y-0.5"
+                        class="group rounded-xl shadow-sm border p-4 transition-all hover:-translate-y-0.5"
                         :class="stats.stockAlertas > 0
                             ? 'bg-red-50 border-red-200 hover:shadow-md'
                             : 'bg-white border-gray-100 hover:shadow-md'">
@@ -112,7 +112,7 @@ function formatCurrency(val) {
                                     :class="stats.stockAlertas > 0 ? 'text-red-400' : 'text-gray-400'">
                                     {{ $t('dashboard.alertas') }}
                                 </p>
-                                <p class="text-3xl font-black"
+                                <p class="text-2xl font-black"
                                     :class="stats.stockAlertas > 0 ? 'text-red-600' : 'text-[#10213E]'">
                                     {{ stats.stockAlertas ?? 0 }}
                                 </p>
@@ -131,7 +131,7 @@ function formatCurrency(val) {
                     <!-- Por Recoger +48h — solo admin -->
                     <a v-if="isAdmin"
                         :href="route('repair-orders.index')"
-                        class="group rounded-2xl shadow-sm border p-5 transition-all hover:-translate-y-0.5"
+                        class="group rounded-xl shadow-sm border p-4 transition-all hover:-translate-y-0.5"
                         :class="stats.pendingPickupCount > 0
                             ? 'bg-orange-50 border-orange-200 hover:shadow-md'
                             : 'bg-white border-gray-100 hover:shadow-md'">
@@ -141,7 +141,7 @@ function formatCurrency(val) {
                                     :class="stats.pendingPickupCount > 0 ? 'text-orange-500' : 'text-gray-400'">
                                     {{ $t('dashboard.porRecoger') }}
                                 </p>
-                                <p class="text-3xl font-black"
+                                <p class="text-2xl font-black"
                                     :class="stats.pendingPickupCount > 0 ? 'text-orange-600' : 'text-[#10213E]'">
                                     {{ stats.pendingPickupCount ?? 0 }}
                                 </p>
@@ -160,16 +160,16 @@ function formatCurrency(val) {
                     <!-- Ingresos del mes — solo admin -->
                     <a v-if="isAdmin"
                         :href="route('reports.index')"
-                        class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-2xl shadow-sm p-5 block hover:opacity-90 transition-opacity">
+                        class="bg-gradient-to-br from-[#10213E] to-blue-900 rounded-xl shadow-sm p-4 block hover:opacity-90 transition-opacity">
                         <div class="flex items-start justify-between">
                             <div>
                                 <p class="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">{{ $t('dashboard.ingresos') }}</p>
-                                <p class="text-2xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
+                                <p class="text-xl font-black text-white">{{ formatCurrency(stats.ingresosMes) }}</p>
                                 <p class="text-xs text-blue-300 mt-1">{{ $t('dashboard.pagosRegistrados') }}</p>
                             </div>
-                            <span class="text-2xl bg-white/10 p-2 rounded-xl">📊</span>
+                            <span class="text-xl bg-white/10 p-1.5 rounded-lg">📊</span>
                         </div>
-                        <p class="text-[10px] text-blue-300 mt-3 font-bold uppercase tracking-widest">{{ $t('dashboard.verReporte') }} →</p>
+                        <p class="text-[9px] text-blue-300 mt-2 font-bold uppercase tracking-widest">{{ $t('dashboard.verReporte') }} →</p>
                     </a>
 
                     <!-- Placeholder para mechanic (no ve ingresos) -->
@@ -307,18 +307,6 @@ function formatCurrency(val) {
             </div>
         </div>
 
-                <!-- ── Enlace rápido a módulo Cuentas ── -->
-                <div v-if="isAdmin"
-                    class="bg-gradient-to-r from-[#10213E] to-blue-900 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-                    <div>
-                        <p class="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">{{ $t('finance.titulo') }}</p>
-                        <p class="text-white text-sm">{{ $t('finance.cuentasCobrar') }} · {{ $t('finance.ordenesRecientes') }}</p>
-                    </div>
-                    <Link :href="route('finance.index')"
-                        class="bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2.5 rounded-lg transition shadow-md shrink-0">
-                        {{ $t('nav.cuentas') }} →
-                    </Link>
-                </div>
 
 
         <!-- Modal fotos -->
