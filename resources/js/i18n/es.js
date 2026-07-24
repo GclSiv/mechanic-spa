@@ -436,8 +436,6 @@ export default {
         derechos:        'Todos los derechos reservados.',
         poweredBy:       'Desarrollado por',
     },
-}
-,
     finance: {
         titulo:           'Cuentas y Finanzas',
         ingresosMes:      'Ingresos del Mes',
@@ -464,3 +462,4 @@ export default {
         verOrden:         'Abrir',
         sinAsignar:       'Sin asignar',
     },
+}

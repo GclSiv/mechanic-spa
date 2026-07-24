@@ -436,8 +436,6 @@ export default {
         derechos:        'All rights reserved.',
         poweredBy:       'Developed by',
     },
-}
-,
     finance: {
         titulo:           'Accounts & Finance',
         ingresosMes:      'Monthly Revenue',
@@ -464,3 +462,4 @@ export default {
         verOrden:         'Open',
         sinAsignar:       'Unassigned',
     },
+}

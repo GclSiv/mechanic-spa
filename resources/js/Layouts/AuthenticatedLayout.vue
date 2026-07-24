@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage, Head } from '@inertiajs/vue3';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
@@ -11,6 +11,7 @@ const showingNavigationDropdown = ref(false);
 
 const primaryColor   = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
+const companyName    = computed(() => page.props.settings?.company_name ?? 'CarbaFix');
 
 
 // ── Toast global ──────────────────────────────────────────────────────
@@ -34,6 +35,11 @@ watch(
 </script>
 
 <template>
+    <!-- Título dinámico: "Página — Nombre del Taller" -->
+    <Head :title="$slots.title ? undefined : companyName">
+        <title>{{ companyName }}</title>
+    </Head>
+
     <div class="min-h-screen bg-gray-100 transition-colors duration-200">
 
         <component :is="'style'">

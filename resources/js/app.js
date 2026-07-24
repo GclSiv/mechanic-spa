@@ -1,7 +1,7 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { createInertiaApp, usePage } from '@inertiajs/vue3';
+import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
@@ -68,9 +68,9 @@ if ('serviceWorker' in navigator) {
 
 createInertiaApp({
     title: (title) => {
-        const page = usePage();
-        const company = page.props.settings?.company_name || appName;
-        return title ? `${title} — ${company}` : company;
+        // El nombre dinámico se maneja en AuthenticatedLayout con <Head>
+        // Aquí solo usamos el fallback para las páginas sin layout (login, etc.)
+        return title ? `${title} — ${appName}` : appName;
     },
     resolve: (name) =>
         resolvePageComponent(
