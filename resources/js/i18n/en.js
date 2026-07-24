@@ -47,6 +47,7 @@ export default {
         verReporte:       'View monthly report',
         porRecoger:       'Awaiting Pickup +48h',
         porRecogerDesc:   'vehicles waiting',
+        sinOrden:         'No order yet',
         cuentasCobrar:    '💰 Accounts Receivable',
         sinDeudas:        'No pending accounts.',
         verOrden:         'View',

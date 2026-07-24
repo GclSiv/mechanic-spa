@@ -105,7 +105,12 @@ class DashboardController extends Controller
             }
         }
         $recentRecepcions = Recepcion::query()
-            ->with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])
+            ->with([
+                'client',
+                'vehicle.brand',
+                'vehicle.vehicleModel',
+                'repairOrder.status',   // ← status del taller para badge en Dashboard
+            ])
             ->when($search, fn($q) => $q
                 ->whereHas('client', fn($c) => $c
                     ->where('first_name', 'LIKE', "%{$search}%")

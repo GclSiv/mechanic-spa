@@ -48,4 +48,9 @@ class Recepcion extends Model
     {
         return $this->belongsTo(Vehicle::class);
     }
+
+    public function repairOrder()
+    {
+        return $this->hasOne(\App\Models\RepairOrder::class, 'recepcion_id');
+    }
 }

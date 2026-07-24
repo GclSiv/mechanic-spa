@@ -47,6 +47,7 @@ export default {
         verReporte:       'Ver reporte mensual',
         porRecoger:       'Por Recoger +48h',
         porRecogerDesc:   'vehículos esperando',
+        sinOrden:         'Sin orden',
         cuentasCobrar:    '💰 Cuentas por Cobrar',
         sinDeudas:        'Sin cuentas pendientes.',
         verOrden:         'Ver',

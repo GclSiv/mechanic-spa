@@ -224,6 +224,7 @@ function formatCurrency(val) {
                                     <th class="px-6 py-3">{{ $t('tabla.cliente') }}</th>
                                     <th class="px-6 py-3">{{ $t('tabla.vehiculo') }}</th>
                                     <th class="px-6 py-3">{{ $t('tabla.placa') }}</th>
+                                    <th class="px-6 py-3 text-center">{{ $t('tabla.estado') }}</th>
                                     <th class="px-6 py-3">{{ $t('tabla.fecha') }}</th>
                                     <th class="px-6 py-3 text-center">{{ $t('tabla.acciones') }}</th>
                                 </tr>
@@ -245,6 +246,18 @@ function formatCurrency(val) {
                                     </td>
                                     <td class="px-6 py-4 font-mono font-bold uppercase text-xs text-gray-600">
                                         {{ rec.vehicle?.plate ?? '—' }}
+                                    </td>
+                                    <!-- Badge de estado del taller -->
+                                    <td class="px-6 py-4 text-center">
+                                        <span v-if="rec.repair_order?.status"
+                                            class="inline-block text-[10px] font-black uppercase px-2.5 py-1 rounded-full"
+                                            :class="rec.repair_order.status.color_class ?? 'bg-gray-100 text-gray-600'">
+                                            {{ $t('status.' + rec.repair_order.status.slug) }}
+                                        </span>
+                                        <span v-else
+                                            class="inline-block text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 italic">
+                                            {{ $t('dashboard.sinOrden') }}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 text-gray-500 text-xs">
                                         {{ new Date(rec.created_at).toLocaleDateString('es-MX') }}
