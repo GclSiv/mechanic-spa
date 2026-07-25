@@ -239,9 +239,9 @@ function removeItem(itemId) {
                             </p>
                         </div>
                         <div class="flex gap-2 flex-wrap">
-                            <!-- Diagnóstico Terminado — visible para mecánico y admin -->
+                            <!-- Diagnóstico Terminado — visible para mecánico y admin en cualquier estado activo -->
                             <button
-                                v-if="!orden.needs_quote && ['recibido','diagnostico'].includes(orden.status?.slug)"
+                                v-if="!orden.needs_quote && !['entregado','rechazado'].includes(orden.status?.slug)"
                                 @click="markDiagnosisComplete"
                                 :disabled="diagnosisForm.processing"
                                 class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2 rounded-lg transition shadow-sm">

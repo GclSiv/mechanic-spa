@@ -197,13 +197,18 @@ class RepairOrderController extends Controller
      */
     public function diagnosisComplete(RepairOrder $order)
     {
-        $mechanic  = auth()->user()->mechanic;
+        $mechanic   = auth()->user()->mechanic;
         $statusDiag = \App\Models\RepairOrderStatus::where('slug', 'diagnostico')->first();
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $mechanic, $statusDiag) {
+        // Solo cambiar a 'diagnostico' si la orden está en 'recibido'
+        $slugsQueActualiza = ['recibido'];
+        $cambiarStatus = $statusDiag
+            && in_array($order->status?->slug, $slugsQueActualiza);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $mechanic, $statusDiag, $cambiarStatus) {
             $order->update([
                 'needs_quote' => true,
-                'status_id'   => $statusDiag ? $statusDiag->id : $order->status_id,
+                'status_id'   => $cambiarStatus ? $statusDiag->id : $order->status_id,
             ]);
 
             $order->followUps()->create([
