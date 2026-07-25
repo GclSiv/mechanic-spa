@@ -26,6 +26,7 @@ class DashboardController extends Controller
             if ($mechanic) $pendingQuery->where('mechanic_id', $mechanic->id);
         }
         $ordenesActivas = $pendingQuery->count();
+        $porCotizar     = RepairOrder::where('needs_quote', true)->where('is_paid', false)->count();
         $stockAlertas   = Part::whereColumn('stock', '<=', 'low_stock_threshold')->count();
         $ingresosMes    = $isAdmin
             ? (function () {
@@ -167,6 +168,7 @@ class DashboardController extends Controller
                 'total'              => Recepcion::count(),
                 'today'              => Recepcion::whereDate('created_at', now())->count(),
                 'ordenesActivas'     => $ordenesActivas,
+                'porCotizar'         => $porCotizar,
                 'stockAlertas'       => $stockAlertas,
                 'ingresosMes'        => $ingresosMes,
                 'pendingPickupCount' => $pendingPickupCount,

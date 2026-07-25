@@ -82,6 +82,10 @@ function formatCurrency(val) {
                                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{{ $t('dashboard.ordenesActivas') }}</p>
                                 <p class="text-2xl font-black text-[#10213E]">{{ stats.ordenesActivas ?? 0 }}</p>
                                 <p class="text-[10px] text-gray-400 mt-0.5">{{ $t('dashboard.enProgreso') }}</p>
+                                <p v-if="isAdmin && stats.porCotizar > 0"
+                                    class="text-[10px] font-black text-amber-600 mt-1 bg-amber-50 px-1.5 py-0.5 rounded inline-block">
+                                    ⏳ {{ stats.porCotizar }} {{ $t('dashboard.porCotizar') }}
+                                </p>
                             </div>
                             <span class="text-xl bg-blue-50 p-1.5 rounded-lg group-hover:bg-blue-100 transition">🔧</span>
                         </div>

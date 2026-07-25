@@ -24,6 +24,29 @@ defineProps({
 const page = usePage();
 const showModal = ref(false);
 
+// ── Modal reasignación con motivo ─────────────────────────────────────
+const showReassignModal = ref(false);
+const reassignForm = useForm({ mechanic_id: '', reason: '' });
+
+function openReassign() {
+    reassignForm.mechanic_id = page.props.orden?.mechanic_id ?? '';
+    reassignForm.reason = '';
+    showReassignModal.value = true;
+}
+function submitReassign() {
+    reassignForm.post(route('repair-orders.mechanic.reassign', page.props.orden?.id), {
+        onSuccess: () => { showReassignModal.value = false; reassignForm.reset(); },
+    });
+}
+
+// ── Diagnóstico terminado ─────────────────────────────────────────────
+const diagnosisForm = useForm({});
+function markDiagnosisComplete() {
+    diagnosisForm.post(route('repair-orders.diagnosis.complete', page.props.orden?.id), {
+        preserveScroll: true,
+    });
+}
+
 // ── Lightbox fotos de recepción ───────────────────────────────────────
 const lightboxSrc = ref(null);
 function openPhotoLightbox(src) { lightboxSrc.value = src; }
@@ -198,11 +221,48 @@ function removeItem(itemId) {
                 </div>
 
                 <!-- MECÁNICO + BITÁCORA — visible desde Recibido en adelante -->
-                <FollowUpLogger
-                    v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
-                    :orden="orden"
-                    :mechanics="mechanics ?? []"
-                />
+                <div v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
+                    class="space-y-4">
+
+                    <!-- Botón Diagnóstico Terminado (mecánico) + Reasignar (admin) -->
+                    <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-black text-[#10213E] uppercase tracking-wider">
+                                🔧 {{ $t('show.mecanico') }}:
+                                <span class="text-blue-600 font-bold normal-case">
+                                    {{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}
+                                </span>
+                            </p>
+                            <p v-if="orden.needs_quote"
+                                class="text-xs text-amber-600 font-bold mt-1">
+                                ⏳ {{ $t('show.pendienteCotizacion') }}
+                            </p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <!-- Diagnóstico Terminado — visible para mecánico y admin -->
+                            <button
+                                v-if="!orden.needs_quote && ['recibido','diagnostico'].includes(orden.status?.slug)"
+                                @click="markDiagnosisComplete"
+                                :disabled="diagnosisForm.processing"
+                                class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2 rounded-lg transition shadow-sm">
+                                ✅ {{ $t('show.diagnosticoTerminado') }}
+                            </button>
+                            <!-- Reasignar — solo admin -->
+                            <button
+                                v-if="isAdmin"
+                                @click="openReassign"
+                                class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg transition">
+                                🔄 {{ $t('show.reasignar') }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bitácora completa -->
+                    <FollowUpLogger
+                        :orden="orden"
+                        :mechanics="mechanics ?? []"
+                    />
+                </div>
 
                 <!-- FASE 7: PAGOS Y ANTICIPOS — solo admin -->
                 <PaymentPanel v-if="isAdmin" :orden="orden" :breakdown="financial_breakdown" />
@@ -330,6 +390,51 @@ function removeItem(itemId) {
                     <img :src="lightboxSrc" class="w-full rounded-xl shadow-2xl max-h-[85vh] object-contain" />
                 </div>
             </div>
+        </Teleport>
+
+        <!-- Modal reasignación con motivo -->
+        <Teleport to="body">
+            <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100"
+                leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100" leave-to-class="opacity-0">
+                <div v-if="showReassignModal"
+                    class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                    @click.self="showReassignModal = false">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
+                            <h3 class="text-white font-black text-sm uppercase tracking-wider">🔄 {{ $t('show.reasignar') }}</h3>
+                            <button @click="showReassignModal = false" class="text-gray-400 hover:text-white text-xl">✕</button>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('show.nuevoMecanico') }} *</label>
+                                <select v-model="reassignForm.mechanic_id"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                    <option value="" disabled>{{ $t('show.seleccionaMecanico') }}</option>
+                                    <option v-for="m in mechanics" :key="m.id" :value="m.id">{{ m.name }}</option>
+                                </select>
+                                <p v-if="reassignForm.errors.mechanic_id" class="text-red-500 text-xs mt-1">{{ reassignForm.errors.mechanic_id }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('show.motivoCambio') }} *</label>
+                                <textarea v-model="reassignForm.reason" rows="3"
+                                    :placeholder="$t('show.motivoPlaceholder')"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] resize-none"></textarea>
+                                <p v-if="reassignForm.errors.reason" class="text-red-500 text-xs mt-1">{{ reassignForm.errors.reason }}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 px-6 pb-6">
+                            <button @click="showReassignModal = false"
+                                class="flex-1 border border-gray-200 text-gray-500 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition text-sm">
+                                {{ $t('acciones.cancelar') }}
+                            </button>
+                            <button @click="submitReassign" :disabled="reassignForm.processing"
+                                class="flex-1 bg-[#10213E] hover:bg-blue-900 disabled:opacity-50 text-white font-black py-2.5 rounded-xl transition text-sm">
+                                {{ reassignForm.processing ? '...' : $t('show.confirmarReasignacion') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
         </Teleport>
     </AuthenticatedLayout>
 </template>

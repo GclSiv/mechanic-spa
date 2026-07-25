@@ -122,6 +122,10 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign');
             Route::post('/{order}/follow-ups', [\App\Http\Controllers\FollowUpController::class, 'store'])->name('follow-ups.store');
             Route::delete('/{order}/follow-ups/{followUp}', [\App\Http\Controllers\FollowUpController::class, 'destroy'])->name('follow-ups.destroy');
+
+            // Nuevas rutas operativas
+            Route::post('/{order}/diagnosis-complete', 'diagnosisComplete')->name('diagnosis.complete');
+            Route::post('/{order}/reassign-mechanic',  'reassignMechanic')->name('mechanic.reassign');
     });
 
     // ========================================================

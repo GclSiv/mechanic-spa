@@ -19,7 +19,8 @@ class RepairOrder extends Model
         
         'client_id', 
         'vehicle_id', 
-        'mechanic_id', 
+        'mechanic_id',
+        'needs_quote',
         'status_id', 
         'problem_description', 
         'estimated_cost', 
@@ -29,7 +30,8 @@ class RepairOrder extends Model
     ];
 
     protected $casts = [
-        'is_paid' => 'boolean',
+        'is_paid'     => 'boolean',
+        'needs_quote' => 'boolean',
     ];
 
     /**

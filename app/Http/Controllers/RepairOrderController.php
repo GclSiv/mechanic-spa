@@ -192,6 +192,59 @@ class RepairOrderController extends Controller
     }
 
     /**
+    /**
+     * Mecánico marca diagnóstico terminado → needs_quote + nota automática.
+     */
+    public function diagnosisComplete(RepairOrder $order)
+    {
+        $mechanic  = auth()->user()->mechanic;
+        $statusDiag = \App\Models\RepairOrderStatus::where('slug', 'diagnostico')->first();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $mechanic, $statusDiag) {
+            $order->update([
+                'needs_quote' => true,
+                'status_id'   => $statusDiag ? $statusDiag->id : $order->status_id,
+            ]);
+
+            $order->followUps()->create([
+                'mechanic_id' => $mechanic?->id,
+                'description' => '✅ Mecánico reporta diagnóstico terminado. Pendiente de envío de cotización al cliente.',
+                'date'        => now()->format('Y-m-d H:i:s'),
+            ]);
+        });
+
+        return redirect()->route('repair-orders.show', $order)
+            ->with('success', 'Diagnóstico marcado. El administrador ha sido notificado.');
+    }
+
+    /**
+     * Reasignar mecánico con motivo obligatorio → guarda en bitácora.
+     */
+    public function reassignMechanic(Request $request, RepairOrder $order)
+    {
+        $request->validate([
+            'mechanic_id' => 'required|exists:mechanics,id',
+            'reason'      => 'required|string|min:5|max:500',
+        ]);
+
+        $previousName = $order->mechanic?->name ?? 'Sin asignar';
+        $newMechanic  = \App\Models\Mechanic::findOrFail($request->mechanic_id);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $request, $previousName, $newMechanic) {
+            $order->update(['mechanic_id' => $request->mechanic_id]);
+
+            $order->followUps()->create([
+                'mechanic_id' => $request->mechanic_id,
+                'description' => "🔄 Reasignación: {$previousName} → {$newMechanic->name}. Motivo: {$request->reason}",
+                'date'        => now()->format('Y-m-d H:i:s'),
+            ]);
+        });
+
+        return redirect()->route('repair-orders.show', $order)
+            ->with('success', 'Mecánico reasignado y motivo registrado en bitácora.');
+    }
+
+    /**
      * Fase 4: Asigna un mecánico a la orden.
      */
     public function assignMechanic(Request $request, RepairOrder $order)
