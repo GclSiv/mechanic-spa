@@ -69,7 +69,7 @@ class MechanicController extends Controller
     public function edit(Mechanic $mechanic)
     {
         return Inertia::render('Mechanics/Edit', [
-            'mechanic'      => $mechanic,
+            'mechanic'      => $mechanic->load('user'),
             'genders'       => Gender::all(['id', 'name']),
             'mechanicTypes' => MechanicType::orderBy('name')->get(['id', 'name']),
         ]);
@@ -83,10 +83,11 @@ class MechanicController extends Controller
             'gender_id'        => 'required|exists:genders,id',
             'mechanic_type_id' => 'required|exists:mechanic_types,id',
             'phone'            => 'nullable|string|max:20',
+            'role'             => 'nullable|in:admin,mechanic',
         ]);
 
         DB::transaction(function () use ($request, $mechanic) {
-            // Actualizar perfil
+            // Actualizar perfil del mecánico
             $mechanic->update([
                 'name'             => $request->name,
                 'email'            => $request->email,
@@ -95,17 +96,28 @@ class MechanicController extends Controller
                 'phone'            => $request->phone,
             ]);
 
-            // Sincronizar nombre y email en la cuenta de usuario
             if ($mechanic->user_id) {
+                // Sincronizar cuenta existente
                 $mechanic->user()->update([
                     'name'  => $request->name,
                     'email' => $request->email,
+                    'role'  => $request->role ?? 'mechanic',
                 ]);
+            } else {
+                // ── Mecánico legacy sin cuenta: crear una ahora ───────────
+                $user = User::create([
+                    'name'              => $request->name,
+                    'email'             => $request->email,
+                    'password'          => Hash::make('password123'),
+                    'role'              => $request->role ?? 'mechanic',
+                    'email_verified_at' => now(),
+                ]);
+                $mechanic->update(['user_id' => $user->id]);
             }
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Mecánico actualizado correctamente.');
+            ->with('success', 'Mecánico actualizado. Credenciales: ' . $request->email . ' / password123');
     }
 
     public function destroy(Mechanic $mechanic)
