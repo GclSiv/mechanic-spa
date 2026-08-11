@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando JK Automotive CarbaFix...
+C:\xampp\php\php.exe artisan serve
