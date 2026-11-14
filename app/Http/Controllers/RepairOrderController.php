@@ -66,7 +66,7 @@ class RepairOrderController extends Controller
     public function index()
     {
         $user     = auth()->user();
-        $isAdmin  = $user->role === 'admin';
+        $isAdmin  = $user->isAdmin();
         $statuses = RepairOrderStatus::orderBy('id')->get();
 
         $query = RepairOrder::with([
@@ -107,7 +107,7 @@ class RepairOrderController extends Controller
         $breakdown = $calculator->execute($order);
 
         $order->load([
-            'items', 'status', 'mechanic',
+            'items', 'status', 'mechanic', 'quotes.items',
             'followUps.mechanic',
             'payments',
             'recepcion.client',
@@ -125,11 +125,11 @@ class RepairOrderController extends Controller
             'orden'               => $order,
             'recepcion'           => $order->recepcion,
             'financial_breakdown' => $breakdown,
-            'settings'            => \App\Models\Setting::first(),
+            'settings'            => \App\Models\Setting::current(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
             'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']),
-            'isAdmin'             => auth()->user()->role === 'admin',
+            'isAdmin'             => auth()->user()->isAdmin(),
         ]);
     }
 
@@ -172,7 +172,7 @@ class RepairOrderController extends Controller
         ]);
 
         // Traemos los ajustes del taller y calculamos los totales
-        $settings = \App\Models\Setting::first();
+        $settings = \App\Models\Setting::current();
         $breakdown = $calculator->execute($order);
 
         // Generamos el PDF
@@ -290,9 +290,52 @@ class RepairOrderController extends Controller
             'status_id' => 'required|exists:repair_order_statuses,id',
         ]);
 
+        // No se entrega el vehículo con saldo pendiente
+        $nuevoEstado = RepairOrderStatus::find($request->status_id);
+        if ($nuevoEstado?->slug === 'entregado') {
+            $saldo = $this->saldoPendiente($order);
+            if ($saldo > 0) {
+                return back()->with('error', 'No se puede entregar el vehículo: saldo pendiente de $' . number_format($saldo, 2) . '.');
+            }
+        }
+
         $order->update(['status_id' => $request->status_id]);
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Estado actualizado correctamente.');
+    }
+
+    /**
+     * Saldo pendiente de la orden: total con IVA menos los pagos registrados.
+     */
+    private function saldoPendiente(RepairOrder $order): float
+    {
+        $order->loadMissing(['items', 'payments']);
+
+        $tasa = $order->tax_rate !== null
+            ? (float) $order->tax_rate
+            : (float) \App\Models\Setting::current()->iva;
+
+        $partes = (float) $order->items->where('type', 'part')->sum('subtotal');
+        $mo     = (float) $order->items->where('type', 'labor')->sum('subtotal');
+        $total  = round($partes + $mo + round($mo * $tasa / 100, 2), 2);
+        $pagado = (float) $order->payments->sum('amount');
+
+        return round(max($total - $pagado, 0), 2);
+    }
+
+    /**
+     * Cambia la tasa de IVA de una orden: 16% general o 8% zona fronteriza.
+     */
+    public function updateTaxRate(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
+    {
+        $data = $request->validate([
+            'tax_rate' => ['required', 'numeric', \Illuminate\Validation\Rule::in([16, 8])],
+        ]);
+
+        $order->update(['tax_rate' => $data['tax_rate']]);
+        $calculator->execute($order);
+
+        return back()->with('success', 'Tasa de IVA actualizada.');
     }
 }

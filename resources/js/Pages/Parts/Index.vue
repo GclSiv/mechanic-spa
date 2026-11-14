@@ -109,7 +109,7 @@ function doDel() {
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-5 py-3">{{ $t('inventario.nombre') }}</th>
@@ -186,7 +186,7 @@ function doDel() {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
             </div>

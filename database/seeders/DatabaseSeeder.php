@@ -17,21 +17,22 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,      // ✅ Aquí ya se configura JK Automotive y el IVA
         ]);
 
-        \App\Models\Gender::create(['name' => 'Male']);
-        \App\Models\Gender::create(['name' => 'Female']);
+        \App\Models\Gender::firstOrCreate(['name' => 'Male']);
+        \App\Models\Gender::firstOrCreate(['name' => 'Female']);
 
-        \App\Models\ClientStatus::create(['name' => 'Active', 'color' => 'bg-green-500']);
-        \App\Models\ClientStatus::create(['name' => 'Debtor', 'color' => 'bg-red-500']);
+        \App\Models\ClientStatus::firstOrCreate(['name' => 'Active'], ['color' => 'bg-green-500']);
+        \App\Models\ClientStatus::firstOrCreate(['name' => 'Debtor'], ['color' => 'bg-red-500']);
 
-        \App\Models\MechanicType::create(['name' => 'General Mechanic']);
-        \App\Models\MechanicType::create(['name' => 'Electromechanic']);
+        \App\Models\MechanicType::firstOrCreate(['name' => 'General Mechanic']);
+        \App\Models\MechanicType::firstOrCreate(['name' => 'Electromechanic']);
 
-        \App\Models\RepairOrderStatus::create(['name' => 'Received', 'slug' => 'recibido', 'color_class' => 'bg-gray-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'In Diagnosis', 'slug' => 'diagnostico', 'color_class' => 'bg-yellow-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Awaiting Parts', 'slug' => 'espera-piezas', 'color_class' => 'bg-orange-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Repaired', 'slug' => 'reparado', 'color_class' => 'bg-green-500']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Delivered', 'slug' => 'entregado', 'color_class' => 'bg-blue-600']);
-        \App\Models\RepairOrderStatus::create(['name' => 'Rejected', 'slug' => 'rechazado', 'color_class' => 'bg-red-600']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'recibido'], ['name' => 'Received', 'color_class' => 'bg-gray-500']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'diagnostico'], ['name' => 'In Diagnosis', 'color_class' => 'bg-yellow-500']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'espera-piezas'], ['name' => 'Awaiting Parts', 'color_class' => 'bg-orange-500']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'reparado'], ['name' => 'Repaired', 'color_class' => 'bg-green-500']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'entregado'], ['name' => 'Delivered', 'color_class' => 'bg-blue-600']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'rechazado'], ['name' => 'Rejected', 'color_class' => 'bg-red-600']);
+        \App\Models\RepairOrderStatus::firstOrCreate(['slug' => 'en-reparacion'], ['name' => 'In Repair', 'color_class' => 'bg-blue-500']);
 
         // --- 2. USUARIOS Y PERSONAL ---
         \App\Models\User::factory()->create([

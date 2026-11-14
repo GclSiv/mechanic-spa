@@ -21,6 +21,11 @@ class RepairOrderItem extends Model
          'type',
     ];
 
+    public function part(): BelongsTo
+    {
+        return $this->belongsTo(Part::class);
+    }
+
     // Relación inversa: Un item pertenece a una Orden de Reparación
     public function repairOrder(): BelongsTo
     {

@@ -15,14 +15,13 @@ use App\Models\Setting;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'    => Route::has('login'),
-        'settings'    => Setting::first(),
+        'settings'    => Setting::current(),
     ]);
 });
 
 // --- 2. RUTAS PROTEGIDAS (SISTEMA JK AUTOMOTIVE) ---
 Route::middleware(['auth'])->group(function () {
 
-    Route::post('/settings/tax', [SettingController::class, 'updateTax'])->name('settings.updateTax')->middleware('role:admin');
 
     // Verificación de placa/VIN duplicado (AJAX)
     Route::get('/vehicles/check', [\App\Http\Controllers\RecepcionController::class, 'checkVehicle'])
@@ -31,7 +30,7 @@ Route::middleware(['auth'])->group(function () {
     // ── Módulo de Cuentas / Finanzas (solo admin) ─────────────────────────
     Route::get('/cuentas', [\App\Http\Controllers\FinanceController::class, 'index'])
         ->name('finance.index')
-        ->middleware('role:admin');
+        ->middleware(['role:admin', 'module:caja']);
 
     // Dashboard Principal
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -126,11 +125,15 @@ Route::middleware(['auth'])->group(function () {
             // Nuevas rutas operativas
             Route::post('/{order}/diagnosis-complete', 'diagnosisComplete')->name('diagnosis.complete');
             Route::post('/{order}/reassign-mechanic',  'reassignMechanic')->name('mechanic.reassign');
+            Route::patch('/{order}/tax-rate', 'updateTaxRate')->name('tax.update');
     });
 
     // ========================================================
     // MÓDULO 3: GESTIÓN DE FOTOS Y ARCHIVOS
     // ========================================================
+    Route::get('/vehiculos/{vehicle}/historial', [\App\Http\Controllers\VehicleHistoryController::class, 'show'])
+        ->name('vehicles.history');
+
     Route::controller(ClientPhotoController::class)->group(function () {
         Route::post('/clients/{client}/photos', 'store')->name('clients.photos.store');
         Route::delete('/photos/{photo}', 'destroy')->name('clients.photos.destroy');
@@ -153,7 +156,7 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================
     // MÓDULO 8: REPORTES FINANCIEROS MENSUALES (solo admin)
     // ========================================================
-    Route::prefix('reportes')
+    Route::middleware('module:reportes')->prefix('reportes')
         ->name('reports.')
         ->middleware('role:admin')
         ->group(function () {
@@ -161,8 +164,66 @@ Route::middleware(['auth'])->group(function () {
                 ->name('index');
             Route::get('/pdf', [\App\Http\Controllers\FinancialReportController::class, 'downloadPdf'])
                 ->name('pdf');
+            Route::get('/mecanicos', [\App\Http\Controllers\MechanicProductivityController::class, 'index'])
+                ->name('mechanics');
         });
 
 });
 
+Route::get('/logo-taller', [\App\Http\Controllers\SettingController::class, 'logo'])->name('settings.logo');
+
 require __DIR__.'/auth.php';
+/*
+|--------------------------------------------------------------------------
+| Cotizaciones (personal del taller)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])
+    ->prefix('repair-orders/{order}/quotes')
+    ->name('repair-orders.quotes.')
+    ->group(function () {
+        Route::post('/', [\App\Http\Controllers\QuoteController::class, 'store'])->name('store');
+        Route::patch('/{quote}/send', [\App\Http\Controllers\QuoteController::class, 'send'])->name('send');
+        Route::patch('/{quote}/approve', [\App\Http\Controllers\QuoteController::class, 'approve'])->name('approve');
+        Route::patch('/{quote}/reject', [\App\Http\Controllers\QuoteController::class, 'reject'])->name('reject');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Seguimiento público del cliente (sin login, acceso por token)
+|--------------------------------------------------------------------------
+*/
+Route::get('/seguimiento/{token}', [\App\Http\Controllers\TrackingController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('tracking.show');
+Route::get('/seguimiento/{token}/cotizaciones/{quote}/pdf', [\App\Http\Controllers\TrackingController::class, 'quotePdf'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('tracking.quote.pdf');
+
+/*
+|--------------------------------------------------------------------------
+| Importación de clientes (solo administrador)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin'])
+    ->prefix('clientes')
+    ->middleware('module:importar_clientes')
+    ->name('clients.import.')
+    ->group(function () {
+        Route::get('/importar', [\App\Http\Controllers\ClientImportController::class, 'index'])->name('index');
+        Route::get('/importar/plantilla', [\App\Http\Controllers\ClientImportController::class, 'template'])->name('template');
+        Route::post('/importar', [\App\Http\Controllers\ClientImportController::class, 'store'])->name('store');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Panel del dueño (solo rol owner)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:owner'])
+    ->prefix('dueno')
+    ->name('owner.')
+    ->group(function () {
+        Route::get('/modulos', [\App\Http\Controllers\Owner\ModuleController::class, 'index'])->name('modules.index');
+        Route::put('/modulos', [\App\Http\Controllers\Owner\ModuleController::class, 'update'])->name('modules.update');
+    });

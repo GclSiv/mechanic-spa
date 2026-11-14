@@ -91,7 +91,7 @@ class FinancialReportController extends Controller
         ];
 
         // ── 7. Configuración del taller ───────────────────────────────────────
-        $settings = Setting::first();
+        $settings = Setting::current();
 
         // ── 8. Renderizar y transmitir el PDF ────────────────────────────────
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reporte_ingresos', [

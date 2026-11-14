@@ -11,11 +11,27 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_MECHANIC = 'mechanic';
+    public const ROLE_OWNER = 'owner';
+
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
+    /** Admin o dueño: pueden administrar el taller. */
+    public function isAdmin(): bool
+    {
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_OWNER], true);
+    }
+
+    /** Dueño de la instalación: único que puede activar o desactivar módulos. */
+    public function isOwner(): bool
+    {
+        return $this->role === self::ROLE_OWNER;
+    }
+
     protected $fillable = [
         'name',
         'email',

@@ -33,13 +33,17 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
                 'role' => $request->user()?->role,
+                'isAdmin' => $request->user()?->isAdmin() ?? false,
+                'isOwner' => $request->user()?->isOwner() ?? false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
                 'last_id' => fn () => $request->session()->get('last_id'),
             ],
-            'settings' => fn () => \App\Models\Setting::first(),
+            'settings' => fn () => \App\Models\Setting::current(),
+            'logo_url' => fn () => route('settings.logo'),
+            'modules' => fn () => \App\Support\Modules::enabledMap(),
         ]);
     }
 }

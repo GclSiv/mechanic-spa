@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 const page     = usePage();
-const isAdmin  = computed(() => page.props.auth.role === 'admin');
+const isAdmin  = computed(() => page.props.auth.isAdmin);
 const { t } = useI18n();
 const isSearching = ref(false);
 const search   = ref(props.filters.search || "");
@@ -214,14 +214,14 @@ function formatCurrency(val) {
                         </div>
                         </div>
                         <Link :href="route('recepcion.create')"
-                            class="shrink-0 bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">
+                            class="shrink-0 inline-flex items-center min-h-[44px] bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">
                             {{ $t('dashboard.nuevaRecepcion') }}
                         </Link>
                     </div>
 
                     <!-- Tabla -->
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-6 py-3">#</th>
@@ -235,7 +235,7 @@ function formatCurrency(val) {
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 <tr v-for="rec in recentRecepcions.data" :key="rec.id"
-                                    class="hover:bg-gray-50:bg-gray-700 transition-colors group">
+                                    class="hover:bg-gray-50 transition-colors group">
                                     <td class="px-6 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
                                     <td class="px-6 py-4">
                                         <p class="font-bold text-[#10213E]">
@@ -291,7 +291,7 @@ function formatCurrency(val) {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
 
                     <!-- Ver todos -->

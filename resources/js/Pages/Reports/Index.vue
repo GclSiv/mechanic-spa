@@ -176,6 +176,13 @@ function generatePdf() {
                     </div>
                 </div>
 
+                <!-- ── Productividad de mecánicos ────────────────────── -->
+                <a :href="route('reports.mechanics')"
+                   class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:border-[#10213E]/30 transition">
+                    <p class="text-sm font-bold text-[#10213E]">👷 Productividad de mecánicos</p>
+                    <p class="text-xs text-gray-500 mt-1">Órdenes terminadas, mano de obra y comisiones por mes.</p>
+                </a>
+
                 <!-- ── Tarjeta informativa ───────────────────────────── -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div class="flex gap-3">

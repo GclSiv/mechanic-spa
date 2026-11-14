@@ -40,6 +40,7 @@ class MechanicController extends Controller
             'gender_id'        => 'required|exists:genders,id',
             'mechanic_type_id' => 'required|exists:mechanic_types,id',
             'phone'            => 'nullable|string|max:20',
+            'commission_rate'  => 'nullable|numeric|min:0|max:100',
             'role'             => 'required|in:admin,mechanic',
         ]);
 
@@ -59,6 +60,7 @@ class MechanicController extends Controller
                 'gender_id'        => $request->gender_id,
                 'mechanic_type_id' => $request->mechanic_type_id,
                 'phone'            => $request->phone,
+                'commission_rate'  => $request->commission_rate ?? 0,
             ]);
         });
 
@@ -83,6 +85,7 @@ class MechanicController extends Controller
             'gender_id'        => 'required|exists:genders,id',
             'mechanic_type_id' => 'required|exists:mechanic_types,id',
             'phone'            => 'nullable|string|max:20',
+            'commission_rate'  => 'nullable|numeric|min:0|max:100',
             'role'             => 'nullable|in:admin,mechanic',
         ]);
 
@@ -94,6 +97,7 @@ class MechanicController extends Controller
                 'gender_id'        => $request->gender_id,
                 'mechanic_type_id' => $request->mechanic_type_id,
                 'phone'            => $request->phone,
+                'commission_rate'  => $request->commission_rate ?? 0,
             ]);
 
             if ($mechanic->user_id) {

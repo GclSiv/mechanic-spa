@@ -24,6 +24,7 @@ class RepairOrder extends Model
         'status_id', 
         'problem_description', 
         'estimated_cost', 
+        'tax_rate',
         'entry_date',
         'delivery_date',
         'is_paid',
@@ -32,7 +33,17 @@ class RepairOrder extends Model
     protected $casts = [
         'is_paid'     => 'boolean',
         'needs_quote' => 'boolean',
+        'tax_rate'    => 'float',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (RepairOrder $order) {
+            if (empty($order->tracking_token)) {
+                $order->tracking_token = \Illuminate\Support\Str::random(48);
+            }
+        });
+    }
 
     /**
      * Relación con la Recepción original de JK AUTOMOTIVE CARE INC.
@@ -49,6 +60,23 @@ class RepairOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(RepairOrderItem::class);
+    }
+
+    /**
+     * Cotizaciones de la orden (una nueva por cada hallazgo adicional).
+     */
+    public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class)->orderByDesc('version');
+    }
+
+    /**
+     * Cotización vigente: la aprobada; si no hay, la más reciente abierta.
+     */
+    public function currentQuote(): ?Quote
+    {
+        return $this->quotes()->where('status', Quote::APROBADA)->first()
+            ?? $this->quotes()->whereIn('status', [Quote::ENVIADA, Quote::BORRADOR])->first();
     }
 
     /**

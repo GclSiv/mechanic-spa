@@ -11,6 +11,8 @@ class PaymentController extends Controller
 {
     public function store(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
+        $this->authorize('create', Payment::class);
+
         $request->validate([
             'amount'         => 'required|numeric|min:0.01',
             'payment_method' => 'required|in:Cash,Card,Transfer,Efectivo,Tarjeta,Transferencia',
@@ -37,6 +39,9 @@ class PaymentController extends Controller
 
     public function destroy(RepairOrder $order, Payment $payment, CalculateOrderTotalsAction $calculator)
     {
+        abort_unless($payment->repair_order_id === $order->id, 404);
+        $this->authorize('delete', $payment);
+
         $payment->delete();
 
         // Recalcular is_paid tras eliminar el pago

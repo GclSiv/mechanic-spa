@@ -20,7 +20,7 @@ class RepairOrderItemFactory extends Factory
     $qty = $this->faker->numberBetween(1, 3);
 
     return [
-        'repair_order_id' => 1, // Asumimos que la orden #1 existe
+        'repair_order_id' => \App\Models\RepairOrder::factory(),
         'description' => $this->faker->sentence(3),
         'quantity' => $qty,
         'unit_price' => $price,

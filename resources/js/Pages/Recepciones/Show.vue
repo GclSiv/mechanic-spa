@@ -1,12 +1,41 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+
+const page = usePage();
 
 const props = defineProps({ recepcion: Object });
 const { t } = useI18n();
 
 function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
+
+// Deja el teléfono en formato WhatsApp de México: 52 + 10 dígitos
+function normalizarTelefono(tel) {
+    const d = (tel ?? '').replace(/\D/g, '');
+    if (!d) return null;
+    if (d.length === 10) return '52' + d;
+    if (d.length === 13 && d.startsWith('521')) return '52' + d.slice(3);
+    return d;
+}
+
+const whatsappUrl = computed(() => {
+    const telefono = normalizarTelefono(props.recepcion.client?.phone);
+    if (!telefono) return null;
+    const taller = page.props.settings?.company_name || 'nuestro taller';
+    const cliente = props.recepcion.client;
+    const vehiculo = props.recepcion.vehicle;
+    const marca = vehiculo?.brand?.name ?? vehiculo?.brand ?? '';
+    const modelo = vehiculo?.vehicle_model?.name ?? vehiculo?.vehicleModel?.name ?? vehiculo?.model ?? '';
+    const texto =
+        `Hola ${cliente?.first_name ?? ''}, le escribimos de ${taller}. ` +
+        `Su vehículo ${marca} ${modelo} ${vehiculo?.year ?? ''} quedó registrado en recepción #${String(props.recepcion.id).padStart(4, '0')}` +
+        (cliente?.client_number ? ` (cliente ${cliente.client_number})` : '') +
+        '. Cualquier duda, con gusto le atendemos.';
+    return `https://wa.me/${telefono}?text=${encodeURIComponent(texto)}`;
+});
 </script>
 
 <template>
@@ -25,6 +54,10 @@ function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
                         class="bg-[#10213E] hover:bg-blue-900 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
                         🖨️ {{ $t('recepcion.imprimirPdf') }}
                     </a>
+                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener"
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold text-xs uppercase px-4 py-2 rounded-lg transition">
+                        💬 WhatsApp
+                    </a>
                     <Link :href="route('recepcion.generate-order', recepcion.id)"
                         method="post" as="button"
                         class="bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-lg transition shadow">
@@ -40,7 +73,7 @@ function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
                 <!-- Cliente -->
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">👤 {{ $t('tabla.cliente') }}</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.nombre') }}</span>
                             {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.telefono') }}</span>
@@ -55,7 +88,7 @@ function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
                 <!-- Vehículo -->
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-blue-400 p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🚗 {{ $t('tabla.vehiculo') }}</h3>
-                    <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.marca') }}</span>
                             {{ recepcion.vehicle?.brand?.name ?? '—' }}</div>
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.modelo') }}</span>
@@ -74,7 +107,7 @@ function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
                 <!-- Inspección -->
                 <div class="bg-white rounded-xl shadow-sm border-l-4 border-yellow-400 p-6">
                     <h3 class="text-xs font-black text-[#10213E] uppercase tracking-widest mb-3 border-b pb-2">🔍 {{ $t('inspeccion.titulo') }}</h3>
-                    <div class="grid grid-cols-3 gap-4 text-sm mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm mb-4">
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.kilometraje') }}</span>
                             {{ recepcion.miles ? Number(recepcion.miles).toLocaleString('en-US') + ' mi' : '—' }}</div>
                         <div><span class="text-xs text-gray-400 uppercase font-bold block">{{ $t('recepcion_form.gasolina') }}</span>
@@ -90,6 +123,21 @@ function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
                                 {{ $t('inspeccion.' + w) }}
                             </span>
                         </div>
+                    </div>
+                    <div v-if="recepcion.inventory?.length" class="mt-4">
+                        <span class="text-xs text-gray-400 uppercase font-bold block mb-2">{{ $t('recepcion_form.inventarioIngreso') }}</span>
+                        <div class="flex gap-2 flex-wrap">
+                            <span v-for="i in recepcion.inventory" :key="i"
+                                class="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-lg">
+                                {{ $t('recepcion_form.inv_' + i) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div v-if="recepcion.damages?.length" class="mt-4">
+                        <span class="text-xs text-gray-400 uppercase font-bold block mb-2">{{ $t('recepcion_form.danos') }}</span>
+                        <ul class="text-sm text-gray-700 list-disc ml-5 space-y-1">
+                            <li v-for="(d, idx) in recepcion.damages" :key="idx">{{ $t('recepcion_form.zona_' + d.zone) }}<span v-if="d.severity" class="capitalize"> ({{ d.severity }})</span><span v-if="d.note"> — {{ d.note }}</span></li>
+                        </ul>
                     </div>
                     <div class="mt-4">
                         <span class="text-xs text-gray-400 uppercase font-bold block mb-1">{{ $t('inspeccion.sintomas') }}</span>

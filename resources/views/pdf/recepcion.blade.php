@@ -116,10 +116,10 @@ THANK YOU FOOTER & PÁGINA 2
 <table class="header-wrap">
 <tr>
 <td class="header-logo-cell">
-<img src="{{ public_path('images/Taller.png') }}" alt="Logo">
+<img src="{{ \App\Models\Setting::current()->logoFilePath() }}" alt="Logo">
 </td>
 <td class="header-info-cell">
-<div class="company-name">{{ $settings->company_name ?? 'JK AUTOMOTIVE' }}</div>
+<div class="company-name">{{ $settings->company_name ?: 'Mi taller' }}</div>
 <div class="company-sub">
 {{ $settings->address ?? '' }}<br>
 Phone: {{ $settings->phone ?? '' }} | Lic: #{{ $settings->license_number ?? '' }}
@@ -139,7 +139,7 @@ Phone: {{ $settings->phone ?? '' }} | Lic: #{{ $settings->license_number ?? '' }
 <table class="info-table">
 <tr>
 <td class="lbl">Name</td>
-<td class="val">{{ $recepcion->client?->first_name }} {{ $recepcion->client?->last_name }}</td>
+<td class="val">{{ $recepcion->client?->first_name }} {{ $recepcion->client?->last_name }} <span style="color:#EE2857;font-weight:bold;">({{ $recepcion->client?->client_number }})</span></td>
 <td class="lbl">Make / Model</td>
 <td class="val val-strong">
 {{ $recepcion->vehicle?->brand?->name ?? '—' }} /
@@ -225,6 +225,22 @@ $fuelPct = $fuelMap[$recepcion->fuel_level] ?? 50;
 </tbody>
 </table>
 
+{{-- ── GARANTÍA (configurable en Configuración) ── --}}
+@if($settings->warranty_service_enabled || $settings->warranty_parts_enabled)
+<div style="border:1px solid #d5d8de; border-radius:6px; padding:8px 10px; margin-top:10px; font-size:8.5px; color:#333;">
+<strong style="color:#10213E;">GARANTÍA</strong><br>
+@if($settings->warranty_service_enabled)
+Servicio: {{ $settings->warranty_service_days }} días@if($settings->warranty_service_km), o {{ number_format($settings->warranty_service_km) }} km@endif, lo que ocurra primero.<br>
+@endif
+@if($settings->warranty_parts_enabled)
+Refacciones: {{ $settings->warranty_parts_days }} días a partir de la entrega.<br>
+@endif
+@if($settings->warranty_notes)
+{{ $settings->warranty_notes }}
+@endif
+</div>
+@endif
+
 {{-- ── TÉRMINOS LEGALES ── --}}
 <div class="legal-box">
 <strong>Terms:</strong> {{ $settings->clauses ?? 'You are entitled by law to the return of all parts replaced, except those for which there is a core charge. STORAGE FEES: Vehicles not picked up within 48 hours of completion are subject to a $50/day storage fee. I authorize the above repairs and employees to operate the vehicle for testing.' }}
@@ -252,7 +268,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <tr>
 <td>
 <div class="photo-title">{{ __('Evidencia Fotográfica') }}</div>
-<div class="photo-client-sub">Client: {{ strtoupper($recepcion->client?->first_name . ' ' . $recepcion->client?->last_name) }}</div>
+<div class="photo-client-sub">Cliente: {{ strtoupper($recepcion->client?->first_name . ' ' . $recepcion->client?->last_name) }} · No. {{ $recepcion->client?->client_number }}</div>
 </td>
 <td style="text-align: right; vertical-align: bottom;">
 <div class="photo-folio">Order #{{ str_pad($recepcion->id, 4, '0', STR_PAD_LEFT) }}</div>
@@ -266,7 +282,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <tr>
 @foreach($row as $photo)
 <td style="text-align: center; padding: 8px; border: none;">
-<img src="{{ public_path('storage/' . str_replace('\\', '/', $photo)) }}" class="photo-img" alt="Vehicle photo">
+<img src="{{ storage_path('app/public/' . str_replace('\\', '/', $photo)) }}" class="photo-img" alt="Foto del vehículo">
 </td>
 @endforeach
 @if(count($row) === 1) <td style="width: 50%;"></td> @endif
@@ -277,7 +293,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <div class="page-footer-bar">
 <table style="width: 100%; border-collapse: collapse;">
 <tr>
-<td><strong>{{ $settings->company_name ?? 'JK AUTOMOTIVE' }}</strong> | {{ $settings->address ?? '' }}</td>
+<td><strong>{{ $settings->company_name ?: 'Mi taller' }}</strong> | {{ $settings->address ?? '' }}</td>
 <td style="text-align: right;">Official Attachment to Order #{{ str_pad($recepcion->id, 4, '0', STR_PAD_LEFT) }} | Page 2 of 2</td>
 </tr>
 </table>

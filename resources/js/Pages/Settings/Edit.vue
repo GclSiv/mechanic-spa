@@ -8,6 +8,9 @@ const props = defineProps({ settings: Object });
 
 const form = useForm({
     company_name: props.settings.company_name,
+    razon_social: props.settings.razon_social ?? '',
+    rfc: props.settings.rfc ?? '',
+    email: props.settings.email ?? '',
     address:      props.settings.address,
     phone:        props.settings.phone,
     license_number: props.settings.license_number,
@@ -15,6 +18,12 @@ const form = useForm({
     logo:         null,
     primary_color:   props.settings.primary_color,
     secondary_color: props.settings.secondary_color,
+    warranty_service_enabled: !!props.settings.warranty_service_enabled,
+    warranty_service_days:    props.settings.warranty_service_days ?? 30,
+    warranty_service_km:      props.settings.warranty_service_km ?? null,
+    warranty_parts_enabled:   !!props.settings.warranty_parts_enabled,
+    warranty_parts_days:      props.settings.warranty_parts_days ?? 90,
+    warranty_notes:           props.settings.warranty_notes ?? '',
 });
 
 const submit = () => {
@@ -53,11 +62,25 @@ const submit = () => {
                                     <label class="block text-xs font-black text-gray-500 uppercase mb-1">{{ t('settings.nombreComercial') }}</label>
                                     <input v-model="form.company_name" type="text" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50">
                                 </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-black text-gray-500 uppercase mb-1">Razón social</label>
+                                        <input v-model="form.razon_social" type="text" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-black text-gray-500 uppercase mb-1">RFC</label>
+                                        <input v-model="form.rfc" type="text" maxlength="13" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50 uppercase">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-black text-gray-500 uppercase mb-1">Correo</label>
+                                        <input v-model="form.email" type="email" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50">
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="block text-xs font-black text-gray-500 uppercase mb-1">{{ t('settings.direccion') }}</label>
                                     <input v-model="form.address" type="text" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50">
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs font-black text-gray-500 uppercase mb-1">{{ t('settings.telefono') }}</label>
                                         <input v-model="form.phone" type="text" class="w-full border-gray-200 rounded-xl focus:ring-jk-blue shadow-sm bg-gray-50">
@@ -90,7 +113,7 @@ const submit = () => {
                             </div>
 
                             <!-- Color pickers -->
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                                     <label class="block text-[10px] font-black text-gray-500 uppercase mb-2">{{ t('settings.botones') }}</label>
                                     <div class="flex items-center gap-2">
@@ -116,6 +139,56 @@ const submit = () => {
                             <textarea v-model="form.clauses" rows="4"
                                 class="w-full border-gray-200 rounded-2xl shadow-sm font-mono text-sm focus:ring-jk-blue bg-gray-50 mt-2">
                             </textarea>
+                        </div>
+
+                        <!-- GARANTÍA: se imprime en la hoja de recepción -->
+                        <div class="md:col-span-2 space-y-4">
+                            <h3 class="text-md font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">
+                                Garantía (aparece en la hoja de recepción)
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="rounded-2xl border border-gray-200 p-4 space-y-3">
+                                    <label class="flex items-center gap-2 font-bold text-sm text-gray-700">
+                                        <input type="checkbox" v-model="form.warranty_service_enabled" class="rounded border-gray-300">
+                                        Garantía de servicio (mano de obra)
+                                    </label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <span class="text-xs text-gray-500 uppercase font-bold">Días</span>
+                                            <input v-model="form.warranty_service_days" type="number" min="0" max="3650"
+                                                :disabled="!form.warranty_service_enabled"
+                                                class="w-full border-gray-200 rounded-xl bg-gray-50 disabled:opacity-40">
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-gray-500 uppercase font-bold">Kilómetros (opcional)</span>
+                                            <input v-model="form.warranty_service_km" type="number" min="0" max="1000000"
+                                                :disabled="!form.warranty_service_enabled"
+                                                class="w-full border-gray-200 rounded-xl bg-gray-50 disabled:opacity-40">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-2xl border border-gray-200 p-4 space-y-3">
+                                    <label class="flex items-center gap-2 font-bold text-sm text-gray-700">
+                                        <input type="checkbox" v-model="form.warranty_parts_enabled" class="rounded border-gray-300">
+                                        Garantía de refacciones
+                                    </label>
+                                    <div>
+                                        <span class="text-xs text-gray-500 uppercase font-bold">Días desde la entrega</span>
+                                        <input v-model="form.warranty_parts_days" type="number" min="0" max="3650"
+                                            :disabled="!form.warranty_parts_enabled"
+                                            class="w-full border-gray-200 rounded-xl bg-gray-50 disabled:opacity-40">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="text-xs text-gray-500 uppercase font-bold">Condiciones adicionales (opcional)</span>
+                                <textarea v-model="form.warranty_notes" rows="2" maxlength="1000"
+                                    class="w-full border-gray-200 rounded-2xl shadow-sm text-sm focus:ring-jk-blue bg-gray-50 mt-1">
+                                </textarea>
+                            </div>
                         </div>
                     </div>
 

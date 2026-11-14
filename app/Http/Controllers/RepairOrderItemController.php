@@ -47,7 +47,7 @@ class RepairOrderItemController extends Controller
             'items'
         ])->findOrFail($id);
 
-        $settings = Setting::first();
+        $settings = Setting::current();
         
         // 2. Usamos la calculadora inteligente
         $breakdown = $calculator->execute($orden);

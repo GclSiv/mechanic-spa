@@ -34,7 +34,7 @@ function submit() {
                     </div>
                     <div class="p-6 space-y-5">
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre *</label>
                                 <input v-model="form.first_name" type="text"

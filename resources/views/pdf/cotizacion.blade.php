@@ -38,7 +38,7 @@
     {{-- HEADER --}}
     <table class="header-table">
         <tr>
-            <td class="header-logo-cell"><img src="{{ public_path('images/Taller.png') }}"></td>
+            <td class="header-logo-cell"><img src="{{ \App\Models\Setting::current()->logoFilePath() }}"></td>
             <td class="header-info-cell">
                 <div class="company-name">{{ $settings->company_name }}</div>
                 <div style="font-size: 8px; color: #555;">{{ $settings->address }}<br>Phone: {{ $settings->phone }}</div>
@@ -112,7 +112,7 @@
                         <td style="text-align: right;">${{ number_format($subtotal, 2) }}</td>
                     </tr>
                     <tr class="total-row">
-                        <td>{{ (float)$tax_rate === 8.75 ? 'TAX (8.75%)' : 'IVA (' . (float)$tax_rate . '%)' }}</td>
+                        <td>{{ (float)$tax_rate === 8.0 ? 'IVA zona fronteriza (8%)' : 'IVA (16%)' }}</td>
         <td>${{ number_format($iva, 2) }}</td>
                     </tr>
                     <tr class="total-row grand-total">

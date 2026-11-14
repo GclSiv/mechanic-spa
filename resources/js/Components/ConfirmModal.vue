@@ -54,7 +54,7 @@ const emit = defineEmits(['confirm', 'cancel']);
                         <!-- Botones -->
                         <div class="flex gap-3 p-4">
                             <button @click="emit('cancel')"
-                                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-bold hover:bg-gray-50:bg-gray-700 transition">
+                                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-bold hover:bg-gray-50 transition">
                                 {{ cancelText }}
                             </button>
                             <button @click="emit('confirm')"

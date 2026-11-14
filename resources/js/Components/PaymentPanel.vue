@@ -70,7 +70,7 @@ function metodLabel(method) {
         </h3>
 
         <!-- Financial summary cards -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             <div class="bg-gray-50 rounded-lg p-3 text-center">
                 <p class="text-xs text-gray-400 uppercase font-bold mb-1">{{ t('payments.totalOrden') }}</p>
                 <p class="text-lg font-black text-[#10213E]">${{ Number(breakdown.total).toFixed(2) }}</p>

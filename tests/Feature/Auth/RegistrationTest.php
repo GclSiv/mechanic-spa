@@ -18,6 +18,7 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        $this->markTestSkipped('Registro público desactivado en routes/auth.php: los usuarios los crea el administrador.');
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',

@@ -8,7 +8,7 @@ import { ref, computed } from 'vue';
 defineProps({ recepciones: Array });
 
 const page = usePage();
-const isAdmin = computed(() => page.props.auth.role === 'admin');
+const isAdmin = computed(() => page.props.auth.isAdmin);
 const { t } = useI18n();
 
 const search = ref('');
@@ -79,7 +79,7 @@ function doDel() {
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
                                 <tr>
                                     <th class="px-5 py-3">#</th>
@@ -93,7 +93,7 @@ function doDel() {
                             </thead>
                             <tbody class="divide-y divide-gray-50">
                                 <tr v-for="rec in paginated" :key="rec.id"
-                                    class="hover:bg-gray-50:bg-gray-700 transition-colors">
+                                    class="hover:bg-gray-50 transition-colors">
                                     <td class="px-5 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
                                     <td class="px-5 py-4">
                                         <p class="font-bold text-[#10213E]">
@@ -121,6 +121,8 @@ function doDel() {
                                                 class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                                 Ver
                                             </Link>
+                                            <a v-if="rec.vehicle" :href="route('vehicles.history', rec.vehicle.id)" title="Historial del vehículo"
+                                                class="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100">🕘</a>
                                             <Link :href="route('recepcion.edit', rec.id)"
                                                 class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                                 ✏️
@@ -142,7 +144,7 @@ function doDel() {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
 
                     <!-- Paginación -->

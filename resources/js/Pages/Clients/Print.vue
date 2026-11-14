@@ -56,7 +56,7 @@ const volver = () => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-10 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-10 mb-8">
                 <div class="space-y-2">
                     <h3 class="bg-jk-blue text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">Información del Cliente</h3>
                     <div class="text-sm px-1">
@@ -69,7 +69,7 @@ const volver = () => {
 
                 <div class="space-y-2">
                     <h3 class="bg-jk-red text-white px-3 py-1 text-xs font-bold uppercase tracking-widest">Información del Vehículo</h3>
-                    <div class="text-sm px-1 grid grid-cols-2 gap-x-2">
+                    <div class="text-sm px-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2">
                         <p><span class="font-bold">Marca:</span> {{ client.brand?.name }}</p>
                         <p><span class="font-bold">Modelo:</span> {{ client.vehicle_model?.name }}</p>
                         <p><span class="font-bold">Año:</span> {{ client.year }}</p>

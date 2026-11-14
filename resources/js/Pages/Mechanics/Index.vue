@@ -55,7 +55,7 @@ function doDel() {
                         </p>
                     </div>
 
-                    <table class="w-full text-sm text-left">
+                    <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                         <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
                             <tr>
                                 <th class="px-6 py-3">#</th>
@@ -69,7 +69,7 @@ function doDel() {
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <tr v-for="m in mechanics" :key="m.id"
-                                class="hover:bg-gray-50:bg-gray-700 transition-colors">
+                                class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-gray-400 font-mono">{{ m.id }}</td>
                                 <td class="px-6 py-4 font-bold text-[#10213E]">{{ m.name }}</td>
                                 <td class="px-6 py-4 text-gray-600 text-xs">
@@ -100,7 +100,7 @@ function doDel() {
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table></div>
                 </div>
             </div>
         </div>

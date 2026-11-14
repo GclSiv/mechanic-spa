@@ -48,7 +48,7 @@ function submit() { form.post(route('parts.store')); }
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.sku" class="text-red-500 text-xs mt-1">{{ form.errors.sku }}</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.costo') }}</label>
                                 <input v-model="form.cost_price" type="number" step="0.01" min="0"
@@ -62,7 +62,7 @@ function submit() { form.post(route('parts.store')); }
                                 <p v-if="form.errors.sale_price" class="text-red-500 text-xs mt-1">{{ form.errors.sale_price }}</p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.stock') }}</label>
                                 <input v-model="form.stock" type="number" min="0"

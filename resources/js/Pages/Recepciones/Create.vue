@@ -8,6 +8,7 @@ import { Head, useForm, usePage, router } from "@inertiajs/vue3";
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import IconEngine from "@/Components/Icons/IconEngine.vue";
+import DamageDiagram from '@/Components/DamageDiagram.vue';
 import IconAbs from "@/Components/Icons/IconAbs.vue";
 import IconOil from "@/Components/Icons/IconOil.vue";
 import IconBattery from "@/Components/Icons/IconBattery.vue";
@@ -107,11 +108,13 @@ const form = useForm({
     plate: "",
     vin: "",       // Corregido: en tu BD se llama 'vin', no 'vin_serial'
     engine: "",    // Nuevo: tu tabla vehicles ahora tiene motor
+    color: "",
 
     // ─── Recepción (Datos transaccionales, SIEMPRE van) ───
     miles: "",
     fuel_level: "1/2",
     witnesses: [],
+    damages: [],
     inventory: [],
     photos: [], 
     symptoms: "",
@@ -170,6 +173,20 @@ const toggleWitness = (key) => {
     const idx = form.witnesses.indexOf(key);
     if (idx === -1) form.witnesses.push(key);
     else form.witnesses.splice(idx, 1);
+};
+
+const inventoryOptions = computed(() => [
+    { key: "llanta",      label: t('recepcion_form.inv_llanta') },
+    { key: "gato",        label: t('recepcion_form.inv_gato') },
+    { key: "estereo",     label: t('recepcion_form.inv_estereo') },
+    { key: "tapetes",     label: t('recepcion_form.inv_tapetes') },
+    { key: "herramienta", label: t('recepcion_form.inv_herramienta') },
+]);
+
+const toggleList = (list, key) => {
+    const idx = list.indexOf(key);
+    if (idx === -1) list.push(key);
+    else list.splice(idx, 1);
 };
 
 const odometerDisplay = computed(() => {
@@ -335,7 +352,7 @@ const submit = () => {
                                         <span class="text-green-600 text-sm">✅</span>
                                         <p class="text-xs font-bold text-green-800">{{ $t('recepcion.clienteSeleccionado') }} — {{ $t('recepcion_form.clienteEditarDatos') }}</p>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                                         <div>
                                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('recepcion_form.nombre') }}</label>
                                             <input v-model="form.first_name" type="text"
@@ -455,7 +472,7 @@ const submit = () => {
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                                     <div>
                                         <InputLabel for="plate" :value="$t('recepcion_form.placas')" />
                                         <TextInput id="plate" type="text" class="mt-1 block w-full uppercase" v-model="form.plate" :placeholder="$t('recepcion_form.placasPh')" />
@@ -470,6 +487,11 @@ const submit = () => {
                                         <InputLabel for="engine" :value="$t('recepcion_form.motor')" />
                                         <TextInput id="engine" type="text" class="mt-1 block w-full uppercase" v-model="form.engine" :placeholder="$t('recepcion_form.motorPh')" />
                                         <InputError class="mt-2" :message="form.errors.engine" />
+                                    </div>
+                                    <div>
+                                        <InputLabel for="color" :value="$t('recepcion_form.colorLabel')" />
+                                        <TextInput id="color" type="text" class="mt-1 block w-full" v-model="form.color" :placeholder="$t('recepcion_form.colorPh')" />
+                                        <InputError class="mt-2" :message="form.errors.color" />
                                     </div>
                                 </div>
                             </div>
@@ -521,6 +543,28 @@ const submit = () => {
                                         </div>
                                         <span class="text-xs font-bold tracking-wider">{{ w.label }}</span>
                                     </button>
+                                </div>
+                            </div>
+
+                            <!-- Inventario de ingreso -->
+                            <div class="mb-6">
+                                <InputLabel :value="$t('recepcion_form.inventarioIngreso')" />
+                                <p class="text-xs text-gray-500 mt-1">{{ $t('recepcion_form.inventarioAyuda') }}</p>
+                                <div class="mt-3 flex flex-wrap gap-3">
+                                    <button v-for="item in inventoryOptions" :key="item.key" type="button" @click="toggleList(form.inventory, item.key)"
+                                        class="px-4 py-2 rounded-lg border-2 text-xs font-bold transition-all"
+                                        :class="form.inventory.includes(item.key) ? 'border-jk-blue bg-jk-blue text-white' : 'border-gray-200 text-gray-500 hover:border-gray-400'">
+                                        {{ item.label }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Diagrama de daños previos -->
+                            <div class="mb-6">
+                                <InputLabel :value="$t('recepcion_form.danos')" />
+                                <p class="text-xs text-gray-500 mt-1">{{ $t('recepcion_form.danosAyuda') }}</p>
+                                <div class="mt-3">
+                                    <DamageDiagram v-model="form.damages" />
                                 </div>
                             </div>
 

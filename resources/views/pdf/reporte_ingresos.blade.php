@@ -141,7 +141,7 @@
                 <img src="{{ public_path('images/Taller.png') }}" alt="Logo">
             </td>
             <td class="header-info-cell">
-                <div class="company-name">{{ $settings->company_name ?? 'JK Automotive' }}</div>
+                <div class="company-name">{{ $settings->company_name ?: 'Mi taller' }}</div>
                 <div class="company-sub">
                     {{ $settings->address ?? '' }}<br>
                     {{ $settings->phone ?? '' }}
@@ -270,7 +270,7 @@
 
     {{-- ── FOOTER ───────────────────────────────────────────── --}}
     <div class="footer-note">
-        {{ $settings->company_name ?? 'JK Automotive' }} &mdash;
+        {{ $settings->company_name ?: 'Mi taller' }} &mdash;
         {{ $lang === 'en'
             ? 'This report includes only orders with status Repaired or Delivered. Generated automatically.'
             : 'Este reporte incluye únicamente órdenes con estatus Reparado o Entregado. Generado automáticamente.' }}

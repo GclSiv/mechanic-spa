@@ -74,7 +74,7 @@ function fmt(val) {
                     </div>
 
                     <div v-else class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b border-gray-100">
                                 <tr>
                                     <th class="px-5 py-3">{{ $t('finance.folio') }}</th>
@@ -112,7 +112,7 @@ function fmt(val) {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
 
@@ -129,7 +129,7 @@ function fmt(val) {
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left">
+                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
                             <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b border-gray-100">
                                 <tr>
                                     <th class="px-5 py-3">{{ $t('finance.folio') }}</th>
@@ -180,7 +180,7 @@ function fmt(val) {
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
 

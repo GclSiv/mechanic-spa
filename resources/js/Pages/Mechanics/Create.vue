@@ -17,6 +17,7 @@ const form = useForm({
     gender_id:        '',
     mechanic_type_id: '',
     phone:            '',
+    commission_rate:  0,
 });
 
 function submit() {
@@ -76,7 +77,7 @@ function submit() {
                             <p v-if="form.errors.role" class="text-red-500 text-xs mt-1">{{ form.errors.role }}</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.especialidad') }}</label>
                                 <select v-model="form.mechanic_type_id"
@@ -102,6 +103,13 @@ function submit() {
                             <input v-model="form.phone" type="text" :placeholder="t('mechanics_form.telefonoPh')"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.phone" class="text-red-500 text-xs mt-1">{{ form.errors.phone }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Comisión (% sobre mano de obra, sin IVA)</label>
+                            <input v-model="form.commission_rate" type="number" min="0" max="100" step="0.01"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            <p v-if="form.errors.commission_rate" class="text-red-500 text-xs mt-1">{{ form.errors.commission_rate }}</p>
                         </div>
 
                         <div class="flex gap-3 pt-4 border-t border-gray-100">

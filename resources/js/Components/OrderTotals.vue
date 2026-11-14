@@ -11,7 +11,7 @@ defineProps({
 
 <template>
     <div class="w-full max-w-sm ml-auto bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <table class="w-full text-sm text-gray-700">
+        <div class="overflow-x-auto"><table class="w-full text-sm text-gray-700">
             <tbody>
                 <tr>
                     <td class="py-1.5 font-bold text-gray-500 text-right pr-4">{{ t('ordertotals.subtotalPartes') }}</td>
@@ -36,7 +36,7 @@ defineProps({
                     <td class="py-3 text-right font-black text-[#10213E] w-24">${{ Number(breakdown?.total || 0).toFixed(2) }}</td>
                 </tr>
             </tbody>
-        </table>
+        </table></div>
         <p v-if="breakdown?.tax_rate == 8.75" class="text-[10px] text-gray-400 text-right mt-2 italic leading-tight">
             {{ t('ordertotals.notaUsa') }}
         </p>

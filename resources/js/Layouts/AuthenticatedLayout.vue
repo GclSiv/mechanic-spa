@@ -61,7 +61,7 @@ watch(
                     <div class="flex">
                         <div class="flex shrink-0 items-center">
                             <Link :href="route('dashboard')">
-                                <img src="/images/logo-taller.svg" class="h-10 w-auto" alt="Logo" />
+                                <img :src="page.props.logo_url" class="h-10 w-auto" alt="Logo" />
                             </Link>
                         </div>
                         <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex text-xs">
@@ -75,28 +75,28 @@ watch(
                                 {{ $t('nav.recepciones') }}
                             </NavLink>
                             <NavLink
-                                v-if="$page.props.auth.role === 'admin'"
+                                v-if="$page.props.auth.isAdmin"
                                 :href="route('mechanics.index')"
                                 :active="route().current('mechanics.*')"
                             >
                                 {{ $t('nav.personal') }}
                             </NavLink>
                             <NavLink
-                                v-if="$page.props.auth.role === 'admin'"
+                                v-if="$page.props.auth.isAdmin"
                                 :href="route('parts.index')"
                                 :active="route().current('parts.*')"
                             >
                                 {{ $t('nav.inventario') }}
                             </NavLink>
                             <NavLink
-                                v-if="$page.props.auth.role === 'admin'"
+                                v-if="$page.props.auth.isAdmin && $page.props.modules.reportes"
                                 :href="route('reports.index')"
                                 :active="route().current('reports.*')"
                             >
                                 {{ $t('nav.reportes') }}
                             </NavLink>
                             <NavLink
-                                v-if="$page.props.auth.role === 'admin'"
+                                v-if="$page.props.auth.isAdmin && $page.props.modules.caja"
                                 :href="route('finance.index')"
                                 :active="route().current('finance.*')"
                                 class="font-black"
@@ -127,7 +127,8 @@ watch(
                                 </template>
                                 <template #content>
                                     <DropdownLink :href="route('profile.edit')">{{ $t('nav.miPerfil') }}</DropdownLink>
-                                    <DropdownLink v-if="$page.props.auth.role === 'admin'" :href="route('settings.edit')" class="font-bold text-jk-blue">
+                                    <DropdownLink v-if="$page.props.auth.isOwner" :href="route('owner.modules.index')" class="font-bold text-[#EE2857]">Módulos del sistema</DropdownLink>
+                                    <DropdownLink v-if="$page.props.auth.isAdmin" :href="route('settings.edit')" class="font-bold text-jk-blue">
                                         {{ $t('nav.configuracion2') }}
                                     </DropdownLink>
                                     <div class="border-t border-gray-100" />
@@ -170,28 +171,28 @@ watch(
                         {{ $t('nav.recepciones') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
-                        v-if="$page.props.auth.role === 'admin'"
+                        v-if="$page.props.auth.isAdmin"
                         :href="route('mechanics.index')"
                         :active="route().current('mechanics.*')"
                     >
                         {{ $t('nav.personal') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
-                        v-if="$page.props.auth.role === 'admin'"
+                        v-if="$page.props.auth.isAdmin"
                         :href="route('parts.index')"
                         :active="route().current('parts.*')"
                     >
                         {{ $t('nav.inventario') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
-                        v-if="$page.props.auth.role === 'admin'"
+                        v-if="$page.props.auth.isAdmin && $page.props.modules.reportes"
                         :href="route('reports.index')"
                         :active="route().current('reports.*')"
                     >
                         {{ $t('nav.reportes') }}
                     </ResponsiveNavLink>
                     <ResponsiveNavLink
-                        v-if="$page.props.auth.role === 'admin'"
+                        v-if="$page.props.auth.isAdmin && $page.props.modules.caja"
                         :href="route('finance.index')"
                         :active="route().current('finance.*')"
                     >

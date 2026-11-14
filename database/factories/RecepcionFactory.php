@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Client;
+use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -9,15 +11,18 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RecepcionFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            //
+            'client_id'  => Client::factory(),
+            'vehicle_id' => Vehicle::factory(),
+            'fuel_level' => $this->faker->randomElement(['Vacío', '1/4', '1/2', '3/4', 'Lleno']),
+            'miles'      => (string) $this->faker->numberBetween(10000, 250000),
+            'symptoms'   => $this->faker->sentence(),
+            'witnesses'  => [],
+            'inventory'  => [],
+            'photos'     => null,
+            'status'     => 'Pendiente',
         ];
     }
 }

@@ -21,6 +21,7 @@ class Recepcion extends Model
         'symptoms',
         'witnesses',
         'inventory',
+        'damages',
         'photos',
     ];
 
@@ -30,6 +31,7 @@ class Recepcion extends Model
     protected $casts = [
         'witnesses' => 'array',
         'inventory' => 'array',
+        'damages'   => 'array',
         'photos'    => 'array',
     ];
 

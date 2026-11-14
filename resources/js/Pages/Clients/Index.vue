@@ -20,9 +20,9 @@ defineProps({
                     Directorio de Clientes
                 </h2>
                 <!-- Botón para crear un nuevo cliente directamente (opcional) -->
-                <Link :href="route('clientes.create')" 
+                <Link :href="route('clients.import.index')" 
                       class="bg-jk-blue hover:bg-blue-900 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
-                    + NUEVO CLIENTE
+                    Importar clientes
                 </Link>
             </div>
         </template>
@@ -32,7 +32,7 @@ defineProps({
                 <!-- Contenedor de la Tabla -->
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border-t-4 border-jk-blue">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
+                        <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-100">
                                 <tr>
                                     <th scope="col" class="px-6 py-4 text-left text-xs font-black text-gray-500 uppercase tracking-wider">Nombre del Cliente</th>
@@ -44,7 +44,7 @@ defineProps({
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <!-- Iteramos sobre los clientes -->
-                                <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50:bg-gray-700 transition-colors">
+                                <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="h-10 w-10 flex-shrink-0 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
@@ -69,7 +69,11 @@ defineProps({
                                         {{ client.address || 'Sin dirección' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <!-- Enlaces para editar o ver historial (ajusta las rutas según las tengas) -->
+                                        <div v-for="v in client.vehicles" :key="v.id" class="mb-1">
+                                            <a :href="route('vehicles.history', v.id)" class="text-xs font-bold text-[#EE2857] hover:underline">
+                                                🕘 {{ v.brand?.name ?? v.brand }} {{ v.vehicle_model?.name ?? v.model }} · {{ v.plate }} — Historial
+                                            </a>
+                                        </div>
                                         <Link :href="route('clientes.edit', client.id)" class="text-jk-blue hover:text-blue-900 font-bold">
                                             Editar
                                         </Link>
@@ -85,7 +89,7 @@ defineProps({
                                     </td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
             </div>

@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $user    = auth()->user();
         $search  = $request->input('search');
-        $isAdmin = $user->role === 'admin';
+        $isAdmin = $user->isAdmin();
 
         // ── Quick Stats ────────────────────────────────────────────────
         $pendingStatuses = RepairOrderStatus::whereNotIn('slug', ['entregado', 'rechazado'])->pluck('id');

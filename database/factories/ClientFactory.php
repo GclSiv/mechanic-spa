@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\ClientStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -9,17 +10,19 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ClientFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            'first_name' => $this->faker->firstName(), // 👈 Esto es lo que falta
-        'last_name'  => $this->faker->lastName(),
-        'phone'      => $this->faker->phoneNumber(),//
+            'first_name'       => $this->faker->firstName(),
+            'last_name'        => $this->faker->lastName(),
+            'phone'            => $this->faker->numerify('##########'),
+            'address'          => $this->faker->streetAddress(),
+            'rfc'              => null,
+            'country'          => 'MX',
+            'client_status_id' => ClientStatus::firstOrCreate(
+                ['name' => 'Active'],
+                ['color' => 'bg-green-500']
+            )->id,
         ];
     }
 }

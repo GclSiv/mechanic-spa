@@ -134,6 +134,7 @@ class RecepcionController extends Controller
                     'plate'     => $request->plate,
                     'vin'       => $request->vin,
                     'engine'    => $request->engine,
+                    'color'     => $request->color,
                 ]);
             }
         }
@@ -154,6 +155,7 @@ class RecepcionController extends Controller
             'miles'      => $request->miles,
             'witnesses'  => $request->witnesses,
             'inventory'  => $request->inventory,
+            'damages'    => $request->damages ?: null,
             'photos'     => !empty($photoPaths) ? $photoPaths : null,
             'symptoms'   => $request->symptoms,
         ]);
@@ -253,62 +255,10 @@ class RecepcionController extends Controller
         }
 
         // 3. Actualizar Recepción (Datos Transaccionales)
-        $recepcion->update($request->only(['miles', 'fuel_level', 'symptoms', 'witnesses', 'inventory']));
+        $recepcion->update($request->only(['miles', 'fuel_level', 'symptoms', 'witnesses', 'inventory', 'damages']));
 
         return redirect()->route('recepcion.index')->with('success', 'Recepción actualizada correctamente');
     }
-    /**
-     * Muestra la Orden de Reparación con todos sus datos vinculados.
-     * (ESTE ES TU MÉTODO ORIGINAL INTACTO)
-     */
-    public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator)
-    {
-        $order->load([
-            'items',                      
-            'recepcion.client',           
-            'recepcion.vehicle.brand',    
-            'recepcion.vehicle.vehicleModel', 
-        ]);
-
-        $breakdown = $calculator->execute($order);
-
-        return Inertia::render('RepairOrders/Show', [
-            'orden'               => $order,
-            'recepcion'           => $order->recepcion,
-            'financial_breakdown' => $breakdown,
-            'client'              => $order->recepcion->client ?? null,
-            'vehicle'             => $order->recepcion->vehicle ?? null,
-        ]);
-    }
-
-    /**
-     * Agrega un nuevo concepto (refacción o mano de obra) a la orden.
-     * (ESTE ES TU MÉTODO ORIGINAL INTACTO)
-     */
-    public function addItem(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
-    {
-        $validated = $request->validate([
-            'description' => 'required|string',
-            'type'        => 'required|in:part,labor',
-            'quantity'    => 'required|numeric|min:0.01',
-            'unit_price'  => 'required|numeric|min:0',
-        ]);
-
-        $validated['subtotal'] = $validated['quantity'] * $validated['unit_price'];
-
-        try {
-            DB::transaction(function () use ($order, $validated, $calculator) {
-                $order->items()->create($validated);
-                $calculator->execute($order);
-            });
-        } catch (\Throwable $e) {
-            return back()->withErrors('Error al agregar el item: ' . $e->getMessage());
-        }
-
-        return redirect()->route('repair-orders.show', $order)
-            ->with('success', 'Concepto agregado correctamente.');
-    }
-
     /**
      * Genera el PDF de la nota de recepción.
      */
@@ -325,7 +275,7 @@ class RecepcionController extends Controller
         ]);
 
         // 2. Configuración global del taller
-        $settings = \App\Models\Setting::first(); 
+        $settings = \App\Models\Setting::current(); 
 
         // 3. Generar PDF apuntando a la carpeta "pdf" y pasando AMBAS variables
         $pdf = Pdf::loadView('pdf.recepcion', [

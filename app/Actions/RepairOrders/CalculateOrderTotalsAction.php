@@ -4,52 +4,48 @@ namespace App\Actions\RepairOrders;
 
 use App\Models\RepairOrder;
 use App\Models\Setting;
+use App\Support\TaxCalculator;
 use Illuminate\Support\Facades\DB;
 
 class CalculateOrderTotalsAction
 {
     public function execute(RepairOrder $repairOrder): array
     {
-        // 1. Obtener la suma separada directamente de la base de datos (Refacciones vs Mano de Obra)
+        // 1. Sumas por tipo directamente desde la base de datos
         $items = $repairOrder->items()
             ->select('type', DB::raw('SUM(subtotal) as total'))
             ->groupBy('type')
             ->pluck('total', 'type');
 
-        // Extraemos los valores garantizando que sean números (si no hay, es 0)
         $partsTotal = (float) ($items['part'] ?? 0);
         $laborTotal = (float) ($items['labor'] ?? 0);
-        $subtotalGeneral = $partsTotal + $laborTotal;
 
-        // 2. Obtener la configuración fiscal actual de la empresa
-        $setting = Setting::first();
-        $taxRate = $setting && $setting->iva !== null ? (float) $setting->iva : 16.00;
+        // 2. La tasa queda fijada en la orden. Si aún no tiene, toma la configuración vigente.
+        //    Así un cambio futuro en settings no altera cotizaciones anteriores.
+        $rate = $repairOrder->tax_rate !== null
+            ? (float) $repairOrder->tax_rate
+            : $this->configuredRate();
 
-        $taxAmount = 0;
-
-        // 3. LA LÓGICA FISCAL INTELIGENTE
-        if ($taxRate == 8.75) {
-            // Regla USA: El Tax (8.75%) SOLO aplica a las refacciones (Piezas)
-            $taxAmount = $partsTotal * ($taxRate / 100);
-        } else {
-            // Regla MÉXICO: El IVA (16% u otros) aplica parejo a TODO (Piezas + Mano de obra)
-            $taxAmount = $subtotalGeneral * ($taxRate / 100);
+        if (! TaxCalculator::isValidRate($rate)) {
+            $rate = TaxCalculator::GENERAL;
         }
 
-        // Calculamos el Gran Total
-        $total = $subtotalGeneral + $taxAmount;
+        // 3. Desglose fiscal (IVA general 16% o zona fronteriza 8% sobre todo el concepto)
+        $breakdown = TaxCalculator::compute($partsTotal, $laborTotal, $rate);
 
-        // 4. Actualizamos el costo en la tabla principal de la orden silenciosamente
-        $repairOrder->update(['estimated_cost' => $total]);
+        // 4. Persistimos la tasa y el total de la orden
+        $repairOrder->update([
+            'tax_rate'       => $rate,
+            'estimated_cost' => $breakdown['total'],
+        ]);
 
-        // 5. Retornamos el desglose financiero completo para Vue y el PDF
-        return [
-            'parts_subtotal' => round($partsTotal, 2),
-            'labor_subtotal' => round($laborTotal, 2),
-            'subtotal'       => round($subtotalGeneral, 2),
-            'tax_rate'       => $taxRate,
-            'tax'            => round($taxAmount, 2),
-            'total'          => round($total, 2),
-        ];
+        return $breakdown;
+    }
+
+    private function configuredRate(): float
+    {
+        $rate = (float) Setting::current()->iva;
+
+        return TaxCalculator::isValidRate($rate) ? $rate : TaxCalculator::GENERAL;
     }
 }

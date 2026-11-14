@@ -3,6 +3,7 @@ import OrderTotals from '@/Components/OrderTotals.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
+import QuotesPanel from '@/Components/QuotesPanel.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { ref, computed } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
@@ -54,7 +55,7 @@ function closeLightbox() { lightboxSrc.value = null; }
 
 // Función ÚNICA para actualizar el impuesto sin recargar/cerrar el modal
 function updateTax(newTax) {
-    router.post(route('settings.updateTax'), { iva: newTax }, {
+    router.patch(route('repair-orders.tax.update', page.props.orden?.id), { tax_rate: newTax }, {
         preserveScroll: true,
         preserveState: true, 
     });
@@ -142,7 +143,8 @@ function removeItem(itemId) {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.cliente') }}</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.vehiculo') }}</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}</div>
+                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}
+                            <a v-if="recepcion.vehicle" :href="route('vehicles.history', recepcion.vehicle.id)" class="block text-xs font-bold text-[#EE2857] hover:underline mt-1">🕘 Ver historial del vehículo</a></div>
                     </div>
 
                     <!-- Fotos de evidencia — visibles para todos los roles (lectura) -->
@@ -178,7 +180,7 @@ function removeItem(itemId) {
                     </div>
                     
                     <div class="p-6">
-                        <table class="w-full text-left border-collapse mb-6">
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse mb-6">
                             <thead>
                                 <tr class="bg-gray-100 text-gray-500 uppercase text-xs tracking-wider font-bold border-b border-gray-200">
                                     <th class="p-3">{{ $t('cotizacion.cant') }}</th>
@@ -211,7 +213,7 @@ function removeItem(itemId) {
                                     <td colspan="6" class="p-10 text-center text-gray-400 italic font-medium">{{ $t('cotizacion.sinArticulos') }}</td>
                                 </tr>
                             </tbody>
-                        </table>
+                        </table></div>
 
                         <!-- Calculadora Financiera — solo admin -->
                         <div v-if="isAdmin" class="flex justify-end mt-4 pt-4 border-t border-gray-200">
@@ -219,6 +221,9 @@ function removeItem(itemId) {
                         </div>
                     </div>
                 </div>
+
+                <!-- COTIZACIONES (versiones) -->
+                <QuotesPanel :orden="orden" />
 
                 <!-- MECÁNICO + BITÁCORA — visible desde Recibido en adelante -->
                 <div v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
@@ -285,15 +290,15 @@ function removeItem(itemId) {
                     <div class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
                         <span class="text-xs font-bold text-gray-500 pl-3">{{ $t('cotizacion.fiscalConfig') }}</span>
                         <div class="flex gap-1">
-                            <button type="button" @click="updateTax(8.75)"
-                                    :class="settings?.iva == 8.75 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
+                            <button type="button" @click="updateTax(8)"
+                                    :class="Number(page.props.orden?.tax_rate) == 8 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
                                     class="px-4 py-1.5 rounded text-xs font-bold transition-all">
-                                USA (8.75%)
+                                {{ $t('cotizacion.ivaFrontera') }}
                             </button>
                             <button type="button" @click="updateTax(16)"
-                                    :class="settings?.iva == 16 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
+                                    :class="Number(page.props.orden?.tax_rate) == 16 ? 'bg-[#10213E] text-white shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-200'"
                                     class="px-4 py-1.5 rounded text-xs font-bold transition-all">
-                                MÉXICO (16%)
+                                {{ $t('cotizacion.ivaGeneral') }}
                             </button>
                         </div>
                     </div>
@@ -346,7 +351,7 @@ function removeItem(itemId) {
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.cantidad') }}</label>
                             <input v-model="form.quantity" type="number" min="0.01" step="0.01"

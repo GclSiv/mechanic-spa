@@ -80,7 +80,7 @@ public function store(Request $request)
 public function index()
 {
     // Traemos todos los clientes ordenados por el más reciente
-    $clients = \App\Models\Client::orderBy('id', 'desc')->get();
+    $clients = \App\Models\Client::with(['vehicles.brand', 'vehicles.vehicleModel'])->orderBy('id', 'desc')->get();
 
     return Inertia::render('Clients/Index', [
         'clients' => $clients
@@ -92,7 +92,7 @@ public function index()
     $client = Client::with(['brand', 'vehicleModel'])->findOrFail($id);
     
     // 2. Obtención de la configuración global
-    $settings = \App\Models\Setting::first();
+    $settings = \App\Models\Setting::current();
 
     // 3. Inyección de datos en la vista Blade para PDF
     $pdf = Pdf::loadView('pdf.recepcion', [

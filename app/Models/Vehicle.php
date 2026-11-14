@@ -12,7 +12,7 @@ class Vehicle extends Model
     protected $fillable = [
         'client_id', 'brand_id', 'model_id',
         'brand', 'model', 
-        'year', 'plate', 'vin', 'engine',
+        'year', 'plate', 'vin', 'engine', 'color',
     ];
 
     public function client()

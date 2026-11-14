@@ -6,62 +6,58 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use Inertia\Inertia;
-// 🛠️ IMPORTANTE: Esta línea es el cable que faltaba para que funcione el Storage
-use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
 {
+    public function logo()
+    {
+        return response()->file(Setting::current()->logoFilePath(), [
+            'Cache-Control' => 'public, max-age=300',
+        ]);
+    }
+
     public function edit()
     {
         return Inertia::render('Settings/Edit', [
-            'settings' => Setting::first()
+            'settings' => Setting::current(),
         ]);
     }
 
     public function update(Request $request)
     {
-        $settings = Setting::first();
+        $settings = Setting::current();
 
-        // 1. Asignamos la validación a la variable $data
         $data = $request->validate([
-            'company_name'   => 'required|string',
-            'address'        => 'required|string',
-            'phone'          => 'required|string',
-            'license_number' => 'required|string',
-            'primary_color'  => 'required|string|max:7',
-            'secondary_color'=> 'required|string|max:7',
-            'clauses'        => 'required|string',
-            'logo'           => 'nullable|image|max:2048', // Max 2MB
+            'company_name'    => 'required|string|max:255',
+            'razon_social'    => 'nullable|string|max:255',
+            'rfc'             => 'nullable|string|max:13',
+            'email'           => 'nullable|email|max:255',
+            'address'         => 'required|string',
+            'phone'           => 'required|string',
+            'license_number'  => 'required|string',
+            'primary_color'   => 'required|string|max:7',
+            'secondary_color' => 'required|string|max:7',
+            'clauses'         => 'required|string',
+            'logo'            => 'nullable|image|max:2048',
+            'warranty_service_enabled' => 'boolean',
+            'warranty_service_days'    => 'required|integer|min:0|max:3650',
+            'warranty_service_km'      => 'nullable|integer|min:0|max:1000000',
+            'warranty_parts_enabled'   => 'boolean',
+            'warranty_parts_days'      => 'required|integer|min:0|max:3650',
+            'warranty_notes'           => 'nullable|string|max:1000',
         ]);
 
-        // 2. Manejo del Logotipo (El "Turbo")
         if ($request->hasFile('logo')) {
-            // Borrar logo anterior de la memoria si existe
             if ($settings->logo_path && Storage::disk('public')->exists($settings->logo_path)) {
                 Storage::disk('public')->delete($settings->logo_path);
             }
-            
-            // Guardamos el nuevo archivo y guardamos la ruta en $data
-            $path = $request->file('logo')->store('logos', 'public');
-            $data['logo_path'] = $path;
+
+            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
         }
 
-        // 3. Actualización única (Un solo chispazo para todos los datos)
         $settings->update($data);
 
         return back()->with('message', 'Sistema JK Automotive calibrado con éxito.');
-    }
-     public function updateTax(\Illuminate\Http\Request $request)
-    {
-        $request->validate(['iva' => 'required|numeric']);
-        
-        $setting = \App\Models\Setting::first();
-        if ($setting) {
-            $setting->iva = $request->iva;
-            $setting->save();
-        }
-        
-        // Regresa a la pantalla y Laravel recalculará todos los totales automáticamente
-        return back()->with('success', 'Configuración fiscal actualizada');
     }
 }

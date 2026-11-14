@@ -53,7 +53,7 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.sku" class="text-red-500 text-xs mt-1">{{ form.errors.sku }}</p>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.costo') }}</label>
                                 <input v-model="form.cost_price" type="number" step="0.01" min="0"
@@ -65,7 +65,7 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('parts_form.stock') }}</label>
                                 <input v-model="form.stock" type="number" min="0"

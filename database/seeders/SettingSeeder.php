@@ -13,7 +13,7 @@ class SettingSeeder extends Seeder
      */
     public function run(): void
     {
-       Setting::create([
+       Setting::current()->update([
         'company_name'   => 'JK AUTOMOTIVE CARE INC',
         'address'        => '851 W Mission Ave Escondido, CA 92025',
         'phone'          => '760-798-6723',

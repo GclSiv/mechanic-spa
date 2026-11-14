@@ -35,11 +35,13 @@ function ordersForColumn(slugs) {
 
 // ── Columnas Kanban ───────────────────────────────────────────────────
 const columnas = computed(() => [
-    { slugs: ['recibido', 'diagnostico'], label: t('taller.pendientes'),   color: 'border-gray-400'   },
-    { slugs: ['espera-piezas'],           label: t('taller.esperaPiezas'), color: 'border-yellow-400' },
-    { slugs: ['reparado'],                label: t('taller.enTaller'),     color: 'border-blue-400'   },
-    { slugs: ['entregado'],               label: t('taller.terminadas'),   color: 'border-green-400'  },
-    { slugs: ['rechazado'],               label: t('taller.rechazadas'),   color: 'border-red-400'    },
+    { slugs: ['recibido'],       label: t('taller.recepcion'),    color: 'border-gray-400'   },
+    { slugs: ['diagnostico'],    label: t('taller.diagnostico'),  color: 'border-purple-400' },
+    { slugs: ['espera-piezas'],  label: t('taller.esperaPiezas'), color: 'border-yellow-400' },
+    { slugs: ['en-reparacion'],  label: t('taller.enReparacion'), color: 'border-blue-400'   },
+    { slugs: ['reparado'],       label: t('taller.listo'),        color: 'border-teal-400'   },
+    { slugs: ['entregado'],      label: t('taller.terminadas'),   color: 'border-green-400'  },
+    { slugs: ['rechazado'],      label: t('taller.rechazadas'),   color: 'border-red-400'    },
 ]);
 
 // ── Dropdown estado ───────────────────────────────────────────────────
@@ -143,7 +145,7 @@ function closeAll() {
 
         <div class="py-6 min-h-screen transition-colors">
             <div class="max-w-[1600px] mx-auto sm:px-4 lg:px-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
 
                     <div v-for="col in columnas" :key="col.label" class="flex flex-col min-w-0">
 
