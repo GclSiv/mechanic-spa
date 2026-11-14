@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+backup_*.sql
+workbox-*.js
+
+# Temporales locales (no se suben)
+dev-router.php
+Claude outputs/
+.fuse_hidden*
+storage/framework/lsp-*.php
