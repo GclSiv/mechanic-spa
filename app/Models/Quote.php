@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class Quote extends Model
 {
@@ -77,25 +79,59 @@ class Quote extends Model
      */
     public function approve(string $method, string $byName): void
     {
-        $this->update([
-            'status'          => self::APROBADA,
-            'approved_at'     => now(),
-            'approval_method' => $method,
-            'approved_by_name'=> $byName,
-        ]);
+        DB::transaction(function () use ($method, $byName) {
+            // A2: un concepto solo puede quedar autorizado en una cotización
+            $ids = $this->items()->whereNotNull('order_item_id')->pluck('order_item_id');
+            if ($ids->isNotEmpty()) {
+                $facturadoEnOtra = RepairOrderItem::whereIn('id', $ids)
+                    ->whereNotNull('billed_quote_id')
+                    ->where('billed_quote_id', '!=', $this->id)
+                    ->exists();
 
-        // Solo reemplaza cotizaciones del mismo tipo: una adicional no cancela a la principal
-        static::where('repair_order_id', $this->repair_order_id)
-            ->where('kind', $this->kind)
-            ->where('id', '!=', $this->id)
-            ->whereIn('status', [self::BORRADOR, self::ENVIADA])
-            ->update(['status' => self::REEMPLAZADA]);
+                if ($facturadoEnOtra) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Uno o más conceptos ya están autorizados en otra cotización. Crea una cotización adicional con los conceptos pendientes.',
+                    ]);
+                }
+            }
 
-        // Los conceptos aprobados quedan facturados: una adicional posterior ya no los vuelve a incluir
-        $ids = $this->items()->whereNotNull('order_item_id')->pluck('order_item_id');
-        if ($ids->isNotEmpty()) {
-            RepairOrderItem::whereIn('id', $ids)->update(['billed_quote_id' => $this->id]);
-        }
+            // A2: solo una principal aprobada por orden
+            if ($this->kind === self::KIND_PRINCIPAL) {
+                $otraPrincipal = static::where('repair_order_id', $this->repair_order_id)
+                    ->where('kind', self::KIND_PRINCIPAL)
+                    ->where('status', self::APROBADA)
+                    ->where('id', '!=', $this->id)
+                    ->exists();
+
+                if ($otraPrincipal) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Ya existe una cotización principal aprobada para esta orden.',
+                    ]);
+                }
+            }
+
+            $this->update([
+                'status'          => self::APROBADA,
+                'approved_at'     => now(),
+                'approval_method' => $method,
+                'approved_by_name'=> $byName,
+            ]);
+
+            // Solo reemplaza cotizaciones abiertas del mismo tipo: una adicional no cancela a la principal
+            static::where('repair_order_id', $this->repair_order_id)
+                ->where('kind', $this->kind)
+                ->where('id', '!=', $this->id)
+                ->whereIn('status', [self::BORRADOR, self::ENVIADA])
+                ->update(['status' => self::REEMPLAZADA]);
+
+            // Los conceptos aprobados quedan facturados: una adicional posterior ya no los vuelve a incluir
+            if ($ids->isNotEmpty()) {
+                RepairOrderItem::whereIn('id', $ids)->update(['billed_quote_id' => $this->id]);
+            }
+
+            app(\App\Actions\RepairOrders\EstadoFinancieroAction::class)
+                ->sincronizar($this->repairOrder()->firstOrFail());
+        });
     }
 
     /**
