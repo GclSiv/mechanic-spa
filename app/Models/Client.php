@@ -38,4 +38,16 @@ class Client extends Model
     {
         return $this->hasMany(RepairOrder::class);
     }
+
+    /** Recepciones del cliente (FK recepcions.client_id). */
+    public function recepciones()
+    {
+        return $this->hasMany(Recepcion::class);
+    }
+
+    /** Fotos del cliente (FK client_photos.client_id). Usada por ClientPhotoController. */
+    public function photos()
+    {
+        return $this->hasMany(ClientPhoto::class);
+    }
 }

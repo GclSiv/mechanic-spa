@@ -59,6 +59,12 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:admin')
         ->name('clients.index');
 
+    // Expediente del cliente (B1.1). whereNumber evita colisión con /clientes/importar.
+    Route::get('/clientes/{client}', [\App\Http\Controllers\ClientController::class, 'show'])
+        ->whereNumber('client')
+        ->middleware('role:admin')
+        ->name('clients.show');
+
     // ========================================================
     // MÓDULO 1: RECEPCIÓN TÉCNICA (RESTful y Route Model Binding)
     // Solo admin/owner: crear, consultar, modificar, eliminar y generar órdenes.

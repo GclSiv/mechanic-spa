@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Client;
+use App\Models\Recepcion;
+use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -86,6 +88,79 @@ public function index()
         'clients' => $clients
     ]);
 }
+    /**
+     * Expediente del cliente (B1.1): encabezado, resumen y vehículos.
+     * Solo admin/owner (ClientPolicy). No carga órdenes, cotizaciones, pagos ni historial completo.
+     */
+    public function show(Client $client)
+    {
+        $this->authorize('view', $client);
+
+        $client->load('fiscalProfiles');
+        $client->loadCount(['vehicles', 'repairOrders']);
+        $client->loadMax('recepciones', 'created_at');
+
+        // Vehículos del cliente con conteo y última visita en una sola consulta (sin N+1)
+        $vehiculos = $client->vehicles()
+            ->with(['brand', 'vehicleModel'])
+            ->withCount('recepciones')
+            ->withMax('recepciones', 'created_at')
+            ->orderBy('id')
+            ->get();
+
+        // Kilometraje de la última visita por vehículo. La visita más reciente se define por created_at
+        // (único campo temporal de recepcions); el id solo desempata. Una sola consulta, sin N+1.
+        $kilometrajes = Recepcion::query()
+            ->from('recepcions as r')
+            ->where('r.client_id', $client->id)
+            ->whereRaw('r.id = (
+                SELECT r2.id FROM recepcions r2
+                WHERE r2.vehicle_id = r.vehicle_id AND r2.client_id = r.client_id
+                ORDER BY r2.created_at DESC, r2.id DESC
+                LIMIT 1
+            )')
+            ->get(['r.vehicle_id', 'r.miles'])
+            ->pluck('miles', 'vehicle_id');
+
+        $fmt = fn ($fecha) => $fecha ? Carbon::parse($fecha)->format('d/m/Y') : null;
+
+        return Inertia::render('Clients/Show', [
+            'client' => [
+                'id'            => $client->id,
+                'client_number' => $client->client_number,
+                'first_name'    => $client->first_name,
+                'last_name'     => $client->last_name,
+                'phone'         => $client->phone,
+                'email'         => $client->email,
+                'address'       => $client->address,
+                'rfc'           => $client->rfc,
+                'country'       => $client->country,
+                'fiscal_profiles' => $client->fiscalProfiles->map(fn ($f) => [
+                    'id'           => $f->id,
+                    'rfc'          => $f->rfc,
+                    'razon_social' => $f->razon_social,
+                ])->values(),
+            ],
+            'resumen' => [
+                'vehiculos'     => $client->vehicles_count,
+                'ordenes'       => $client->repair_orders_count,
+                'ultima_visita' => $fmt($client->recepciones_max_created_at),
+            ],
+            'vehiculos' => $vehiculos->map(fn ($v) => [
+                'id'          => $v->id,
+                'marca'       => $v->brand?->name ?? $v->getRawOriginal('brand'),
+                'modelo'      => $v->vehicleModel?->name ?? $v->getRawOriginal('model'),
+                'year'        => $v->year,
+                'plate'       => $v->plate,
+                'vin'         => $v->vin,
+                'color'       => $v->color,
+                'visitas'     => $v->recepciones_count,
+                'ultima_visita' => $fmt($v->recepciones_max_created_at),
+                'kilometraje' => $kilometrajes[$v->id] ?? null,
+            ])->values(),
+        ]);
+    }
+
     public function print($id)
 {
        // 1. Carga optimizada de relaciones

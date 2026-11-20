@@ -69,6 +69,7 @@ defineProps({
                                         {{ client.address || 'Sin dirección' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                        <Link :href="route('clients.show', client.id)" class="block text-xs font-black text-[#10213E] hover:underline mb-1">📂 Ver expediente</Link>
                                         <div v-for="v in client.vehicles" :key="v.id" class="mb-1">
                                             <a :href="route('vehicles.history', v.id)" class="text-xs font-bold text-[#EE2857] hover:underline">
                                                 🕘 {{ v.brand?.name ?? v.brand }} {{ v.vehicle_model?.name ?? v.model }} · {{ v.plate }} — Historial
