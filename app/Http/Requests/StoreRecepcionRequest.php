@@ -21,6 +21,7 @@ class StoreRecepcionRequest extends FormRequest
             'phone'            => 'nullable|string|max:20',
             'address'          => 'nullable|string|max:500',
             'rfc'              => 'nullable|string|max:13',
+            'razon_social'     => 'nullable|string|max:255',
             'country'          => 'nullable|in:MX,US',
 
             // Vehículo
@@ -52,6 +53,14 @@ class StoreRecepcionRequest extends FormRequest
             // Fotos (validación estricta de archivos)
             'photos'           => 'nullable|array|max:10',
             'photos.*'         => 'file|mimes:jpg,jpeg,png,webp|max:5120',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'vin.size'  => 'El VIN debe tener exactamente 17 caracteres.',
+            'vin.regex' => 'El VIN solo puede contener letras (sin I, O ni Q) y números.',
         ];
     }
 }

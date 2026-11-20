@@ -26,6 +26,23 @@ const filtered = computed(() => {
     );
 });
 
+// Estado de la recepción según su orden de reparación. Rojo queda reservado para rechazado.
+const ESTADOS = {
+    'recibido':      { label: 'Recibido',         cls: 'bg-green-100 text-green-800' },
+    'diagnostico':   { label: 'En diagnóstico',   cls: 'bg-yellow-100 text-yellow-800' },
+    'espera-piezas': { label: 'Espera de piezas', cls: 'bg-orange-100 text-orange-800' },
+    'en-reparacion': { label: 'En reparación',    cls: 'bg-blue-100 text-blue-800' },
+    'reparado':      { label: 'Listo para recoger', cls: 'bg-emerald-200 text-emerald-900' },
+    'entregado':     { label: 'Entregado',        cls: 'bg-gray-200 text-gray-700' },
+    'rechazado':     { label: 'Rechazado',        cls: 'bg-red-100 text-red-800' },
+};
+
+function estadoDe(rec) {
+    if (!rec.repairOrder) return { label: 'Nuevo', cls: 'bg-green-100 text-green-800' };
+    const slug = rec.repairOrder.status?.slug;
+    return ESTADOS[slug] ?? { label: rec.repairOrder.status?.name ?? 'En proceso', cls: 'bg-gray-100 text-gray-600' };
+}
+
 const totalPages = computed(() => Math.ceil(filtered.value.length / perPage));
 
 const paginated = computed(() => {
@@ -87,6 +104,7 @@ function doDel() {
                                     <th class="px-5 py-3">{{ $t('tabla.vehiculo') }}</th>
                                     <th class="px-5 py-3">{{ $t('tabla.placa') }}</th>
                                     <th class="px-5 py-3">{{ $t('inspeccion.sintomas') }}</th>
+                                    <th class="px-5 py-3">Estado</th>
                                     <th class="px-5 py-3">{{ $t('tabla.fecha') }}</th>
                                     <th class="px-5 py-3 text-center">{{ $t('tabla.acciones') }}</th>
                                 </tr>
@@ -111,6 +129,10 @@ function doDel() {
                                     </td>
                                     <td class="px-5 py-4 text-gray-600 text-xs max-w-xs truncate">
                                         {{ rec.symptoms ?? '—' }}
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap"
+                                            :class="estadoDe(rec).cls">{{ estadoDe(rec).label }}</span>
                                     </td>
                                     <td class="px-5 py-4 text-gray-500 text-xs">
                                         {{ new Date(rec.created_at).toLocaleDateString('es-MX') }}
@@ -139,7 +161,7 @@ function doDel() {
                                     </td>
                                 </tr>
                                 <tr v-if="paginated.length === 0">
-                                    <td colspan="7" class="px-6 py-12 text-center text-gray-300 italic text-sm">
+                                    <td colspan="8" class="px-6 py-12 text-center text-gray-300 italic text-sm">
                                         {{ search ? 'Sin resultados para "' + search + '"' : 'No hay recepciones registradas.' }}
                                     </td>
                                 </tr>

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\RepairOrder;
-use App\Models\RepairOrderStatus;
 use App\Models\Setting;
 use App\Models\Vehicle;
 use Carbon\Carbon;
@@ -12,20 +11,20 @@ use Inertia\Inertia;
 class VehicleHistoryController extends Controller
 {
     /**
-     * Historial de visitas de un vehículo: solo órdenes reparadas o entregadas.
+     * Historial de visitas de un vehículo: todas las órdenes, excepto las rechazadas.
+     * Las que aún no están reparadas o entregadas se marcan como "en proceso".
      * Las refacciones no generan IVA; la mano de obra sí (regla del taller).
      */
     public function show(Vehicle $vehicle)
     {
         $vehicle->load(['brand', 'vehicleModel', 'client']);
 
-        $statusIds    = RepairOrderStatus::whereIn('slug', ['reparado', 'entregado'])->pluck('id');
         $tasaRespaldo = (float) Setting::current()->iva;
 
         $visitas = RepairOrder::query()
-            ->whereIn('status_id', $statusIds)
+            ->whereHas('status', fn ($q) => $q->where('slug', '!=', 'rechazado'))
             ->whereHas('recepcion', fn ($q) => $q->where('vehicle_id', $vehicle->id))
-            ->with(['recepcion', 'items.part', 'payments'])
+            ->with(['recepcion', 'items.part', 'payments', 'status'])
             ->orderByDesc('updated_at')
             ->get()
             ->map(function (RepairOrder $order) use ($tasaRespaldo) {
@@ -51,7 +50,11 @@ class VehicleHistoryController extends Controller
                 $saldo  = round(max($total - $pagado, 0), 2);
 
                 return [
+                    'id'        => $order->id,
                     'folio'     => $order->folio,
+                    'estado'    => $order->status?->name ?? '—',
+                    'terminado' => in_array($order->status?->slug, ['reparado', 'entregado'], true),
+                    'ultimo_pago_id' => $order->payments->sortBy('id')->last()?->id,
                     'fecha'     => $fecha ? Carbon::parse($fecha)->format('d/m/Y') : null,
                     'odometro'  => $order->recepcion?->miles,
                     'conceptos' => $conceptos,
@@ -66,7 +69,8 @@ class VehicleHistoryController extends Controller
 
         return Inertia::render('Vehicles/History', [
             'vehicle' => [
-                'id'     => $vehicle->id,
+                'id'        => $vehicle->id,
+                'client_id' => $vehicle->client_id,
                 'brand'  => $vehicle->brand?->name ?? $vehicle->brand,
                 'model'  => $vehicle->vehicleModel?->name ?? $vehicle->model,
                 'year'   => $vehicle->year,

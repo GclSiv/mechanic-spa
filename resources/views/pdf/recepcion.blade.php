@@ -116,13 +116,16 @@ THANK YOU FOOTER & PÁGINA 2
 <table class="header-wrap">
 <tr>
 <td class="header-logo-cell">
-<img src="{{ \App\Models\Setting::current()->logoFilePath() }}" alt="Logo">
+<img src="{{ $settings->logoFilePath() }}" alt="Logo">
 </td>
 <td class="header-info-cell">
 <div class="company-name">{{ $settings->company_name ?: 'Mi taller' }}</div>
 <div class="company-sub">
+@if(!empty($settings->razon_social)){{ $settings->razon_social }}<br>@endif
 {{ $settings->address ?? '' }}<br>
-Phone: {{ $settings->phone ?? '' }} | Lic: #{{ $settings->license_number ?? '' }}
+Phone: {{ $settings->phone ?? '' }}@if(!empty($settings->email)) | {{ $settings->email }}@endif
+@if(!empty($settings->rfc)) | RFC: {{ $settings->rfc }}@endif
+@if(!empty($settings->license_number)) | Lic: #{{ $settings->license_number }}@endif
 </div>
 </td>
 <td class="header-folio-cell">

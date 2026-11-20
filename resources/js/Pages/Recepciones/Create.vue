@@ -5,7 +5,7 @@ import InputLabel from "@/Components/InputLabel.vue";
 import PrimaryButton from "@/Components/PrimaryButton.vue";
 import TextInput from "@/Components/TextInput.vue";
 import { Head, useForm, usePage, router } from "@inertiajs/vue3";
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import IconEngine from "@/Components/Icons/IconEngine.vue";
 import DamageDiagram from '@/Components/DamageDiagram.vue';
@@ -17,6 +17,7 @@ import IconTemp from "@/Components/Icons/IconTemp.vue";
 const props = defineProps({
     brands: Array,
     clients: Array, // NUEVO: Necesario para seleccionar clientes que ya existen
+    preselect: Object, // { client_id, vehicle_id } desde "Nueva visita"
 });
 
 const page = usePage();
@@ -48,10 +49,29 @@ function pickClient(client) {
     form.phone      = client.phone      ?? '';
     form.address    = client.address    ?? '';
     form.rfc        = client.rfc        ?? '';
+    form.razon_social = '';
     clientSearch.value       = client.first_name + ' ' + client.last_name + ' — ' + (client.phone ?? '');
     selectedClientName.value = clientSearch.value;
     showClientList.value     = false;
 }
+
+// "Nueva visita": cliente y vehículo ya vienen cargados; solo falta kilometraje y síntomas
+onMounted(() => {
+    const cid = props.preselect?.client_id;
+    const vid = props.preselect?.vehicle_id;
+    const client = cid ? props.clients?.find((c) => c.id == cid) : null;
+    if (!client) return;
+
+    isNewClient.value = false;
+    pickClient(client);
+    if (vid) {
+        // El watch de client_id limpia vehicle_id; lo asignamos después de que corra
+        nextTick(() => {
+            form.vehicle_id = vid;
+            currentStep.value = 2;
+        });
+    }
+});
 
 function clearClient() {
     form.client_id = null;
@@ -99,6 +119,8 @@ const form = useForm({
     phone: "",
     address: "",
     rfc: "",
+    razon_social: "",
+    sin_factura: false,
     
 
     // ─── Vehículo (Solo se usará si vehicle_id es null) ───
@@ -232,9 +254,108 @@ function useDuplicateVehicle() {
     duplicateAlert.value = null;
 }
 
+// Placa o VIN ya registrados: no se permite capturarlos de nuevo; se limpia el campo para corregir
 function ignoreDuplicate() {
+    if (duplicateAlert.value?.type === 'plate') form.plate = '';
+    if (duplicateAlert.value?.type === 'vin') form.vin = '';
     showDuplicateModal.value = false;
     duplicateAlert.value = null;
+}
+
+// ─── Detección de cliente ya registrado (mismo nombre y apellido) ───
+const clienteDuplicado = ref(null);
+const showClienteDuplicadoModal = ref(false);
+let nombreTimer = null;
+
+async function checkCliente() {
+    if (form.client_id) return;
+    const first = (form.first_name || '').trim();
+    const last = (form.last_name || '').trim();
+    if (first.length < 2 || last.length < 2) return;
+    try {
+        const params = new URLSearchParams({ first_name: first, last_name: last });
+        const res = await fetch(route('clients.check') + '?' + params.toString());
+        const data = await res.json();
+        if (data.client && !form.client_id) {
+            clienteDuplicado.value = data.client;
+            showClienteDuplicadoModal.value = true;
+        }
+    } catch (_) {}
+}
+
+watch([() => form.first_name, () => form.last_name], () => {
+    if (form.client_id) return;
+    clearTimeout(nombreTimer);
+    nombreTimer = setTimeout(checkCliente, 600);
+});
+
+function usarClienteDuplicado() {
+    pickClient(clienteDuplicado.value);
+    showClienteDuplicadoModal.value = false;
+    clienteDuplicado.value = null;
+}
+
+function corregirNombre() {
+    form.first_name = '';
+    form.last_name = '';
+    showClienteDuplicadoModal.value = false;
+    clienteDuplicado.value = null;
+}
+
+// ─── Datos fiscales: RFC y razón social ───
+const RFC_GENERICOS = ['XAXX010101000', 'XEXX010101000'];
+const fiscalDuplicado = ref(null);
+const showFiscalModal = ref(false);
+let rfcTimer = null;
+
+function toggleSinFactura() {
+    if (form.sin_factura) {
+        form.rfc = 'XAXX010101000';
+        form.razon_social = '';
+    } else if (RFC_GENERICOS.includes((form.rfc || '').toUpperCase())) {
+        form.rfc = '';
+    }
+}
+
+async function checkRfc(val) {
+    const rfc = (val || '').trim().toUpperCase();
+    if (rfc.length < 12 || RFC_GENERICOS.includes(rfc)) return;
+    try {
+        const res = await fetch(route('clients.check') + '?' + new URLSearchParams({ rfc }).toString());
+        const data = await res.json();
+        if (data.fiscal) {
+            // Si es el perfil del mismo cliente que ya está seleccionado, no es duplicado
+            if (form.client_id && Number(data.fiscal.client_id) === Number(form.client_id)) {
+                if (!form.razon_social) form.razon_social = data.fiscal.razon_social ?? '';
+                return;
+            }
+            fiscalDuplicado.value = data.fiscal;
+            showFiscalModal.value = true;
+        }
+    } catch (_) {}
+}
+
+watch(() => form.rfc, (val) => {
+    if (form.sin_factura) return;
+    clearTimeout(rfcTimer);
+    rfcTimer = setTimeout(() => checkRfc(val), 600);
+});
+
+// Mismo cliente seleccionado o cliente nuevo: se puede usar el perfil existente
+const perfilEsDeOtro = () => form.client_id && Number(form.client_id) !== Number(fiscalDuplicado.value?.client_id);
+
+function usarPerfilFiscal() {
+    form.client_id = fiscalDuplicado.value.client_id;
+    form.rfc = fiscalDuplicado.value.rfc;
+    form.razon_social = fiscalDuplicado.value.razon_social ?? '';
+    showFiscalModal.value = false;
+    fiscalDuplicado.value = null;
+}
+
+function corregirRfc() {
+    form.rfc = '';
+    showFiscalModal.value = false;
+    fiscalDuplicado.value = null;
 }
 
 const submit = () => {
@@ -404,6 +525,13 @@ const submit = () => {
                                     <InputLabel for="rfc" value="RFC" />
                                     <TextInput id="rfc" type="text" class="mt-1 block w-full uppercase" v-model="form.rfc" :placeholder="$t('recepcion_form.rfcPh')" maxlength="13" />
                                     <InputError class="mt-2" :message="form.errors.rfc" />
+                                    <label class="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                                        <input type="checkbox" v-model="form.sin_factura" @change="toggleSinFactura" class="rounded" />
+                                        Sin factura (RFC genérico de público en general)
+                                    </label>
+                                    <InputLabel for="razon_social" value="Razón social" class="mt-3" />
+                                    <TextInput id="razon_social" type="text" class="mt-1 block w-full uppercase" v-model="form.razon_social" :disabled="form.sin_factura" placeholder="Nombre de la empresa, tal como aparece en la constancia" maxlength="255" />
+                                    <InputError class="mt-2" :message="form.errors.razon_social" />
                                 </div>
                                 <div class="md:col-span-2">
                                     <InputLabel for="address" :value="$t('recepcion_form.direccion')" />
@@ -616,6 +744,65 @@ const submit = () => {
         <!-- ══════════════════════════════════════════════ -->
         <!-- MODAL: VEHÍCULO DUPLICADO DETECTADO           -->
         <!-- ══════════════════════════════════════════════ -->
+        <!-- MODAL: RFC YA REGISTRADO -->
+        <div v-if="showFiscalModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-orange-100">
+                <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">⚠️</div>
+                <h2 class="text-xl font-black text-[#10213E] uppercase mb-2">RFC ya registrado</h2>
+                <p class="text-gray-500 text-sm mb-4">Este RFC ya existe en el sistema.</p>
+
+                <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-left mb-6">
+                    <p class="font-black text-[#10213E]">{{ fiscalDuplicado?.razon_social }}</p>
+                    <p class="text-sm text-gray-600 mt-1">RFC: <strong>{{ fiscalDuplicado?.rfc }}</strong></p>
+                    <p class="text-sm text-gray-600">Cliente: <strong>{{ fiscalDuplicado?.client_name }}</strong></p>
+                </div>
+
+                <p v-if="perfilEsDeOtro()" class="text-sm text-red-600 mb-4">
+                    Este RFC pertenece a otro cliente. Corrige el RFC o selecciona al cliente correcto.
+                </p>
+
+                <div class="space-y-3">
+                    <button v-if="!perfilEsDeOtro()" @click="usarPerfilFiscal"
+                        class="w-full bg-[#10213E] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow hover:opacity-90 transition">
+                        Usar este perfil fiscal
+                    </button>
+                    <button @click="corregirRfc"
+                        class="w-full bg-gray-100 text-gray-500 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
+                        Corregir RFC
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CLIENTE YA REGISTRADO -->
+        <div v-if="showClienteDuplicadoModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-orange-100">
+                <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">⚠️</div>
+                <h2 class="text-xl font-black text-[#10213E] uppercase mb-2">{{ $t('recepcion_form.clienteDuplicado') }}</h2>
+                <p class="text-gray-500 text-sm mb-4">{{ $t('recepcion_form.clienteDuplicadoDesc') }}</p>
+
+                <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-left mb-6">
+                    <p class="text-xs text-orange-600 font-bold uppercase tracking-widest mb-2">{{ $t('recepcion_form.clienteEncontrado') }}</p>
+                    <p class="font-black text-[#10213E]">{{ clienteDuplicado?.first_name }} {{ clienteDuplicado?.last_name }}</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ $t('recepcion_form.telefonoLabel') }} <strong>{{ clienteDuplicado?.phone ?? '—' }}</strong></p>
+                    <p class="text-sm text-gray-600">{{ $t('recepcion_form.noClienteLabel') }} <strong>{{ clienteDuplicado?.client_number ?? '—' }}</strong></p>
+                </div>
+
+                <div class="space-y-3">
+                    <button @click="usarClienteDuplicado"
+                        class="w-full bg-[#10213E] text-white py-3 rounded-2xl font-black uppercase tracking-widest text-xs shadow hover:opacity-90 transition">
+                        {{ $t('recepcion_form.usarClienteExistente') }}
+                    </button>
+                    <button @click="corregirNombre"
+                        class="w-full bg-gray-100 text-gray-500 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
+                        {{ $t('recepcion_form.corregirNombre') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showDuplicateModal"
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-orange-100">
@@ -653,7 +840,7 @@ const submit = () => {
                     </button>
                     <button @click="ignoreDuplicate"
                         class="w-full bg-gray-100 text-gray-500 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition">
-                        {{ $t('recepcion_form.continuarNuevos') }}
+                        {{ $t('recepcion_form.corregirDatos') }}
                     </button>
                 </div>
             </div>

@@ -73,6 +73,9 @@ defineProps({
                                             <a :href="route('vehicles.history', v.id)" class="text-xs font-bold text-[#EE2857] hover:underline">
                                                 🕘 {{ v.brand?.name ?? v.brand }} {{ v.vehicle_model?.name ?? v.model }} · {{ v.plate }} — Historial
                                             </a>
+                                            <a :href="route('recepcion.create', { client_id: client.id, vehicle_id: v.id })" class="ml-2 text-xs font-bold text-[#10213E] hover:underline">
+                                                ➕ Nueva visita
+                                            </a>
                                         </div>
                                         <Link :href="route('clientes.edit', client.id)" class="text-jk-blue hover:text-blue-900 font-bold">
                                             Editar

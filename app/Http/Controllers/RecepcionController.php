@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Validation\ValidationException;
 // 1. IMPORTACIONES: Agregamos los modelos necesarios para Create/Store
 use App\Models\Brand;
 use App\Models\Client;
+use App\Models\ClientFiscalProfile;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use App\Models\Recepcion;
@@ -24,11 +26,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class RecepcionController extends Controller
 {
+    /** RFC genéricos del SAT: no identifican a una empresa, no disparan alerta de duplicado. */
+    public const RFC_GENERICOS = ['XAXX010101000', 'XEXX010101000'];
+
     /**
      * Muestra la pantalla para crear una nueva recepción.
      * (NUEVO MÉTODO)
      */
-    public function create()
+    public function create(Request $request)
     {
         // 1. Mandamos las Marcas y Modelos
         $brands = Brand::with('vehicleModels')->get();
@@ -36,9 +41,16 @@ class RecepcionController extends Controller
         // 2. Mandamos todos los Clientes JUNTO con sus Vehículos para el selector dinámico
         $clients = Client::with('vehicles')->get();
 
+        // 3. Preselección para "Nueva visita" (cliente y vehículo ya registrados)
+        $preselect = [
+            'client_id'  => $request->integer('client_id') ?: null,
+            'vehicle_id' => $request->integer('vehicle_id') ?: null,
+        ];
+
         return Inertia::render('Recepciones/Create', [
             'brands' => $brands,
             'clients' => $clients,
+            'preselect' => $preselect,
         ]);
     }
 
@@ -91,9 +103,106 @@ class RecepcionController extends Controller
         return response()->json($result);
     }
 
+    /**
+     * Busca un cliente ya registrado con el mismo nombre y apellido (AJAX desde el formulario).
+     */
+    public function checkClient(Request $request)
+    {
+        $rfc = strtoupper(trim((string) $request->input('rfc', '')));
+        if ($rfc !== '') {
+            if (in_array($rfc, self::RFC_GENERICOS, true)) {
+                return response()->json(['fiscal' => null]);
+            }
+
+            $perfil = ClientFiscalProfile::with('client')->where('rfc', $rfc)->first();
+
+            return response()->json([
+                'fiscal' => $perfil ? [
+                    'client_id'    => $perfil->client_id,
+                    'client_name'  => trim(($perfil->client->first_name ?? '') . ' ' . ($perfil->client->last_name ?? '')),
+                    'razon_social' => $perfil->razon_social,
+                    'rfc'          => $perfil->rfc,
+                ] : null,
+            ]);
+        }
+
+        $first = mb_strtolower(trim((string) $request->input('first_name', '')));
+        $last  = mb_strtolower(trim((string) $request->input('last_name', '')));
+
+        if ($first === '' || $last === '') {
+            return response()->json(['client' => null]);
+        }
+
+        $client = Client::whereRaw('LOWER(first_name) = ?', [$first])
+            ->whereRaw('LOWER(last_name) = ?', [$last])
+            ->first();
+
+        return response()->json([
+            'client' => $client ? [
+                'id'            => $client->id,
+                'first_name'    => $client->first_name,
+                'last_name'     => $client->last_name,
+                'phone'         => $client->phone,
+                'address'       => $client->address,
+                'rfc'           => $client->rfc,
+                'client_number' => $client->client_number,
+            ] : null,
+        ]);
+    }
+
     public function store(StoreRecepcionRequest $request)
     {
-        // Validation handled by StoreRecepcionRequest
+        // ── Datos fiscales: un RFC identifica a una sola empresa ───────────
+        $rfc          = strtoupper(trim((string) $request->rfc));
+        $razonSocial  = trim((string) $request->razon_social) ?: null;
+        $esGenerico   = $rfc === '' || in_array($rfc, self::RFC_GENERICOS, true);
+
+        if (! $esGenerico) {
+            $perfilExistente = ClientFiscalProfile::where('rfc', $rfc)->first();
+
+            if ($perfilExistente) {
+                if (! $request->client_id || (int) $perfilExistente->client_id !== (int) $request->client_id) {
+                    throw ValidationException::withMessages([
+                        'rfc' => 'Este RFC ya está registrado a otro cliente. Selecciónalo en lugar de registrarlo de nuevo.',
+                    ]);
+                }
+
+                if ($razonSocial && mb_strtoupper((string) $perfilExistente->razon_social) !== mb_strtoupper($razonSocial)) {
+                    throw ValidationException::withMessages([
+                        'razon_social' => 'Este RFC ya tiene la razón social "' . $perfilExistente->razon_social . '". Usa esa o corrige el RFC.',
+                    ]);
+                }
+            }
+        }
+
+        // ── Anti-duplicados: no se crea un cliente ni un vehículo que ya existe.
+        // Si el cliente o el vehículo ya están, el usuario debe seleccionarlos, no volver a capturarlos.
+        if (!$request->client_id) {
+            $clienteExistente = Client::whereRaw('LOWER(first_name) = ?', [mb_strtolower(trim($request->first_name))])
+                ->whereRaw('LOWER(last_name) = ?', [mb_strtolower(trim($request->last_name))])
+                ->first();
+
+            if ($clienteExistente) {
+                throw ValidationException::withMessages([
+                    'first_name' => 'Ya existe un cliente con este nombre. Selecciónalo en la lista en lugar de registrarlo de nuevo.',
+                ]);
+            }
+        }
+
+        if (!$request->vehicle_id) {
+            if ($request->plate && Vehicle::where('plate', strtoupper(trim($request->plate)))->exists()) {
+                throw ValidationException::withMessages([
+                    'plate' => 'Ya existe un vehículo con esta placa. Selecciónalo en lugar de registrarlo de nuevo.',
+                ]);
+            }
+
+            if ($request->vin && Vehicle::whereRaw('UPPER(vin) = ?', [strtoupper(trim($request->vin))])->exists()) {
+                throw ValidationException::withMessages([
+                    'vin' => 'Ya existe un vehículo con este número de serie (VIN). Selecciónalo en lugar de registrarlo de nuevo.',
+                ]);
+            }
+        }
+
 
         // 2. Lógica del CLIENTE: ¿Es nuevo o ya existe?
         if ($request->client_id) {
@@ -111,6 +220,14 @@ class RecepcionController extends Controller
             }
         } else {
             $client = Client::create($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc', 'country']));
+        }
+
+        // 2b. Perfil fiscal: se registra el RFC (si no es genérico) asociado al cliente
+        if (! $esGenerico) {
+            ClientFiscalProfile::firstOrCreate(
+                ['client_id' => $client->id, 'rfc' => $rfc],
+                ['razon_social' => $razonSocial ?? trim(($client->first_name ?? '') . ' ' . ($client->last_name ?? ''))]
+            );
         }
 
         // 3. Lógica del VEHÍCULO: ¿Es un carro ya registrado o compró uno nuevo?
@@ -168,7 +285,7 @@ class RecepcionController extends Controller
 
     public function index()
     {
-        $recepciones = Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel'])
+        $recepciones = Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'repairOrder.status'])
             ->orderBy('id', 'desc')
             ->get();
 
