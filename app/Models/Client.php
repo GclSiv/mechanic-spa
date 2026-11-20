@@ -24,6 +24,11 @@ class Client extends Model
         });
     }
 
+    public function fiscalProfiles()
+    {
+        return $this->hasMany(ClientFiscalProfile::class);
+    }
+
     public function vehicles()
     {
         return $this->hasMany(Vehicle::class);

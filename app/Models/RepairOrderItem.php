@@ -12,6 +12,7 @@ class RepairOrderItem extends Model
     use HasFactory;
 
     protected $fillable = [
+        'billed_quote_id',
         'repair_order_id',
         'part_id',
         'description',

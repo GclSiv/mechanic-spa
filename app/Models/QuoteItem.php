@@ -11,7 +11,7 @@ class QuoteItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'quote_id', 'part_id', 'type', 'description',
+        'quote_id', 'order_item_id', 'part_id', 'type', 'description',
         'quantity', 'unit_price', 'subtotal',
     ];
 

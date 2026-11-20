@@ -10,10 +10,15 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['repair_order_id', 'amount', 'payment_method', 'notes'];
+    protected $fillable = ['repair_order_id', 'quote_id', 'amount', 'payment_method', 'notes'];
 
     public function repairOrder(): BelongsTo
     {
         return $this->belongsTo(RepairOrder::class);
+    }
+
+    public function quote(): BelongsTo
+    {
+        return $this->belongsTo(Quote::class);
     }
 }

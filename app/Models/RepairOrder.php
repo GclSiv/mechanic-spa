@@ -65,9 +65,14 @@ class RepairOrder extends Model
     /**
      * Cotizaciones de la orden (una nueva por cada hallazgo adicional).
      */
+    public function avancePhotos(): HasMany
+    {
+        return $this->hasMany(RepairOrderPhoto::class)->orderBy('id');
+    }
+
     public function quotes(): HasMany
     {
-        return $this->hasMany(Quote::class)->orderByDesc('version');
+        return $this->hasMany(Quote::class)->orderByDesc('kind')->orderByDesc('version');
     }
 
     /**
@@ -75,8 +80,10 @@ class RepairOrder extends Model
      */
     public function currentQuote(): ?Quote
     {
-        return $this->quotes()->where('status', Quote::APROBADA)->first()
-            ?? $this->quotes()->whereIn('status', [Quote::ENVIADA, Quote::BORRADOR])->first();
+        $principales = $this->quotes()->where('kind', Quote::KIND_PRINCIPAL);
+
+        return $principales->where('status', Quote::APROBADA)->first()
+            ?? $principales->whereIn('status', [Quote::ENVIADA, Quote::BORRADOR])->first();
     }
 
     /**
