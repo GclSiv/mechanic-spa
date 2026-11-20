@@ -27,6 +27,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/vehicles/check', [\App\Http\Controllers\RecepcionController::class, 'checkVehicle'])
         ->name('vehicles.check');
 
+    Route::get('/clients/check', [\App\Http\Controllers\RecepcionController::class, 'checkClient'])
+        ->name('clients.check');
+
+    // ── Seguimiento de cotizaciones enviadas a clientes ───────────────────
+    Route::get('/cotizaciones', [\App\Http\Controllers\QuoteFollowUpController::class, 'index'])
+        ->name('quotes.follow-up');
+    Route::get('/cotizaciones/exportar', [\App\Http\Controllers\QuoteFollowUpController::class, 'exportar'])
+        ->name('quotes.follow-up.export');
+
     // ── Módulo de Cuentas / Finanzas (solo admin) ─────────────────────────
     Route::get('/cuentas', [\App\Http\Controllers\FinanceController::class, 'index'])
         ->name('finance.index')
@@ -94,13 +103,29 @@ Route::middleware(['auth'])->group(function () {
         ->name('payments.store');
     Route::delete('/repair-orders/{order}/payments/{payment}', [\App\Http\Controllers\PaymentController::class, 'destroy'])
         ->name('payments.destroy');
+    Route::get('/repair-orders/{order}/payments/{payment}/ticket', [\App\Http\Controllers\PaymentController::class, 'ticket'])
+        ->name('payments.ticket');
+
+    // FOTOS DEL AVANCE (taller)
+    Route::post('/repair-orders/{order}/fotos-avance', [\App\Http\Controllers\RepairOrderPhotoController::class, 'store'])
+        ->middleware('own.order')
+        ->name('repair-orders.avance.store');
+    Route::get('/repair-orders/{order}/fotos-avance/{photo}', [\App\Http\Controllers\RepairOrderPhotoController::class, 'show'])
+        ->name('repair-orders.avance.photo');
+    Route::delete('/repair-orders/{order}/fotos-avance/{photo}', [\App\Http\Controllers\RepairOrderPhotoController::class, 'destroy'])
+        ->middleware('own.order')
+        ->name('repair-orders.avance.destroy');
 
     // ========================================================
     // MÓDULO 2: ÓRDENES DE REPARACIÓN Y COTIZACIÓN
     // ========================================================
+    Route::get('/repair-orders/lista', [\App\Http\Controllers\RepairOrderListController::class, 'index'])
+        ->name('repair-orders.lista');
+
     Route::controller(RepairOrderController::class)
         ->prefix('repair-orders')
         ->name('repair-orders.')
+        ->middleware('own.order')
         ->group(function () {
             
             // Ver panel de gestión de la orden
@@ -124,8 +149,8 @@ Route::middleware(['auth'])->group(function () {
 
             // Nuevas rutas operativas
             Route::post('/{order}/diagnosis-complete', 'diagnosisComplete')->name('diagnosis.complete');
-            Route::post('/{order}/reassign-mechanic',  'reassignMechanic')->name('mechanic.reassign');
-            Route::patch('/{order}/tax-rate', 'updateTaxRate')->name('tax.update');
+            Route::post('/{order}/reassign-mechanic',  'reassignMechanic')->name('mechanic.reassign')->middleware('role:admin');
+            Route::patch('/{order}/tax-rate', 'updateTaxRate')->name('tax.update')->middleware('role:admin');
     });
 
     // ========================================================
@@ -181,11 +206,14 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth'])
     ->prefix('repair-orders/{order}/quotes')
     ->name('repair-orders.quotes.')
+    ->middleware('own.order')
     ->group(function () {
         Route::post('/', [\App\Http\Controllers\QuoteController::class, 'store'])->name('store');
         Route::patch('/{quote}/send', [\App\Http\Controllers\QuoteController::class, 'send'])->name('send');
         Route::patch('/{quote}/approve', [\App\Http\Controllers\QuoteController::class, 'approve'])->name('approve');
         Route::patch('/{quote}/reject', [\App\Http\Controllers\QuoteController::class, 'reject'])->name('reject');
+        Route::get('/{quote}/pdf', [\App\Http\Controllers\QuoteController::class, 'pdf'])->name('pdf');
+        Route::delete('/{quote}', [\App\Http\Controllers\QuoteController::class, 'destroy'])->name('destroy');
     });
 
 /*
@@ -199,6 +227,17 @@ Route::get('/seguimiento/{token}', [\App\Http\Controllers\TrackingController::cl
 Route::get('/seguimiento/{token}/cotizaciones/{quote}/pdf', [\App\Http\Controllers\TrackingController::class, 'quotePdf'])
     ->where('token', '[A-Za-z0-9]{48}')
     ->name('tracking.quote.pdf');
+Route::post('/seguimiento/{token}/cotizaciones/{quote}/aceptar', [\App\Http\Controllers\TrackingController::class, 'accept'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.quote.accept');
+Route::post('/seguimiento/{token}/cotizaciones/{quote}/rechazar', [\App\Http\Controllers\TrackingController::class, 'reject'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.quote.reject');
+Route::get('/seguimiento/{token}/fotos/{photo}', [\App\Http\Controllers\TrackingController::class, 'avancePhoto'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->name('tracking.avance.photo');
 
 /*
 |--------------------------------------------------------------------------
