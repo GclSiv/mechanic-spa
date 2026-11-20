@@ -1,6 +1,5 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import ConfirmModal from "@/Components/ConfirmModal.vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import { ref, watch, computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -37,15 +36,8 @@ watch(search, (value) => {
     }, 500);
 });
 
-const confirmDelete = ref({ show: false, id: null });
-const deleteRecord = (id) => { confirmDelete.value = { show: true, id }; };
-const doDelete = () => {
-    router.delete(route("recepcion.destroy", confirmDelete.value.id), { preserveScroll: true });
-    confirmDelete.value = { show: false, id: null };
-};
-
 function formatCurrency(val) {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD' }).format(val ?? 0);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val ?? 0);
 }
 </script>
 
@@ -278,10 +270,6 @@ function formatCurrency(val) {
                                                 class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
                                                 {{ $t('acciones.ver') }}
                                             </Link>
-                                            <button v-if="isAdmin" @click="deleteRecord(rec.id)"
-                                                class="bg-red-50 hover:bg-red-100 text-[#EE2857] px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                ✕
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -345,14 +333,5 @@ function formatCurrency(val) {
         </div>
 
 
-        <!-- Modal confirmación eliminar -->
-        <ConfirmModal
-            :show="confirmDelete.show"
-            :title="$t('dashboard.eliminarTitulo')"
-            :message="$t('dashboard.eliminarMsg')"
-            :confirm-text="$t('acciones.eliminar')"
-            @confirm="doDelete"
-            @cancel="confirmDelete.show = false"
-        />
     </AuthenticatedLayout>
 </template>

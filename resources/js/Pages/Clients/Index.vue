@@ -77,9 +77,6 @@ defineProps({
                                                 ➕ Nueva visita
                                             </a>
                                         </div>
-                                        <Link :href="route('clientes.edit', client.id)" class="text-jk-blue hover:text-blue-900 font-bold">
-                                            Editar
-                                        </Link>
                                     </td>
                                 </tr>
 

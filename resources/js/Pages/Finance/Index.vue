@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 function fmt(val) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val ?? 0);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val ?? 0);
 }
 </script>
 

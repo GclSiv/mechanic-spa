@@ -41,25 +41,12 @@ class DashboardController extends Controller
             ? Part::whereColumn('stock', '<=', 'low_stock_threshold')->count()
             : null;
 
+        // Ingresos del mes = dinero realmente cobrado: SUM(payments.amount) del mes en curso.
+        // Misma fuente que FinanceController. No usa estimated_cost ni órdenes entregadas.
         $ingresosMes = $isAdmin
-            ? (function () {
-                // Pagos registrados en el mes
-                $pagosRegistrados = Payment::whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->sum('amount');
-
-                // Total de órdenes entregadas en el mes (para mostrar ingresos aunque no estén liquidadas)
-                $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
-                $ordenesEntregadas = $statusEntregado
-                    ? RepairOrder::where('status_id', $statusEntregado->id)
-                        ->whereMonth('updated_at', now()->month)
-                        ->whereYear('updated_at', now()->year)
-                        ->sum('estimated_cost')
-                    : 0;
-
-                // Mostrar el mayor de los dos valores (pagos reales vs facturado)
-                return max($pagosRegistrados, $ordenesEntregadas);
-            })()
+            ? round((float) Payment::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('amount'), 2)
             : null;
 
         // ── Vehículos por recoger (+48h) — regla de almacenamiento ────────
