@@ -14,9 +14,17 @@ class QuoteController extends Controller
      */
     public function store(Request $request, RepairOrder $order, CreateQuoteAction $action)
     {
-        $data = $request->validate(['notes' => 'nullable|string|max:1000']);
+        // Un vehículo ya entregado no admite nuevas cotizaciones.
+        if ($order->status?->slug === 'entregado') {
+            return back()->withErrors(['status' => 'No se puede crear una cotización de una orden entregada.']);
+        }
 
-        $action->execute($order, $data['notes'] ?? null);
+        $data = $request->validate([
+            'notes' => 'nullable|string|max:1000',
+            'kind'  => 'nullable|in:' . Quote::KIND_PRINCIPAL . ',' . Quote::KIND_ADICIONAL,
+        ]);
+
+        $action->execute($order, $data['notes'] ?? null, $data['kind'] ?? Quote::KIND_PRINCIPAL);
 
         return back()->with('success', 'Cotización generada.');
     }
@@ -70,5 +78,41 @@ class QuoteController extends Controller
         $quote->reject($data['rejection_reason'] ?? null);
 
         return back()->with('success', 'Cotización marcada como rechazada.');
+    }
+
+    /**
+     * PDF de una cotización para el taller (incluye borradores). El cliente usa la ruta pública.
+     */
+    public function pdf(RepairOrder $order, Quote $quote)
+    {
+        abort_unless($quote->repair_order_id === $order->id, 404);
+
+        $quote->load('items');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.cotizacion-folio', [
+            'quote'     => $quote,
+            'order'     => $order,
+            'recepcion' => $order->recepcion,
+            'settings'  => \App\Models\Setting::current(),
+        ]);
+
+        return $pdf->stream('Cotizacion_' . \Illuminate\Support\Str::slug($quote->folio) . '.pdf');
+    }
+
+    /**
+     * Elimina un borrador equivocado. Las cotizaciones enviadas o aprobadas no se borran.
+     */
+    public function destroy(RepairOrder $order, Quote $quote)
+    {
+        abort_unless($quote->repair_order_id === $order->id, 404);
+
+        if ($quote->status !== Quote::BORRADOR) {
+            return back()->withErrors(['status' => 'Solo se pueden eliminar borradores.']);
+        }
+
+        $quote->items()->delete();
+        $quote->delete();
+
+        return back()->with('success', 'Borrador eliminado.');
     }
 }

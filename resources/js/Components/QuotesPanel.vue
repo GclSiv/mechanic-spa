@@ -10,7 +10,9 @@ const props = defineProps({
 const { t } = useI18n();
 
 const quotes = computed(() => props.orden?.quotes ?? []);
-const hasOpen = computed(() => quotes.value.some((q) => ['borrador', 'enviada'].includes(q.status)));
+// Solo una cotización enviada y sin respuesta bloquea otra del mismo tipo
+const enviadaPrincipal = computed(() => quotes.value.some((q) => q.status === 'enviada' && (q.kind ?? 'principal') === 'principal'));
+const enviadaAdicional = computed(() => quotes.value.some((q) => q.status === 'enviada' && q.kind === 'adicional'));
 
 const money = (v) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(v ?? 0));
 
@@ -58,13 +60,30 @@ const copyLink = async () => {
     }
 };
 
-const whatsappLink = (quote) => {
-    const text = encodeURIComponent(`${t('quotesPanel.waMensaje', { folio: quote.folio })} ${trackingUrl.value}`);
-    return `https://wa.me/?text=${text}`;
+// Formato WhatsApp de México: 52 + 10 dígitos
+const normalizarTelefono = (tel) => {
+    const d = (tel ?? '').replace(/\D/g, '');
+    if (!d) return null;
+    if (d.length === 10) return '52' + d;
+    if (d.length === 13 && d.startsWith('521')) return '52' + d.slice(3);
+    return d;
 };
 
-const generar = () => {
-    router.post(route('repair-orders.quotes.store', props.orden.id), {}, { preserveScroll: true });
+const clientePhone = computed(() => normalizarTelefono(props.orden?.recepcion?.client?.phone));
+
+const whatsappLink = (quote) => {
+    const text = encodeURIComponent(`${t('quotesPanel.waMensaje', { folio: quote.folio })} ${trackingUrl.value}`);
+    const tel = clientePhone.value;
+    return tel ? `https://wa.me/${tel}?text=${text}` : `https://wa.me/?text=${text}`;
+};
+
+const generar = (kind = 'principal') => {
+    router.post(route('repair-orders.quotes.store', props.orden.id), { kind }, { preserveScroll: true });
+};
+
+const eliminarBorrador = (quote) => {
+    if (!confirm('¿Eliminar el borrador ' + quote.folio + '?')) return;
+    router.delete(route('repair-orders.quotes.destroy', [props.orden.id, quote.id]), { preserveScroll: true });
 };
 
 const marcarEnviada = (quote) => {
@@ -115,16 +134,22 @@ const statusClass = (s) => ({
                     class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase">
                     {{ copied ? $t('quotesPanel.copiado') : $t('quotesPanel.copiarEnlace') }}
                 </button>
-                <button type="button" @click="generar"
-                    :disabled="hasOpen"
+                <button v-if="orden.status?.slug !== 'entregado'" type="button" @click="generar('principal')"
+                    :disabled="enviadaPrincipal"
                     class="bg-[#EE2857] hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-bold text-xs uppercase">
                     {{ $t('quotesPanel.nueva') }}
+                </button>
+                <button v-if="orden.status?.slug !== 'entregado'" type="button" @click="generar('adicional')"
+                    :disabled="enviadaAdicional"
+                    class="bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-bold text-xs uppercase">
+                    Trabajo adicional
                 </button>
             </div>
         </div>
 
         <div class="p-6 space-y-4">
-            <p v-if="hasOpen" class="text-xs text-gray-500">{{ $t('quotesPanel.abiertaAviso') }}</p>
+            <p v-if="enviadaPrincipal || enviadaAdicional" class="text-xs text-gray-500">Hay una cotización enviada esperando respuesta del cliente. Espera su respuesta antes de crear otra del mismo tipo.</p>
+            <p v-if="!clientePhone" class="text-xs text-amber-700">El cliente no tiene teléfono registrado: WhatsApp abrirá sin destinatario. Agrégalo en la recepción.</p>
             <p v-if="!quotes.length" class="text-sm text-gray-400 italic">{{ $t('quotesPanel.vacio') }}</p>
 
             <article v-for="q in quotes" :key="q.id" class="border rounded-lg p-4"
@@ -134,7 +159,7 @@ const statusClass = (s) => ({
                         <p class="font-bold text-[#10213E]">{{ q.folio }}</p>
                         <p class="text-xs text-gray-500">
                             {{ $t('quotesPanel.version') }} {{ q.version }} · {{ money(q.total) }}
-                            <span v-if="q.valid_until"> · {{ $t('quotesPanel.vigente') }}: {{ q.valid_until }}</span>
+                            <span v-if="q.valid_until"> · {{ $t('quotesPanel.vigente') }}: {{ String(q.valid_until).slice(0, 10) }}</span>
                         </p>
                         <p v-if="q.status === 'aprobada'" class="text-xs text-green-700 mt-1">
                             {{ $t('quotesPanel.aprobadaPor', { nombre: q.approved_by_name, metodo: $t('quotesPanel.metodo.' + q.approval_method) }) }}
@@ -149,6 +174,8 @@ const statusClass = (s) => ({
                 </div>
 
                 <div class="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                    <button v-if="q.status === 'borrador'" type="button" @click="eliminarBorrador(q)"
+                        class="px-3 py-1.5 rounded border border-red-300 text-red-700">Eliminar</button>
                     <button v-if="q.status === 'borrador'" type="button" @click="marcarEnviada(q)"
                         class="px-3 py-1.5 rounded bg-[#10213E] text-white">{{ $t('quotesPanel.marcarEnviada') }}</button>
                     <a v-if="q.status === 'borrador' || q.status === 'enviada'" :href="whatsappLink(q)" target="_blank"
@@ -157,7 +184,7 @@ const statusClass = (s) => ({
                         class="px-3 py-1.5 rounded bg-green-700 text-white">{{ $t('quotesPanel.registrarAprobacion') }}</button>
                     <button v-if="q.status === 'enviada'" type="button" @click="rechazar(q)"
                         class="px-3 py-1.5 rounded bg-red-100 text-red-700">{{ $t('quotesPanel.registrarRechazo') }}</button>
-                    <a :href="route('tracking.quote.pdf', { token: orden.tracking_token, quote: q.id })" target="_blank"
+                    <a :href="route('repair-orders.quotes.pdf', { order: orden.id, quote: q.id })" target="_blank"
                         class="px-3 py-1.5 rounded border border-gray-300 text-gray-700">{{ $t('quotesPanel.pdf') }}</a>
                 </div>
 

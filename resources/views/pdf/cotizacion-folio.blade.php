@@ -29,10 +29,16 @@
 <div class="page">
     <table class="row">
         <tr>
+            <td style="width:70px">
+                <img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:60px; height:auto;">
+            </td>
             <td>
-                <div class="brand">{{ $settings->company_name ?? 'Taller' }}</div>
+                <div class="brand">{{ $settings->company_name ?: 'Mi taller' }}</div>
+                @if(!empty($settings->razon_social))<div class="muted">{{ $settings->razon_social }}</div>@endif
+                @if(!empty($settings->rfc))<div class="muted">RFC: {{ $settings->rfc }}</div>@endif
                 @if(!empty($settings->address))<div class="muted">{{ $settings->address }}</div>@endif
                 @if(!empty($settings->phone))<div class="muted">Tel. {{ $settings->phone }}</div>@endif
+                @if(!empty($settings->email))<div class="muted">{{ $settings->email }}</div>@endif
             </td>
             <td>
                 <div class="title">COTIZACIÓN</div>
@@ -101,6 +107,14 @@
         Precios en pesos mexicanos. Esta cotización es válida hasta la fecha indicada; después de esa fecha los precios pueden cambiar.
         Los trabajos se inician únicamente con la aprobación del cliente. Cualquier trabajo adicional requiere una nueva cotización.
     </div>
+    @if(!empty($settings->clauses))
+        <div class="section">Políticas del taller</div>
+        <div class="notes" style="white-space: pre-line;">{{ $settings->clauses }}</div>
+    @endif
+    @if(!empty($settings->warranty_notes))
+        <div class="section">Garantía</div>
+        <div class="notes" style="white-space: pre-line;">{{ $settings->warranty_notes }}</div>
+    @endif
 
     <table class="sign">
         <tr>
