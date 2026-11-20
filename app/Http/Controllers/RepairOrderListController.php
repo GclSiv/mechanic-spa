@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Models\Mechanic;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
@@ -49,11 +50,13 @@ class RepairOrderListController extends Controller
             $query->where('mechanic_id', (int) $filtros['mecanico']);
         }
 
-        $saldoSql = 'COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.repair_order_id = repair_orders.id), 0)';
+        // Saldo autorizado = total aprobado (snapshots) − pagos. Misma regla que EstadoFinancieroAction.
+        $autorizadoSql = "COALESCE((SELECT SUM(q.total) FROM quotes q WHERE q.repair_order_id = repair_orders.id AND q.status = 'aprobada'), 0)";
+        $pagadoSql     = 'COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.repair_order_id = repair_orders.id), 0)';
         if ($filtros['saldo'] === 'pendiente') {
-            $query->whereRaw("repair_orders.estimated_cost > {$saldoSql}");
+            $query->whereRaw("({$autorizadoSql} - {$pagadoSql}) > 0");
         } elseif ($filtros['saldo'] === 'liquidado') {
-            $query->whereRaw("repair_orders.estimated_cost <= {$saldoSql}");
+            $query->whereRaw("({$autorizadoSql} - {$pagadoSql}) <= 0");
         }
 
         if ($filtros['desde'] !== '') {
@@ -65,9 +68,10 @@ class RepairOrderListController extends Controller
 
         $ordenes = $query->paginate(25)->withQueryString();
 
-        $filas = $ordenes->through(function (RepairOrder $o) {
-            $pagado = round((float) $o->payments->sum('amount'), 2);
-            $total  = round((float) $o->estimated_cost, 2);
+        $estado = app(EstadoFinancieroAction::class);
+
+        $filas = $ordenes->through(function (RepairOrder $o) use ($estado) {
+            $financiero = $estado->execute($o);
             $vehiculo = $o->recepcion?->vehicle;
 
             return [
@@ -81,9 +85,10 @@ class RepairOrderListController extends Controller
                 'estado'     => $o->status?->name ?? '—',
                 'estado_slug'=> $o->status?->slug,
                 'color'      => $o->status?->color_class ?? 'bg-gray-100 text-gray-600',
-                'total'      => $total,
-                'pagado'     => $pagado,
-                'saldo'      => round(max($total - $pagado, 0), 2),
+                'total'      => $financiero['total_autorizado'],
+                'pagado'     => $financiero['total_pagado'],
+                'saldo'      => $financiero['saldo_autorizado'],
+                'pendiente'  => $financiero['pendiente_autorizacion'],
                 'entrada'    => $o->created_at?->format('d/m/Y'),
                 'dias'       => $o->created_at ? (int) $o->created_at->diffInDays(now()) : null,
             ];

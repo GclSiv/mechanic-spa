@@ -6,18 +6,11 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
+// Todas las cifras vienen del servidor (EstadoFinancieroAction). Aquí solo se renderizan.
 const props = defineProps({
-    orden:     { type: Object, required: true },
-    breakdown: { type: Object, required: true },
+    orden:  { type: Object, required: true },
+    estado: { type: Object, required: true },
 });
-
-const totalPagado = computed(() =>
-    (props.orden.payments ?? []).reduce((s, p) => s + Number(p.amount), 0)
-);
-
-const saldoPendiente = computed(() =>
-    Number(props.breakdown.total) - totalPagado.value
-);
 
 const form = useForm({
     amount: '',
@@ -26,28 +19,13 @@ const form = useForm({
     quote_id: '',
 });
 
-// Cotizaciones con su monto, anticipo recibido y saldo (solo las enviadas, aprobadas o rechazadas)
 const ESTADOS_COTIZACION = { enviada: 'Enviada', aprobada: 'Aprobada', rechazada: 'Rechazada' };
 const estadoCotizacion = (s) => ESTADOS_COTIZACION[s] ?? s;
 
-const cotizaciones = computed(() => (props.orden.quotes ?? [])
-    .filter(q => ['enviada', 'aprobada', 'rechazada'].includes(q.status))
-    .map(q => {
-        const total = Number(q.total);
-        const pagado = (props.orden.payments ?? [])
-            .filter(p => Number(p.quote_id) === q.id)
-            .reduce((s, p) => s + Number(p.amount), 0);
-        return { ...q, total, pagado, saldo: total - pagado };
-    })
-);
+const cotizaciones = computed(() => props.estado.cotizaciones ?? []);
+const cotizacionesAplicables = computed(() => cotizaciones.value.filter(c => c.status === 'aprobada'));
 
-const pagoSinCotizacion = computed(() =>
-    (props.orden.payments ?? [])
-        .filter(p => !p.quote_id)
-        .reduce((s, p) => s + Number(p.amount), 0)
-);
-
-const etiquetaCotizacion = (c) => `${c.folio} · ${c.kind === 'adicional' ? 'Adicional' : 'Principal'} · $${c.total.toFixed(2)}`;
+const etiquetaCotizacion = (c) => `${c.folio} · ${c.kind === 'adicional' ? 'Adicional' : 'Principal'} · $${Number(c.total).toFixed(2)}`;
 
 function submit() {
     form.post(route('payments.store', props.orden.id), {
@@ -93,23 +71,34 @@ function metodLabel(method) {
             💳 {{ t('payments.titulo') }}
         </h3>
 
-        <!-- Financial summary cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <!-- Resumen autorizado: lo que el cliente debe, no el total técnico -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div class="bg-gray-50 rounded-lg p-3 text-center">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">{{ t('payments.totalOrden') }}</p>
-                <p class="text-lg font-black text-[#10213E]">${{ Number(breakdown.total).toFixed(2) }}</p>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Total autorizado</p>
+                <p class="text-lg font-black text-[#10213E]">${{ Number(estado.total_autorizado).toFixed(2) }}</p>
             </div>
             <div class="bg-green-50 rounded-lg p-3 text-center">
                 <p class="text-xs text-gray-400 uppercase font-bold mb-1">{{ t('payments.totalPagado') }}</p>
-                <p class="text-lg font-black text-green-700">${{ totalPagado.toFixed(2) }}</p>
+                <p class="text-lg font-black text-green-700">${{ Number(estado.total_pagado).toFixed(2) }}</p>
             </div>
-            <div class="rounded-lg p-3 text-center" :class="saldoPendiente <= 0 ? 'bg-emerald-100' : 'bg-red-50'">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">{{ t('payments.saldoPendiente') }}</p>
-                <p class="text-lg font-black" :class="saldoPendiente <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
-                    {{ saldoPendiente <= 0 ? t('payments.liquidado') : '$' + saldoPendiente.toFixed(2) }}
+            <div class="rounded-lg p-3 text-center" :class="estado.saldo_autorizado <= 0 ? 'bg-emerald-100' : 'bg-red-50'">
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Saldo autorizado</p>
+                <p class="text-lg font-black" :class="estado.saldo_autorizado <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
+                    {{ estado.saldo_autorizado <= 0 ? t('payments.liquidado') : '$' + Number(estado.saldo_autorizado).toFixed(2) }}
                 </p>
             </div>
         </div>
+
+        <p v-if="estado.pendiente_autorizacion > 0" class="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mb-5">
+            Trabajo pendiente de autorización: ${{ Number(estado.pendiente_autorizacion).toFixed(2) }}. No es deuda exigible hasta que el cliente lo autorice en una cotización adicional.
+        </p>
+        <p v-if="estado.anticipo_previo > 0" class="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-2">
+            Anticipo previo a autorización: ${{ Number(estado.anticipo_previo).toFixed(2) }}. Ya forma parte del pagado; no se reasigna a ninguna cotización.
+        </p>
+        <p v-if="estado.sobrepago > 0" class="text-xs font-bold text-red-700 bg-red-50 rounded-lg px-3 py-2 mb-2">
+            Pagado por encima de lo autorizado: ${{ Number(estado.sobrepago).toFixed(2) }}. Requiere revisión; el sistema no registra saldo a favor y no admite nuevos pagos que lo amplíen.
+        </p>
+        <div v-if="estado.pendiente_autorizacion <= 0" class="mb-5"></div>
 
         <!-- Cotizaciones con monto y anticipo -->
         <div v-if="cotizaciones.length" class="mb-5">
@@ -121,17 +110,17 @@ function metodLabel(method) {
                     <p class="text-xs text-gray-400 uppercase">{{ estadoCotizacion(c.status) }}</p>
                 </div>
                 <div class="text-right text-sm space-y-0.5">
-                    <p>Monto: <span class="font-black text-[#10213E]">${{ c.total.toFixed(2) }}</span></p>
-                    <p>Anticipo: <span class="font-bold text-green-700">${{ c.pagado.toFixed(2) }}</span></p>
-                    <p>Saldo:
+                    <p>Monto: <span class="font-black text-[#10213E]">${{ Number(c.total).toFixed(2) }}</span></p>
+                    <p>Anticipo: <span class="font-bold text-green-700">${{ Number(c.pagado).toFixed(2) }}</span></p>
+                    <p v-if="c.status === 'aprobada'">Saldo:
                         <span class="font-bold" :class="c.saldo <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
-                            {{ c.saldo <= 0 ? 'Liquidada' : '$' + c.saldo.toFixed(2) }}
+                            {{ c.saldo <= 0 ? 'Liquidada' : '$' + Number(c.saldo).toFixed(2) }}
                         </span>
                     </p>
                 </div>
             </div>
-            <p v-if="pagoSinCotizacion > 0" class="text-xs text-gray-500">
-                Anticipo general sin asignar a una cotización: ${{ pagoSinCotizacion.toFixed(2) }}
+            <p v-if="estado.pago_sin_cotizacion > 0" class="text-xs text-gray-500">
+                Anticipo general sin asignar a una cotización: ${{ Number(estado.pago_sin_cotizacion).toFixed(2) }}
             </p>
         </div>
 
@@ -173,7 +162,7 @@ function metodLabel(method) {
                 <select v-model="form.quote_id"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#EE2857] focus:outline-none">
                     <option value="">Anticipo general (sin cotización)</option>
-                    <option v-for="c in cotizaciones" :key="c.id" :value="c.id">{{ etiquetaCotizacion(c) }}</option>
+                    <option v-for="c in cotizacionesAplicables" :key="c.id" :value="c.id">{{ etiquetaCotizacion(c) }}</option>
                 </select>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -199,6 +188,7 @@ function metodLabel(method) {
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                 </div>
             </div>
+            <p v-if="form.errors.quote_id" class="text-red-500 text-xs mt-2">{{ form.errors.quote_id }}</p>
             <div class="flex justify-end mt-3">
                 <button @click="submit" :disabled="form.processing || !form.amount"
                     class="bg-[#EE2857] hover:bg-red-700 disabled:opacity-40 text-white font-black text-xs uppercase px-6 py-2.5 rounded-lg transition shadow-sm">

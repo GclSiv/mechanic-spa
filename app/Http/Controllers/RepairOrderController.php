@@ -8,6 +8,7 @@ use App\Models\RepairOrderStatus;
 use App\Models\Mechanic;
 use App\Models\FollowUp;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
+use App\Actions\RepairOrders\EstadoFinancieroAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class RepairOrderController extends Controller
 {
-    public function addItem(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
+    public function addItem(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
         if (! $request->user()->isAdmin()) {
             // El mecánico solo registra refacciones, al precio de catálogo (nunca el que envíe el navegador).
@@ -37,7 +38,7 @@ class RepairOrderController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $order, $calculator) {
+            DB::transaction(function () use ($request, $order, $estado) {
                 $esRefaccion = $request->type === 'part';
 
                 // Descuento atómico: la comprobación stock >= cantidad y el decremento
@@ -67,7 +68,7 @@ class RepairOrderController extends Controller
                     'subtotal'    => \App\Support\Cantidad::importe($request->quantity, $request->unit_price),
                 ]);
 
-                $calculator->execute($order);
+                $estado->sincronizar($order);
             });
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -113,6 +114,14 @@ class RepairOrderController extends Controller
 
         if (! $isAdmin) {
             $orders->each(fn (RepairOrder $order) => $this->ocultarFinanzasParaMecanico($order));
+        } else {
+            // Saldo autorizado desde la fuente única; la vista no calcula dinero
+            $estado = app(EstadoFinancieroAction::class);
+            $orders->each(function (RepairOrder $order) use ($estado) {
+                $financiero = $estado->execute($order);
+                $order->setAttribute('saldo_autorizado', $financiero['saldo_autorizado']);
+                $order->setAttribute('pendiente_autorizacion', $financiero['pendiente_autorizacion']);
+            });
         }
 
         $orders = $orders->groupBy('status_id');
@@ -124,9 +133,11 @@ class RepairOrderController extends Controller
         ]);
     }
 
-    public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator)
+    public function show(RepairOrder $order, CalculateOrderTotalsAction $calculator, EstadoFinancieroAction $estado)
     {
         $breakdown = $calculator->execute($order);
+
+        $isAdmin = auth()->user()->isAdmin();
 
         $order->load([
             'items', 'status', 'mechanic', 'quotes.items',
@@ -138,11 +149,12 @@ class RepairOrderController extends Controller
             'recepcion.vehicle.vehicleModel',
         ]);
 
-        $isAdmin = auth()->user()->isAdmin();
-
         if (! $isAdmin) {
             $this->ocultarFinanzasParaMecanico($order);
         }
+
+        // Estado financiero autorizado (fuente única). Solo admin/owner.
+        $estadoFinanciero = $isAdmin ? $estado->execute($order) : null;
 
         // Aseguramos que photos esté disponible (columna JSON en recepcions)
         $recepcion = $order->recepcion;
@@ -154,6 +166,7 @@ class RepairOrderController extends Controller
             'orden'               => $order,
             'recepcion'           => $order->recepcion,
             'financial_breakdown' => $isAdmin ? $breakdown : null,
+            'estado_financiero'   => $estadoFinanciero,
             'settings'            => \App\Models\Setting::current(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
@@ -182,7 +195,7 @@ class RepairOrderController extends Controller
         $order->recepcion?->client?->makeHidden(['rfc', 'phone', 'email', 'address', 'country']);
     }
 
-    public function removeItem(RepairOrder $order, RepairOrderItem $item, CalculateOrderTotalsAction $calculator)
+    public function removeItem(RepairOrder $order, RepairOrderItem $item, EstadoFinancieroAction $estado)
     {
         abort_unless(auth()->user()->isAdmin() || $item->type === 'part', 403, 'Solo puedes eliminar refacciones.');
 
@@ -190,15 +203,22 @@ class RepairOrderController extends Controller
             abort(403, 'Item no pertenece a esta orden');
         }
 
+        // A2: un concepto ya autorizado en una cotización aprobada no se elimina
+        if ($item->billed_quote_id !== null) {
+            throw ValidationException::withMessages([
+                'item' => 'Este concepto ya está autorizado en una cotización y no puede eliminarse.',
+            ]);
+        }
+
         try {
-            DB::transaction(function () use ($item, $order, $calculator) {
+            DB::transaction(function () use ($item, $order, $estado) {
                 // Devolver stock si era una refacción vinculada
                 if ($item->part_id) {
                     \App\Models\Part::where('id', $item->part_id)
                         ->increment('stock', (int) $item->quantity); // refacciones: cantidad entera
                 }
                 $item->delete();
-                $calculator->execute($order);
+                $estado->sincronizar($order);
             });
         } catch (\Throwable $e) {
             return back()->withErrors('Error al eliminar el item.');
@@ -335,7 +355,7 @@ class RepairOrderController extends Controller
     /**
      * Fase 3: Actualiza el estado de la orden de reparación.
      */
-    public function updateStatus(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
+    public function updateStatus(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
         $request->validate([
             'status_id' => 'required|exists:repair_order_statuses,id',
@@ -358,11 +378,15 @@ class RepairOrderController extends Controller
             );
         }
 
-        // No se entrega el vehículo con saldo pendiente
+        // A2: entregar solo con saldo autorizado en 0 y sin trabajo pendiente de autorizar
         if ($nuevoEstado->slug === 'entregado') {
-            $saldo = $this->saldoPendiente($order, $calculator);
-            if ($saldo > 0) {
-                return back()->with('error', 'No se puede entregar el vehículo: saldo pendiente de $' . number_format($saldo, 2) . '.');
+            $financiero = $estado->execute($order);
+
+            if ($financiero['pendiente_autorizacion'] > 0) {
+                return back()->with('error', 'No se puede entregar el vehículo: hay trabajo pendiente de autorización por $' . number_format($financiero['pendiente_autorizacion'], 2) . '.');
+            }
+            if ($financiero['saldo_autorizado'] > 0) {
+                return back()->with('error', 'No se puede entregar el vehículo: saldo autorizado pendiente de $' . number_format($financiero['saldo_autorizado'], 2) . '.');
             }
         }
 
@@ -371,18 +395,6 @@ class RepairOrderController extends Controller
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Estado actualizado correctamente.');
-    }
-
-    /**
-     * Saldo pendiente = total actual de la orden (fuente única: CalculateOrderTotalsAction)
-     * menos los pagos registrados.
-     */
-    private function saldoPendiente(RepairOrder $order, CalculateOrderTotalsAction $calculator): float
-    {
-        $total  = (float) $calculator->execute($order)['total'];
-        $pagado = (float) $order->payments()->sum('amount');
-
-        return round(max($total - $pagado, 0), 2);
     }
 
     /**

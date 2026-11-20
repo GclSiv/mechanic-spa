@@ -60,6 +60,9 @@ class TaxAndBalanceSourceTest extends TestCase
         );
         $order->update(['status_id' => $reparado->id]);
 
+        // A2: el trabajo debe estar autorizado para que el pago y la entrega cuenten contra él
+        app(\App\Actions\Quotes\CreateQuoteAction::class)->execute($order)->approve('presencial', 'Cliente de prueba');
+
         // Un centavo menos que el total: no se entrega
         Payment::create(['repair_order_id' => $order->id, 'amount' => 347.99, 'payment_method' => 'Cash']);
 

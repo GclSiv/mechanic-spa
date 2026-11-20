@@ -2,33 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\RepairOrders\CalculateOrderTotalsAction;
+use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Models\Payment;
+use App\Models\Quote;
 use App\Models\RepairOrder;
 use Inertia\Inertia;
 
 class FinanceController extends Controller
 {
-    public function index(CalculateOrderTotalsAction $calculator)
+    public function index(EstadoFinancieroAction $estado)
     {
         // ── Cuentas por cobrar ────────────────────────────────────────────
-        // Cualquier orden con saldo pendiente, excepto las rechazadas.
-        // Se muestra el estado para saber si aún está en proceso o ya se entregó.
+        // Deuda exigible: saldo AUTORIZADO > 0. Solo órdenes con cotización aprobada, excepto rechazadas.
         $cuentasPorCobrar = RepairOrder::with([
-                'payments',
                 'status',
                 'recepcion.client',
                 'recepcion.vehicle.brand',
                 'recepcion.vehicle.vehicleModel',
             ])
             ->whereHas('status', fn ($q) => $q->where('slug', '!=', 'rechazado'))
-            ->where('estimated_cost', '>', 0)
+            ->whereHas('quotes', fn ($q) => $q->where('status', Quote::APROBADA))
             ->orderByDesc('updated_at')
             ->get()
-            ->map(function ($order) {
-                $totalPagado = $order->payments->sum('amount');
-                $saldo       = round($order->estimated_cost - $totalPagado, 2);
-                if ($saldo <= 0) return null;
+            ->map(function (RepairOrder $order) use ($estado) {
+                $financiero = $estado->execute($order);
+                if ($financiero['saldo_autorizado'] <= 0) return null;
+
                 return [
                     'id'          => $order->id,
                     'folio'       => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
@@ -45,18 +44,19 @@ class FinanceController extends Controller
                     ),
                     'status_name'  => $order->status->name  ?? '—',
                     'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
-                    'total'       => round($order->estimated_cost, 2),
-                    'pagado'      => round($totalPagado, 2),
-                    'saldo'       => $saldo,
-                    'updated_at'  => $order->updated_at?->format('d/m/Y'),
+                    'total'        => $financiero['total_autorizado'],
+                    'pagado'       => $financiero['total_pagado'],
+                    'saldo'        => $financiero['saldo_autorizado'],
+                    'pendiente'    => $financiero['pendiente_autorizacion'],
+                    'updated_at'   => $order->updated_at?->format('d/m/Y'),
                 ];
             })
             ->filter()
             ->values();
 
-        // ── Órdenes recientes (últimas 15) con saldo ─────────────────────
+        // ── Órdenes recientes (últimas 15) ────────────────────────────────
         $recentOrders = RepairOrder::with([
-            'status', 'payments', 'mechanic',
+            'status', 'mechanic',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',
@@ -64,9 +64,10 @@ class FinanceController extends Controller
         ->orderByDesc('created_at')
         ->take(15)
         ->get()
-        ->map(function ($order) {
-            $totalPagado = $order->payments->sum('amount');
-            $saldo       = round($order->estimated_cost - $totalPagado, 2);
+        ->map(function (RepairOrder $order) use ($estado) {
+            $financiero = $estado->execute($order);
+            $saldo      = $financiero['saldo_autorizado'];
+
             return [
                 'id'           => $order->id,
                 'folio'        => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
@@ -85,6 +86,7 @@ class FinanceController extends Controller
                 'status_name'  => $order->status->name  ?? '—',
                 'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
                 'saldo'        => $saldo,
+                'pendiente'    => $financiero['pendiente_autorizacion'],
                 'liquidado'    => $saldo <= 0,
                 'updated_at'   => $order->updated_at?->format('d/m/Y'),
             ];

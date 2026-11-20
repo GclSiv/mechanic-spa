@@ -102,7 +102,12 @@ const dinero = (n) => '$' + Number(n).toLocaleString('es-MX', { minimumFractionD
                                 {{ o.entrada }}
                                 <span class="block text-xs text-gray-400">hace {{ o.dias }} días</span>
                             </td>
-                            <td class="px-4 py-3 text-right whitespace-nowrap">{{ dinero(o.total) }}</td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                {{ dinero(o.total) }}
+                                <span v-if="o.pendiente > 0" class="block text-xs text-amber-700">
+                                    + {{ dinero(o.pendiente) }} sin autorizar
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap font-black"
                                 :class="o.saldo > 0 ? 'text-[#EE2857]' : 'text-emerald-700'">
                                 {{ o.saldo > 0 ? dinero(o.saldo) : 'Liquidada' }}

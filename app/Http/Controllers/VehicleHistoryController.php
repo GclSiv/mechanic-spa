@@ -6,6 +6,7 @@ use App\Models\RepairOrder;
 use App\Models\Setting;
 use App\Models\Vehicle;
 use Carbon\Carbon;
+use App\Support\TaxCalculator;
 use Inertia\Inertia;
 
 class VehicleHistoryController extends Controller
@@ -19,7 +20,8 @@ class VehicleHistoryController extends Controller
     {
         $vehicle->load(['brand', 'vehicleModel', 'client']);
 
-        $tasaRespaldo = (float) Setting::current()->iva;
+        $calculator = app(\App\Actions\RepairOrders\CalculateOrderTotalsAction::class);
+        $estado     = app(\App\Actions\RepairOrders\EstadoFinancieroAction::class);
 
         $visitas = RepairOrder::query()
             ->whereHas('status', fn ($q) => $q->where('slug', '!=', 'rechazado'))
@@ -27,27 +29,32 @@ class VehicleHistoryController extends Controller
             ->with(['recepcion', 'items.part', 'payments', 'status'])
             ->orderByDesc('updated_at')
             ->get()
-            ->map(function (RepairOrder $order) use ($tasaRespaldo) {
-                $tasa = $order->tax_rate !== null ? (float) $order->tax_rate : $tasaRespaldo;
+            ->map(function (RepairOrder $order) use ($calculator, $estado) {
+                // Total técnico con la misma fórmula que la orden (IVA sobre refacciones y mano de obra)
+                $desglose = $calculator->calcular($order);
+                $tasa     = (float) $desglose['tax_rate'];
 
+                // Cada renglón usa la misma función fiscal (TaxCalculator), sin fórmula propia
                 $conceptos = $order->items->map(function ($item) use ($tasa) {
-                    $importe  = round((float) $item->subtotal, 2);
-                    $impuesto = $item->type === 'labor' ? round($importe * $tasa / 100, 2) : 0.0;
+                    $importe = round((float) $item->subtotal, 2);
+                    $linea   = TaxCalculator::compute(
+                        $item->type === 'part' ? $importe : 0.0,
+                        $item->type === 'labor' ? $importe : 0.0,
+                        $tasa,
+                    );
 
                     return [
                         'codigo'      => $item->part?->sku ?? ($item->type === 'labor' ? 'MO' : null),
                         'descripcion' => $item->description ?: ($item->part?->name ?? ''),
                         'cantidad'    => (float) $item->quantity,
-                        'importe'     => $importe,
-                        'impuesto'    => $impuesto,
-                        'total'       => round($importe + $impuesto, 2),
+                        'importe'     => $linea['subtotal'],
+                        'impuesto'    => $linea['tax'],
+                        'total'       => $linea['total'],
                     ];
                 })->values();
 
-                $fecha  = $order->delivery_date ?? $order->updated_at;
-                $total  = round($conceptos->sum('total'), 2);
-                $pagado = round((float) $order->payments->sum('amount'), 2);
-                $saldo  = round(max($total - $pagado, 0), 2);
+                $fecha      = $order->delivery_date ?? $order->updated_at;
+                $financiero = $estado->execute($order);
 
                 return [
                     'id'        => $order->id,
@@ -58,11 +65,13 @@ class VehicleHistoryController extends Controller
                     'fecha'     => $fecha ? Carbon::parse($fecha)->format('d/m/Y') : null,
                     'odometro'  => $order->recepcion?->miles,
                     'conceptos' => $conceptos,
-                    'importe'   => round($conceptos->sum('importe'), 2),
-                    'impuestos' => round($conceptos->sum('impuesto'), 2),
-                    'total'     => $total,
-                    'pagado'   => $pagado,
-                    'saldo'    => $saldo,
+                    'importe'   => $desglose['subtotal'],
+                    'impuestos' => $desglose['tax'],
+                    'total'     => $desglose['total'],
+                    'autorizado' => $financiero['total_autorizado'],
+                    'pendiente' => $financiero['pendiente_autorizacion'],
+                    'pagado'    => $financiero['total_pagado'],
+                    'saldo'     => $financiero['saldo_autorizado'],
                 ];
             })
             ->values();

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Models\Part;
 use App\Models\Payment;
+use App\Models\Quote;
 use App\Models\Recepcion;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
@@ -29,8 +31,11 @@ class DashboardController extends Controller
         $ordenesActivas = $pendingQuery->count();
 
         // Conteos globales: solo admin/owner (el mecánico no los recibe)
+        // Por cotizar: diagnóstico terminado y todavía sin principal aprobada (A2, no is_paid)
         $porCotizar   = $isAdmin
-            ? RepairOrder::where('needs_quote', true)->where('is_paid', false)->count()
+            ? RepairOrder::where('needs_quote', true)
+                ->whereDoesntHave('quotes', fn ($q) => $q->where('kind', Quote::KIND_PRINCIPAL)->where('status', Quote::APROBADA))
+                ->count()
             : null;
         $stockAlertas = $isAdmin
             ? Part::whereColumn('stock', '<=', 'low_stock_threshold')->count()
@@ -78,20 +83,21 @@ class DashboardController extends Controller
 
             // Cuentas por cobrar: órdenes reparadas/entregadas con saldo pendiente
             if (!empty($repEntregadoIds)) {
+                $estado = app(EstadoFinancieroAction::class);
+
                 $cuentasPorCobrar = RepairOrder::with([
-                    'payments',
                     'recepcion.client',
                     'recepcion.vehicle.brand',
                     'recepcion.vehicle.vehicleModel',
                 ])
                 ->whereIn('status_id', $repEntregadoIds)
-                ->where('is_paid', false)
+                ->whereHas('quotes', fn ($q) => $q->where('status', Quote::APROBADA))
                 ->orderByDesc('updated_at')
                 ->get()
-                ->map(function ($order) {
-                    $totalPagado = $order->payments->sum('amount');
-                    $saldo       = round($order->estimated_cost - $totalPagado, 2);
-                    if ($saldo <= 0) return null; // ya liquidada aunque is_paid no se actualizó
+                ->map(function ($order) use ($estado) {
+                    $financiero = $estado->execute($order);
+                    $saldo      = $financiero['saldo_autorizado'];
+                    if ($saldo <= 0) return null; // deuda exigible saldada
                     return [
                         'id'      => $order->id,
                         'folio'   => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
@@ -154,9 +160,10 @@ class DashboardController extends Controller
         // ── Órdenes recientes con estado y saldo — solo admin ───────────
         $recentOrders = null;
         if ($isAdmin) {
+            $estado = app(EstadoFinancieroAction::class);
+
             $recentOrders = RepairOrder::with([
                 'status',                        // para el badge de color
-                'payments',                      // para calcular saldo
                 'recepcion.client',
                 'recepcion.vehicle.brand',
                 'recepcion.vehicle.vehicleModel',
@@ -165,9 +172,10 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->take(8)
             ->get()
-            ->map(function ($order) {
-                $totalPagado  = $order->payments->sum('amount');
-                $saldo        = round($order->estimated_cost - $totalPagado, 2);
+            ->map(function ($order) use ($estado) {
+                $financiero   = $estado->execute($order);
+                $totalPagado  = $financiero['total_pagado'];
+                $saldo        = $financiero['saldo_autorizado'];
                 return [
                     'id'           => $order->id,
                     'folio'        => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
@@ -180,9 +188,10 @@ class DashboardController extends Controller
                     'mecanico'     => $order->mechanic?->name,
                     'status_slug'  => $order->status->slug ?? null,
                     'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
-                    'total'        => round($order->estimated_cost, 2),
-                    'pagado'       => round($totalPagado, 2),
+                    'total'        => $financiero['total_autorizado'],
+                    'pagado'       => $totalPagado,
                     'saldo'        => $saldo,
+                    'pendiente'    => $financiero['pendiente_autorizacion'],
                     'liquidado'    => $saldo <= 0,
                 ];
             });

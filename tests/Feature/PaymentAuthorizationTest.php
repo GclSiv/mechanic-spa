@@ -29,6 +29,14 @@ class PaymentAuthorizationTest extends TestCase
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $order = RepairOrder::factory()->create();
 
+        // A2: el pago se registra contra un trabajo autorizado
+        \App\Models\RepairOrderItem::create([
+            'repair_order_id' => $order->id, 'type' => 'labor', 'description' => 'Mano de obra',
+            'quantity' => 1, 'unit_price' => 200, 'subtotal' => 200,
+        ]);
+        app(\App\Actions\RepairOrders\CalculateOrderTotalsAction::class)->execute($order);
+        app(\App\Actions\Quotes\CreateQuoteAction::class)->execute($order)->approve('presencial', 'Cliente de prueba');
+
         $this->actingAs($admin)
             ->post(route('payments.store', $order), ['amount' => 100, 'payment_method' => 'Efectivo'])
             ->assertRedirect(route('repair-orders.show', $order));

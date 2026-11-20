@@ -16,6 +16,7 @@ defineProps({
     orden: Object,
     recepcion: Object,
     financial_breakdown: Object,
+    estado_financiero: Object,
     settings: Object,
     statuses: Array,
     mechanics: Array,
@@ -313,7 +314,7 @@ function removeItem(itemId) {
                 <AvancePhotos :orden="orden" />
 
                 <div v-if="isAdmin" id="pagos" class="scroll-mt-6">
-                    <PaymentPanel :orden="orden" :breakdown="financial_breakdown" />
+                    <PaymentPanel :orden="orden" :estado="estado_financiero" />
                 </div>
             </div>
         </div>

@@ -3,11 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
-use App\Models\Payment;
+use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class ExportController extends Controller
 {
@@ -24,7 +23,6 @@ class ExportController extends Controller
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',
             'mechanic',
-            'payments',
         ])
         ->when($statusEntregado, fn($q) => $q->where('status_id', $statusEntregado->id))
         ->whereYear('created_at', $year)
@@ -44,11 +42,11 @@ class ExportController extends Controller
 
         $callback = function () use ($orders, $mes, $calculator) {
             $handle = fopen('php://output', 'w');
+            $estado = app(EstadoFinancieroAction::class);
 
             // BOM para Excel en Windows
             fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // Encabezados
             fputcsv($handle, [
                 'Folio',
                 'Fecha',
@@ -60,22 +58,28 @@ class ExportController extends Controller
                 'Subtotal',
                 'Impuesto',
                 'Total Orden',
+                'Total Autorizado',
                 'Total Pagado',
-                'Saldo Pendiente',
+                'Saldo Autorizado',
+                'Pendiente Autorización',
                 'Estado',
             ]);
 
             $granTotal = 0.0;
+            $granAutorizado = 0.0;
             $granPagado = 0.0;
+            $granSaldo = 0.0;
 
             foreach ($orders as $order) {
-                // Misma fuente que la pantalla de la orden: subtotal, IVA y total salen de CalculateOrderTotalsAction
-                $desglose    = $calculator->calcular($order);
-                $totalPagado = (float) $order->payments->sum('amount');
-                $saldo       = $desglose['total'] - $totalPagado;
+                // Subtotal, IVA y total técnico salen de CalculateOrderTotalsAction (misma fuente que la orden)
+                $desglose   = $calculator->calcular($order);
+                // Autorizado, pagado, saldo y pendiente salen de EstadoFinancieroAction (misma fuente que el panel)
+                $financiero = $estado->execute($order);
 
-                $granTotal  += $desglose['total'];
-                $granPagado += $totalPagado;
+                $granTotal      += $desglose['total'];
+                $granAutorizado += $financiero['total_autorizado'];
+                $granPagado     += $financiero['total_pagado'];
+                $granSaldo      += $financiero['saldo_autorizado'];
 
                 fputcsv($handle, [
                     $order->folio ?? '#' . $order->id,
@@ -88,8 +92,10 @@ class ExportController extends Controller
                     number_format($desglose['subtotal'], 2),
                     number_format($desglose['tax'], 2),
                     number_format($desglose['total'], 2),
-                    number_format($totalPagado, 2),
-                    number_format(max(0, $saldo), 2),
+                    number_format($financiero['total_autorizado'], 2),
+                    number_format($financiero['total_pagado'], 2),
+                    number_format($financiero['saldo_autorizado'], 2),
+                    number_format($financiero['pendiente_autorizacion'], 2),
                     'Entregado',
                 ]);
             }
@@ -102,7 +108,9 @@ class ExportController extends Controller
                 '',
                 '',
                 number_format($granTotal, 2),
+                number_format($granAutorizado, 2),
                 number_format($granPagado, 2),
+                number_format($granSaldo, 2),
                 '',
                 '',
             ]);

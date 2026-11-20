@@ -17,9 +17,11 @@ use Inertia\Inertia;
  * Página pública de seguimiento. Solo expone lo necesario para el cliente:
  * sin teléfono, RFC, dirección ni notas internas.
  */
+use App\Actions\RepairOrders\EstadoFinancieroAction;
+
 class TrackingController extends Controller
 {
-    public function show(string $token, CalculateOrderTotalsAction $calculator)
+    public function show(string $token, EstadoFinancieroAction $estado)
     {
         $order = $this->findOrder($token);
         $order->load(['payments', 'quotes']);
@@ -30,11 +32,11 @@ class TrackingController extends Controller
         $slug      = $order->status?->slug;
         $settings  = Setting::current();
 
-        // Totales y saldo (solo cifras que el cliente ya puede ver: total, pagado y saldo)
-        $breakdown = $calculator->execute($order);
-        $total     = round((float) $breakdown['total'], 2);
-        $pagado    = round((float) $order->payments->sum('amount'), 2);
-        $saldo     = round(max($total - $pagado, 0), 2);
+        // Cifras autorizadas: lo que el cliente ya aprobó, lo pagado y su saldo
+        $financiero = $estado->execute($order);
+        $total      = $financiero['total_autorizado'];
+        $pagado     = $financiero['total_pagado'];
+        $saldo      = $financiero['saldo_autorizado'];
 
         // Pendientes: lo que el cliente tiene que hacer, redactado en el servidor
         $pendientes = [];
@@ -112,6 +114,7 @@ class TrackingController extends Controller
             ],
             'pendientes'         => $pendientes,
             'financiero'         => ['total' => $total, 'pagado' => $pagado, 'saldo' => $saldo],
+            'pendiente_autorizacion' => $financiero['pendiente_autorizacion'],
             'ultima_actualizacion' => optional($order->updated_at)->format('d/m/Y H:i'),
             'avance_fotos' => $order->avancePhotos->map(fn ($f) => [
                 'id'    => $f->id,
@@ -181,12 +184,16 @@ class TrackingController extends Controller
             return back()->withErrors(['quote' => 'La cotización cambió desde que la abriste. Recarga la página para verla actualizada.']);
         }
 
-        $quote->acceptByClient(
-            $data['nombre'],
-            $request->ip(),
-            substr((string) $request->userAgent(), 0, 255),
-            $data['hash'],
-        );
+        try {
+            $quote->acceptByClient(
+                $data['nombre'],
+                $request->ip(),
+                substr((string) $request->userAgent(), 0, 255),
+                $data['hash'],
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors(['quote' => $e->validator->errors()->first('status')]);
+        }
 
         return back()->with('success', 'Cotización aceptada. ¡Gracias!');
     }

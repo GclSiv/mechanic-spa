@@ -30,7 +30,7 @@
 </table>
 <hr>
 <table>
-  <tr><td>Total de la orden:</td><td class="r">${{ number_format($total, 2) }}</td></tr>
+  <tr><td>Total autorizado:</td><td class="r">${{ number_format($total, 2) }}</td></tr>
   <tr><td>Pago recibido:</td><td class="r b">${{ number_format((float) $payment->amount, 2) }}</td></tr>
   <tr><td>Método:</td><td class="r">{{ $metodo }}</td></tr>
   <tr><td>Total pagado a la fecha:</td><td class="r">${{ number_format($pagadoTotal, 2) }}</td></tr>

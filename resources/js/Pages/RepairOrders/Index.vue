@@ -16,11 +16,9 @@ const props = defineProps({
 });
 
 // ── Helpers financieros ───────────────────────────────────────────────
-function totalPagado(order) {
-    return (order.payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
-}
+// El saldo lo calcula el servidor (saldo autorizado); aquí solo se muestra
 function saldoPendiente(order) {
-    return Number(order.estimated_cost ?? 0) - totalPagado(order);
+    return Number(order.saldo_autorizado ?? 0);
 }
 
 // ── Datos por columna ─────────────────────────────────────────────────

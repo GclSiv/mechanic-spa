@@ -38,6 +38,8 @@ class OrderTotalsConsistencyTest extends TestCase
             'quantity' => 1, 'unit_price' => 200, 'subtotal' => 200,
         ]);
 
+        // A2: el pago solo puede registrarse contra lo autorizado
+        app(\App\Actions\Quotes\CreateQuoteAction::class)->execute($order)->approve('presencial', 'Cliente de prueba');
         Payment::create(['repair_order_id' => $order->id, 'amount' => 100, 'payment_method' => 'Cash']);
 
         return $order;
@@ -93,7 +95,7 @@ class OrderTotalsConsistencyTest extends TestCase
         $this->assertSame('48.00', $fila['Impuesto']);
         $this->assertSame('348.00', $fila['Total Orden']);
         $this->assertSame('100.00', $fila['Total Pagado']);
-        $this->assertSame('248.00', $fila['Saldo Pendiente']);
+        $this->assertSame('248.00', $fila['Saldo Autorizado']);
     }
 
     public function test_export_recalculates_from_items_not_from_a_stale_stored_total(): void
@@ -106,7 +108,7 @@ class OrderTotalsConsistencyTest extends TestCase
         $fila = $this->filaDeExportacion($order->folio);
 
         $this->assertSame('348.00', $fila['Total Orden']);
-        $this->assertSame('248.00', $fila['Saldo Pendiente']);
+        $this->assertSame('248.00', $fila['Saldo Autorizado']);
     }
 
     public function test_calcular_does_not_persist_anything(): void

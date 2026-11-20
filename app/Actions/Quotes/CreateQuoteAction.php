@@ -37,6 +37,20 @@ class CreateQuoteAction
                 ]);
             }
 
+            // A2: la principal aprobada es única; el trabajo nuevo va en cotizaciones adicionales
+            if ($kind === Quote::KIND_PRINCIPAL) {
+                $principalAprobada = Quote::where('repair_order_id', $order->id)
+                    ->where('kind', Quote::KIND_PRINCIPAL)
+                    ->where('status', Quote::APROBADA)
+                    ->exists();
+
+                if ($principalAprobada) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Ya existe una cotización principal aprobada. Para trabajo nuevo crea una cotización adicional.',
+                    ]);
+                }
+            }
+
             // Adicional: solo conceptos que aún no se han aprobado en otra cotización
             $items = $kind === Quote::KIND_ADICIONAL
                 ? $order->items->whereNull('billed_quote_id')->values()
