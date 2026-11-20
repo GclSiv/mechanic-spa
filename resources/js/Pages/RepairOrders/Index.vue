@@ -4,6 +4,7 @@ import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ESTADOS_OPERATIVOS_MECANICO, ESTADOS_CERRADOS } from '@/Support/orderStatus.js';
 
 function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 const { t } = useI18n();
@@ -94,6 +95,13 @@ function onDrop(e, targetCol) {
 
     const targetStatus = targetStatuses[0];
     if (targetStatus.id === order.status_id) return;
+
+    // El mecánico solo mueve sus órdenes a estados operativos y no saca órdenes cerradas.
+    // Solo oculta la acción; el servidor (updateStatus) es la autoridad.
+    if (!props.isAdmin) {
+        const actual = props.statuses.find(s => s.id === order.status_id)?.slug;
+        if (!ESTADOS_OPERATIVOS_MECANICO.includes(targetStatus.slug) || ESTADOS_CERRADOS.includes(actual)) return;
+    }
 
     router.patch(
         route('repair-orders.status.update', order.id),

@@ -11,6 +11,7 @@ use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RepairOrderController extends Controller
 {
@@ -22,45 +23,52 @@ class RepairOrderController extends Controller
             $request->merge(['unit_price' => \App\Models\Part::find($request->input('part_id'))?->sale_price]);
         }
 
+        $esRefaccion = $request->input('type') === 'part';
+
         $request->validate([
             'type'        => 'required|in:part,labor',
             'description' => 'required_if:type,labor|nullable|string',
             'part_id'     => 'required_if:type,part|nullable|exists:parts,id',
-            'quantity'    => 'required|numeric|min:0.01',
+            // Refacción: piezas enteras positivas (quantity es entero en la base). Mano de obra: sin cambio.
+            'quantity'    => $esRefaccion ? 'required|integer|min:1' : 'required|numeric|min:0.01',
             'unit_price'  => 'required|numeric|min:0',
         ]);
 
-        // Si es refacción, obtener descripción y validar stock
-        if ($request->type === 'part') {
-            $part = \App\Models\Part::findOrFail($request->part_id);
-            if ($part->stock < $request->quantity) {
-                return back()->withErrors(['quantity' => "Stock insuficiente. Disponible: {$part->stock}"]);
-            }
-        }
-
         try {
             DB::transaction(function () use ($request, $order, $calculator) {
-                $data = [
+                $esRefaccion = $request->type === 'part';
+
+                // Descuento atómico: la comprobación stock >= cantidad y el decremento
+                // van en un solo UPDATE. Si no afecta exactamente una fila, no hay stock y se revierte todo.
+                if ($esRefaccion) {
+                    $descontado = \App\Models\Part::whereKey($request->part_id)
+                        ->where('stock', '>=', $request->quantity)
+                        ->decrement('stock', $request->quantity);
+
+                    if ($descontado !== 1) {
+                        $disponible = \App\Models\Part::find($request->part_id)?->stock ?? 0;
+
+                        throw ValidationException::withMessages([
+                            'quantity' => "Stock insuficiente. Disponible: {$disponible}",
+                        ]);
+                    }
+                }
+
+                $order->items()->create([
                     'type'        => $request->type,
-                    'description' => $request->type === 'part'
+                    'description' => $esRefaccion
                         ? \App\Models\Part::find($request->part_id)->name
                         : $request->description,
-                    'part_id'     => $request->type === 'part' ? $request->part_id : null,
+                    'part_id'     => $esRefaccion ? $request->part_id : null,
                     'quantity'    => $request->quantity,
                     'unit_price'  => $request->unit_price,
                     'subtotal'    => $request->quantity * $request->unit_price,
-                ];
-
-                $order->items()->create($data);
-
-                // Descontar stock si es refacción
-                if ($request->type === 'part' && $request->part_id) {
-                    \App\Models\Part::where('id', $request->part_id)
-                        ->decrement('stock', $request->quantity);
-                }
+                ]);
 
                 $calculator->execute($order);
             });
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
         } catch (\Throwable $e) {
             return back()->withErrors('Error al agregar el item.');
         }
@@ -325,42 +333,52 @@ class RepairOrderController extends Controller
     /**
      * Fase 3: Actualiza el estado de la orden de reparación.
      */
-    public function updateStatus(Request $request, RepairOrder $order)
+    public function updateStatus(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
         $request->validate([
             'status_id' => 'required|exists:repair_order_statuses,id',
         ]);
 
+        $nuevoEstado = RepairOrderStatus::findOrFail($request->status_id);
+
+        // El mecánico solo asigna estados operativos y no saca una orden de un estado de cierre.
+        // (La pertenencia de la orden ya la verificó el middleware own.order.)
+        if (! $request->user()->isAdmin()) {
+            abort_unless(
+                in_array($nuevoEstado->slug, RepairOrderStatus::OPERATIVOS_MECANICO, true),
+                403,
+                'Solo puedes usar estados operativos.'
+            );
+            abort_if(
+                in_array($order->status?->slug, RepairOrderStatus::CERRADOS, true),
+                403,
+                'Esta orden está cerrada. Solo administración puede cambiar su estado.'
+            );
+        }
+
         // No se entrega el vehículo con saldo pendiente
-        $nuevoEstado = RepairOrderStatus::find($request->status_id);
-        if ($nuevoEstado?->slug === 'entregado') {
-            $saldo = $this->saldoPendiente($order);
+        if ($nuevoEstado->slug === 'entregado') {
+            $saldo = $this->saldoPendiente($order, $calculator);
             if ($saldo > 0) {
                 return back()->with('error', 'No se puede entregar el vehículo: saldo pendiente de $' . number_format($saldo, 2) . '.');
             }
         }
 
-        $order->update(['status_id' => $request->status_id]);
+        // Cambiar el estado NO devuelve refacciones al inventario (decisión A1.1): eso será un módulo de movimientos.
+        $order->update(['status_id' => $nuevoEstado->id]);
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Estado actualizado correctamente.');
     }
 
     /**
-     * Saldo pendiente de la orden: total con IVA menos los pagos registrados.
+     * Saldo pendiente = total actual de la orden (fuente única: CalculateOrderTotalsAction)
+     * menos los pagos registrados.
      */
-    private function saldoPendiente(RepairOrder $order): float
+    private function saldoPendiente(RepairOrder $order, CalculateOrderTotalsAction $calculator): float
     {
-        $order->loadMissing(['items', 'payments']);
-
-        $tasa = $order->tax_rate !== null
-            ? (float) $order->tax_rate
-            : (float) \App\Models\Setting::current()->iva;
-
-        $partes = (float) $order->items->where('type', 'part')->sum('subtotal');
-        $mo     = (float) $order->items->where('type', 'labor')->sum('subtotal');
-        $total  = round($partes + $mo + round($mo * $tasa / 100, 2), 2);
-        $pagado = (float) $order->payments->sum('amount');
+        $total  = (float) $calculator->execute($order)['total'];
+        $pagado = (float) $order->payments()->sum('amount');
 
         return round(max($total - $pagado, 0), 2);
     }

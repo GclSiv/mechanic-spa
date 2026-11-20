@@ -18,17 +18,25 @@ class DashboardController extends Controller
         $search  = $request->input('search');
         $isAdmin = $user->isAdmin();
 
+        // El mecánico solo ve información de sus órdenes asignadas.
+        // Sin registro de mecánico, su alcance es vacío (0), nunca "todo".
+        $mechanicId = $isAdmin ? null : ($user->mechanic?->id ?? 0);
+
         // ── Quick Stats ────────────────────────────────────────────────
         $pendingStatuses = RepairOrderStatus::whereNotIn('slug', ['entregado', 'rechazado'])->pluck('id');
-        $pendingQuery    = RepairOrder::whereIn('status_id', $pendingStatuses);
-        if (!$isAdmin) {
-            $mechanic = $user->mechanic ?? null;
-            if ($mechanic) $pendingQuery->where('mechanic_id', $mechanic->id);
-        }
+        $pendingQuery    = RepairOrder::whereIn('status_id', $pendingStatuses)
+            ->when(! $isAdmin, fn ($q) => $q->where('mechanic_id', $mechanicId));
         $ordenesActivas = $pendingQuery->count();
-        $porCotizar     = RepairOrder::where('needs_quote', true)->where('is_paid', false)->count();
-        $stockAlertas   = Part::whereColumn('stock', '<=', 'low_stock_threshold')->count();
-        $ingresosMes    = $isAdmin
+
+        // Conteos globales: solo admin/owner (el mecánico no los recibe)
+        $porCotizar   = $isAdmin
+            ? RepairOrder::where('needs_quote', true)->where('is_paid', false)->count()
+            : null;
+        $stockAlertas = $isAdmin
+            ? Part::whereColumn('stock', '<=', 'low_stock_threshold')->count()
+            : null;
+
+        $ingresosMes = $isAdmin
             ? (function () {
                 // Pagos registrados en el mes
                 $pagosRegistrados = Payment::whereMonth('created_at', now()->month)
@@ -105,14 +113,24 @@ class DashboardController extends Controller
                 ->values();
             }
         }
-        $recentRecepcions = Recepcion::query()
+
+        // ── Recepciones recientes ──────────────────────────────────────
+        // Admin: todas. Mecánico: solo las vinculadas a sus órdenes asignadas.
+        $recepcionesVisibles = fn () => Recepcion::query()
+            ->when(! $isAdmin, fn ($q) => $q->whereHas(
+                'repairOrder',
+                fn ($o) => $o->where('mechanic_id', $mechanicId)
+            ));
+
+        $recentRecepcions = $recepcionesVisibles()
             ->with([
                 'client',
                 'vehicle.brand',
                 'vehicle.vehicleModel',
                 'repairOrder.status',   // ← status del taller para badge en Dashboard
             ])
-            ->when($search, fn($q) => $q
+            // Búsqueda agrupada: el alcance del mecánico no debe mezclarse con el OR de la búsqueda
+            ->when($search, fn ($q) => $q->where(fn ($w) => $w
                 ->whereHas('client', fn($c) => $c
                     ->where('first_name', 'LIKE', "%{$search}%")
                     ->orWhere('last_name',  'LIKE', "%{$search}%")
@@ -121,10 +139,17 @@ class DashboardController extends Controller
                     ->where('plate', 'LIKE', "%{$search}%")
                     ->orWhereHas('brand', fn($b) => $b->where('name', 'LIKE', "%{$search}%"))
                     ->orWhereHas('vehicleModel', fn($m) => $m->where('name', 'LIKE', "%{$search}%")))
-                ->orWhere('recepcions.id', 'LIKE', "%{$search}%"))
+                ->orWhere('recepcions.id', 'LIKE', "%{$search}%")))
             ->latest()
             ->paginate(5)            // ← limitado a 5 por página
             ->withQueryString();
+
+        // El mecánico no recibe datos de contacto ni fiscales del cliente (igual que en la orden)
+        if (! $isAdmin) {
+            $recentRecepcions->getCollection()->each(
+                fn ($recepcion) => $recepcion->client?->makeHidden(['rfc', 'phone', 'email', 'address', 'country'])
+            );
+        }
 
         // ── Órdenes recientes con estado y saldo — solo admin ───────────
         $recentOrders = null;
@@ -165,8 +190,9 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'stats' => [
-                'total'              => Recepcion::count(),
-                'today'              => Recepcion::whereDate('created_at', now())->count(),
+                // Admin: totales globales. Mecánico: solo recepciones de sus órdenes.
+                'total'              => $recepcionesVisibles()->count(),
+                'today'              => $recepcionesVisibles()->whereDate('created_at', now())->count(),
                 'ordenesActivas'     => $ordenesActivas,
                 'porCotizar'         => $porCotizar,
                 'stockAlertas'       => $stockAlertas,
@@ -174,8 +200,6 @@ class DashboardController extends Controller
                 'pendingPickupCount' => $pendingPickupCount,
             ],
             'recentRecepcions'  => $recentRecepcions,
-            // Movido a FinanceController
-            // Movido a FinanceController
             'filters'           => $request->only(['search']),
         ]);
     }

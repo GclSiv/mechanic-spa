@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import { estadosPermitidos, puedeCambiarEstado } from '@/Support/orderStatus.js';
 
 const { t } = useI18n();
 
@@ -9,6 +10,11 @@ const props = defineProps({
     orden: { type: Object, required: true },
     statuses: { type: Array, required: true },
 });
+
+// Solo oculta opciones; el servidor (RepairOrderController::updateStatus) es la autoridad.
+const isAdmin = computed(() => usePage().props.auth?.isAdmin === true);
+const opciones = computed(() => estadosPermitidos(props.statuses, isAdmin.value));
+const puedeCambiar = computed(() => puedeCambiarEstado(props.orden, isAdmin.value));
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -47,7 +53,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 
         <button
             @click="isOpen = !isOpen"
-            :disabled="isLoading"
+            :disabled="isLoading || !puedeCambiar"
             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-transparent hover:opacity-80 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             :class="currentStatus()?.color_class || fallbackColor"
         >
@@ -74,7 +80,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                         {{ $t('taller.cambiarEstado') }}
                     </p>
                     <button
-                        v-for="status in statuses"
+                        v-for="status in opciones"
                         :key="status.id"
                         @click="selectStatus(status)"
                         class="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors"

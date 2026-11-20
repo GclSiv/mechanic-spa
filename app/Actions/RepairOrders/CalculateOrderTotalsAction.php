@@ -9,7 +9,26 @@ use Illuminate\Support\Facades\DB;
 
 class CalculateOrderTotalsAction
 {
+    /**
+     * Calcula y persiste la tasa y el total de la orden (estimated_cost).
+     */
     public function execute(RepairOrder $repairOrder): array
+    {
+        $breakdown = $this->calcular($repairOrder);
+
+        $repairOrder->update([
+            'tax_rate'       => $breakdown['tax_rate'],
+            'estimated_cost' => $breakdown['total'],
+        ]);
+
+        return $breakdown;
+    }
+
+    /**
+     * Desglose de subtotal, IVA y total de la orden SIN persistir nada.
+     * Es la única fórmula: pantalla, saldo, PDF y exportación deben usar este método.
+     */
+    public function calcular(RepairOrder $repairOrder): array
     {
         // 1. Sumas por tipo directamente desde la base de datos
         $items = $repairOrder->items()
@@ -31,15 +50,7 @@ class CalculateOrderTotalsAction
         }
 
         // 3. Desglose fiscal (IVA general 16% o zona fronteriza 8% sobre todo el concepto)
-        $breakdown = TaxCalculator::compute($partsTotal, $laborTotal, $rate);
-
-        // 4. Persistimos la tasa y el total de la orden
-        $repairOrder->update([
-            'tax_rate'       => $rate,
-            'estimated_cost' => $breakdown['total'],
-        ]);
-
-        return $breakdown;
+        return TaxCalculator::compute($partsTotal, $laborTotal, $rate);
     }
 
     private function configuredRate(): float

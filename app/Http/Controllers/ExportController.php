@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Models\Payment;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
@@ -10,7 +11,7 @@ use Illuminate\Support\Carbon;
 
 class ExportController extends Controller
 {
-    public function ordenesCSV(Request $request)
+    public function ordenesCSV(Request $request, CalculateOrderTotalsAction $calculator)
     {
         // Filtro por mes (default: mes actual)
         $mes = $request->input('mes', now()->format('Y-m'));
@@ -41,7 +42,7 @@ class ExportController extends Controller
             'Expires'             => '0',
         ];
 
-        $callback = function () use ($orders, $mes) {
+        $callback = function () use ($orders, $mes, $calculator) {
             $handle = fopen('php://output', 'w');
 
             // BOM para Excel en Windows
@@ -64,9 +65,17 @@ class ExportController extends Controller
                 'Estado',
             ]);
 
+            $granTotal = 0.0;
+            $granPagado = 0.0;
+
             foreach ($orders as $order) {
-                $totalPagado = $order->payments->sum('amount');
-                $saldo = $order->estimated_cost - $totalPagado;
+                // Misma fuente que la pantalla de la orden: subtotal, IVA y total salen de CalculateOrderTotalsAction
+                $desglose    = $calculator->calcular($order);
+                $totalPagado = (float) $order->payments->sum('amount');
+                $saldo       = $desglose['total'] - $totalPagado;
+
+                $granTotal  += $desglose['total'];
+                $granPagado += $totalPagado;
 
                 fputcsv($handle, [
                     $order->folio ?? '#' . $order->id,
@@ -76,9 +85,9 @@ class ExportController extends Controller
                     ($order->recepcion->vehicle->brand->name ?? '') . ' ' . ($order->recepcion->vehicle->vehicleModel->name ?? '') . ' ' . ($order->recepcion->vehicle->year ?? ''),
                     $order->recepcion->vehicle->plate ?? '',
                     $order->mechanic->name ?? 'Sin asignar',
-                    number_format($order->estimated_cost * 0.86, 2),  // aprox subtotal
-                    number_format($order->estimated_cost * 0.14, 2),  // aprox impuesto
-                    number_format($order->estimated_cost, 2),
+                    number_format($desglose['subtotal'], 2),
+                    number_format($desglose['tax'], 2),
+                    number_format($desglose['total'], 2),
                     number_format($totalPagado, 2),
                     number_format(max(0, $saldo), 2),
                     'Entregado',
@@ -92,8 +101,8 @@ class ExportController extends Controller
                 '', '', '', '', '', '',
                 '',
                 '',
-                number_format($orders->sum('estimated_cost'), 2),
-                number_format($orders->flatMap->payments->sum('amount'), 2),
+                number_format($granTotal, 2),
+                number_format($granPagado, 2),
                 '',
                 '',
             ]);

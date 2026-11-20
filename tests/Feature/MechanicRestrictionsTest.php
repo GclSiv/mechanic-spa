@@ -70,9 +70,9 @@ class MechanicRestrictionsTest extends TestCase
         return Quote::create([
             'repair_order_id' => $order->id,
             'version'         => 1,
-            'kind'            => 'quote',
+            'kind'            => Quote::KIND_PRINCIPAL,
             'folio'           => 'COT-' . uniqid(),
-            'status'          => 'draft',
+            'status'          => Quote::BORRADOR,
             'tax_rate'        => 0,
             'parts_subtotal'  => 0,
             'labor_subtotal'  => 0,

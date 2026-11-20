@@ -104,8 +104,8 @@ function formatCurrency(val) {
                         </div>
                     </a>
 
-                    <!-- Alertas stock -->
-                    <a :href="isAdmin ? route('parts.index') : '#'"
+                    <!-- Alertas stock (solo admin/owner: inventario global) -->
+                    <a v-if="isAdmin" :href="route('parts.index')"
                         class="group rounded-xl shadow-sm border p-4 transition-all hover:-translate-y-0.5"
                         :class="stats.stockAlertas > 0
                             ? 'bg-red-50 border-red-200 hover:shadow-md'

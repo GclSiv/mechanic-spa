@@ -392,7 +392,7 @@ function removeItem(itemId) {
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.cantidad') }}</label>
-                            <input v-model="form.quantity" type="number" min="0.01" step="0.01"
+                            <input v-model="form.quantity" type="number" :min="form.type === 'part' ? 1 : 0.01" :step="form.type === 'part' ? 1 : 0.01"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                         <div v-if="isAdmin">
