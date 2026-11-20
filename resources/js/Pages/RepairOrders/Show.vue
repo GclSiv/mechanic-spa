@@ -178,7 +178,7 @@ function removeItem(itemId) {
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.cliente') }}</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.vehiculo') }}</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
                         <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}
-                            <a v-if="recepcion.vehicle" :href="route('vehicles.history', recepcion.vehicle.id)" class="block text-xs font-bold text-[#EE2857] hover:underline mt-1">🕘 Ver historial del vehículo</a></div>
+                            <a v-if="recepcion.vehicle && isAdmin" :href="route('vehicles.history', recepcion.vehicle.id)" class="block text-xs font-bold text-[#EE2857] hover:underline mt-1">🕘 Ver historial del vehículo</a></div>
                     </div>
 
                     <!-- Fotos de evidencia — visibles para todos los roles (lectura) -->
@@ -220,8 +220,8 @@ function removeItem(itemId) {
                                     <th class="p-3">{{ $t('cotizacion.cant') }}</th>
                                     <th class="p-3">{{ $t('cotizacion.tipo') }}</th>
                                     <th class="p-3">{{ $t('cotizacion.descripcion') }}</th>
-                                    <th class="p-3 text-right">{{ $t('cotizacion.unitario') }}</th>
-                                    <th class="p-3 text-right">{{ $t('cotizacion.totalParcial') }}</th>
+                                    <th v-if="isAdmin" class="p-3 text-right">{{ $t('cotizacion.unitario') }}</th>
+                                    <th v-if="isAdmin" class="p-3 text-right">{{ $t('cotizacion.totalParcial') }}</th>
                                     <th class="p-3 text-center">{{ $t('cotizacion.accion') }}</th>
                                 </tr>
                             </thead>
@@ -235,10 +235,10 @@ function removeItem(itemId) {
                                         </span>
                                     </td>
                                     <td class="p-3">{{ item.description }}</td>
-                                    <td class="p-3 text-right">${{ Number(item.unit_price).toFixed(2) }}</td>
-                                    <td class="p-3 text-right font-black">${{ Number(item.subtotal).toFixed(2) }}</td>
+                                    <td v-if="isAdmin" class="p-3 text-right">${{ Number(item.unit_price).toFixed(2) }}</td>
+                                    <td v-if="isAdmin" class="p-3 text-right font-black">${{ Number(item.subtotal).toFixed(2) }}</td>
                                     <td class="p-3 text-center">
-                                        <button @click="removeItem(item.id)" class="text-gray-400 hover:text-[#EE2857] text-sm font-bold transition">
+                                        <button v-if="isAdmin || item.type === 'part'" @click="removeItem(item.id)" class="text-gray-400 hover:text-[#EE2857] text-sm font-bold transition">
                                             ✕
                                         </button>
                                     </td>
@@ -257,7 +257,7 @@ function removeItem(itemId) {
                 </div>
 
                 <!-- COTIZACIONES (versiones) -->
-                <QuotesPanel :orden="orden" />
+                <QuotesPanel v-if="isAdmin" :orden="orden" />
 
                 <!-- MECÁNICO + BITÁCORA — visible desde Recibido en adelante -->
                 <div v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
@@ -345,7 +345,7 @@ function removeItem(itemId) {
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.tipoLabel') }}</label>
                         <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="part">{{ $t('cotizacion.refaccion') }}</option>
-                            <option value="labor">{{ $t('cotizacion.manoDeObra') }}</option>
+                            <option v-if="isAdmin" value="labor">{{ $t('cotizacion.manoDeObra') }}</option>
                         </select>
                     </div>
 
@@ -383,7 +383,7 @@ function removeItem(itemId) {
                     </div>
 
                     <!-- Mano de obra: texto libre -->
-                    <div v-if="form.type === 'labor'">
+                    <div v-if="form.type === 'labor' && isAdmin">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.descripcionLabel') }}</label>
                         <input v-model="form.description" type="text" :placeholder="$t('cotizacion.descripcionPh')"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
@@ -395,14 +395,14 @@ function removeItem(itemId) {
                             <input v-model="form.quantity" type="number" min="0.01" step="0.01"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
-                        <div>
+                        <div v-if="isAdmin">
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.precioUnitario') }}</label>
                             <input v-model="form.unit_price" type="number" min="0" step="0.01"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                         </div>
                     </div>
                     
-                    <div class="bg-gray-100 rounded-lg px-4 py-3 flex justify-between text-sm font-black text-[#10213E] border border-gray-200 mt-2">
+                    <div v-if="isAdmin" class="bg-gray-100 rounded-lg px-4 py-3 flex justify-between text-sm font-black text-[#10213E] border border-gray-200 mt-2">
                         <span>{{ $t('cotizacion.subtotalEst') }}</span>
                         <span>${{ (Number(form.quantity) * Number(form.unit_price)).toFixed(2) }}</span>
                     </div>

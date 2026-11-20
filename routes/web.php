@@ -23,11 +23,13 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
 
 
-    // Verificación de placa/VIN duplicado (AJAX)
+    // Verificación de placa/VIN y de RFC/cliente (AJAX): solo recepción (admin/owner)
     Route::get('/vehicles/check', [\App\Http\Controllers\RecepcionController::class, 'checkVehicle'])
+        ->middleware('role:admin')
         ->name('vehicles.check');
 
     Route::get('/clients/check', [\App\Http\Controllers\RecepcionController::class, 'checkClient'])
+        ->middleware('role:admin')
         ->name('clients.check');
 
     // ── Seguimiento de cotizaciones enviadas a clientes ───────────────────
@@ -52,14 +54,18 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{category}', [\App\Http\Controllers\CategoryController::class, 'destroy'])->name('destroy');
     });
 
-    // Listado de clientes
-    Route::get('/clientes', [\App\Http\Controllers\ClientController::class, 'index'])->name('clients.index');
+    // Listado de clientes (solo admin/owner; el mecánico no ve la lista completa)
+    Route::get('/clientes', [\App\Http\Controllers\ClientController::class, 'index'])
+        ->middleware('role:admin')
+        ->name('clients.index');
 
     // ========================================================
     // MÓDULO 1: RECEPCIÓN TÉCNICA (RESTful y Route Model Binding)
+    // Solo admin/owner: crear, consultar, modificar, eliminar y generar órdenes.
     // ========================================================
     Route::controller(RecepcionController::class)
         ->prefix('recepciones') // Todo unificado a plural
+        ->middleware('role:admin')
         ->group(function () {
             
             // ⚠️ Rutas estáticas van primero para evitar colisiones
@@ -111,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('own.order')
         ->name('repair-orders.avance.store');
     Route::get('/repair-orders/{order}/fotos-avance/{photo}', [\App\Http\Controllers\RepairOrderPhotoController::class, 'show'])
+        ->middleware('own.order')
         ->name('repair-orders.avance.photo');
     Route::delete('/repair-orders/{order}/fotos-avance/{photo}', [\App\Http\Controllers\RepairOrderPhotoController::class, 'destroy'])
         ->middleware('own.order')
@@ -119,7 +126,9 @@ Route::middleware(['auth'])->group(function () {
     // ========================================================
     // MÓDULO 2: ÓRDENES DE REPARACIÓN Y COTIZACIÓN
     // ========================================================
+    // Lista con saldos y pagos: solo admin/owner
     Route::get('/repair-orders/lista', [\App\Http\Controllers\RepairOrderListController::class, 'index'])
+        ->middleware('role:admin')
         ->name('repair-orders.lista');
 
     Route::controller(RepairOrderController::class)
@@ -136,14 +145,14 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{order}/items', 'addItem')->name('items.store');
             Route::delete('/{order}/items/{item}', 'removeItem')->name('items.destroy');
 
-            // Generación de PDF centralizada en el controlador principal
-            Route::get('/{order}/pdf', 'downloadPdf')->name('pdf');
+            // PDF con precios (cotización): solo admin/owner
+            Route::get('/{order}/pdf', 'downloadPdf')->name('pdf')->middleware('role:admin');
 
             // Fase 3: Cambio de estado de la orden
             Route::patch('/{order}/status', 'updateStatus')->name('status.update');
 
-            // Fase 4: Asignación de mecánico y bitácora
-            Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign');
+            // Fase 4: Asignación de mecánico (solo admin/owner) y bitácora
+            Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign')->middleware('role:admin');
             Route::post('/{order}/follow-ups', [\App\Http\Controllers\FollowUpController::class, 'store'])->name('follow-ups.store');
             Route::delete('/{order}/follow-ups/{followUp}', [\App\Http\Controllers\FollowUpController::class, 'destroy'])->name('follow-ups.destroy');
 
@@ -157,9 +166,10 @@ Route::middleware(['auth'])->group(function () {
     // MÓDULO 3: GESTIÓN DE FOTOS Y ARCHIVOS
     // ========================================================
     Route::get('/vehiculos/{vehicle}/historial', [\App\Http\Controllers\VehicleHistoryController::class, 'show'])
+        ->middleware('role:admin')
         ->name('vehicles.history');
 
-    Route::controller(ClientPhotoController::class)->group(function () {
+    Route::controller(ClientPhotoController::class)->middleware('role:admin')->group(function () {
         Route::post('/clients/{client}/photos', 'store')->name('clients.photos.store');
         Route::delete('/photos/{photo}', 'destroy')->name('clients.photos.destroy');
     });
@@ -206,7 +216,7 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth'])
     ->prefix('repair-orders/{order}/quotes')
     ->name('repair-orders.quotes.')
-    ->middleware('own.order')
+    ->middleware(['own.order', 'role:admin'])
     ->group(function () {
         Route::post('/', [\App\Http\Controllers\QuoteController::class, 'store'])->name('store');
         Route::patch('/{quote}/send', [\App\Http\Controllers\QuoteController::class, 'send'])->name('send');

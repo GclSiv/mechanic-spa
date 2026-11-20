@@ -328,20 +328,17 @@ class RecepcionController extends Controller
     }
 
     /**
-     * Elimina una recepción y sus datos asociados.
+     * Elimina una recepción solo si no tiene órdenes. Una orden guarda pagos, cotizaciones
+     * y seguimientos; borrarla en cascada destruiría información histórica.
      */
     public function destroy(Recepcion $recepcion)
     {
-        DB::transaction(function () use ($recepcion) {
-            // Eliminar órdenes de reparación vinculadas
-            RepairOrder::where('recepcion_id', $recepcion->id)->each(function ($order) {
-                $order->items()->delete();
-                $order->payments()->delete();
-                $order->followUps()->delete();
-                $order->delete();
-            });
-            $recepcion->delete();
-        });
+        if (RepairOrder::where('recepcion_id', $recepcion->id)->exists()) {
+            return redirect()->route('recepcion.index')
+                ->with('error', 'No se puede eliminar: la recepción tiene una orden con historial (pagos, cotizaciones o seguimientos).');
+        }
+
+        $recepcion->delete();
 
         return redirect()->route('recepcion.index')
             ->with('success', 'Recepción eliminada correctamente.');

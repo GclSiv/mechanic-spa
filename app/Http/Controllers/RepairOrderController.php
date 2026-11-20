@@ -16,6 +16,12 @@ class RepairOrderController extends Controller
 {
     public function addItem(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
+        if (! $request->user()->isAdmin()) {
+            // El mecánico solo registra refacciones, al precio de catálogo (nunca el que envíe el navegador).
+            abort_unless($request->input('type') === 'part', 403, 'Solo puedes registrar refacciones.');
+            $request->merge(['unit_price' => \App\Models\Part::find($request->input('part_id'))?->sale_price]);
+        }
+
         $request->validate([
             'type'        => 'required|in:part,labor',
             'description' => 'required_if:type,labor|nullable|string',
@@ -93,7 +99,13 @@ class RepairOrderController extends Controller
             });
         }
 
-        $orders = $query->get()->groupBy('status_id');
+        $orders = $query->get();
+
+        if (! $isAdmin) {
+            $orders->each(fn (RepairOrder $order) => $this->ocultarFinanzasParaMecanico($order));
+        }
+
+        $orders = $orders->groupBy('status_id');
 
         return Inertia::render('RepairOrders/Index', [
             'statuses'       => $statuses,
@@ -116,6 +128,12 @@ class RepairOrderController extends Controller
             'recepcion.vehicle.vehicleModel',
         ]);
 
+        $isAdmin = auth()->user()->isAdmin();
+
+        if (! $isAdmin) {
+            $this->ocultarFinanzasParaMecanico($order);
+        }
+
         // Aseguramos que photos esté disponible (columna JSON en recepcions)
         $recepcion = $order->recepcion;
         if ($recepcion && !isset($recepcion->photos)) {
@@ -125,17 +143,39 @@ class RepairOrderController extends Controller
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,
             'recepcion'           => $order->recepcion,
-            'financial_breakdown' => $breakdown,
+            'financial_breakdown' => $isAdmin ? $breakdown : null,
             'settings'            => \App\Models\Setting::current(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
-            'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')->get(['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']),
-            'isAdmin'             => auth()->user()->isAdmin(),
+            'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')
+                ->get($isAdmin
+                    ? ['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']
+                    : ['id', 'name', 'stock', 'low_stock_threshold']),
+            'isAdmin'             => $isAdmin,
         ]);
+    }
+
+    /**
+     * Quita de la respuesta los datos financieros y personales que el mecánico no necesita.
+     * Se aplica a la orden y a sus relaciones antes de enviarla a Inertia.
+     */
+    private function ocultarFinanzasParaMecanico(RepairOrder $order): void
+    {
+        $order->unsetRelation('payments');
+        $order->unsetRelation('quotes');
+        $order->makeHidden(['estimated_cost', 'tax_rate']);
+
+        if ($order->relationLoaded('items')) {
+            $order->items->each->makeHidden(['unit_price', 'subtotal']);
+        }
+
+        $order->recepcion?->client?->makeHidden(['rfc', 'phone', 'email', 'address', 'country']);
     }
 
     public function removeItem(RepairOrder $order, RepairOrderItem $item, CalculateOrderTotalsAction $calculator)
     {
+        abort_unless(auth()->user()->isAdmin() || $item->type === 'part', 403, 'Solo puedes eliminar refacciones.');
+
         if ($item->repair_order_id !== $order->id) {
             abort(403, 'Item no pertenece a esta orden');
         }
