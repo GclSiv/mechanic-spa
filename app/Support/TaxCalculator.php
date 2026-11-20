@@ -25,6 +25,22 @@ class TaxCalculator
         return in_array($rate, self::RATES, true);
     }
 
+    /**
+     * Tasa efectiva de una orden: la fijada en la orden y, si no la tiene, la configurada.
+     * Una tasa no soportada cae a la general. Es la única regla de resolución de tasa
+     * (cálculo individual y lector en lote).
+     */
+    public static function resolveRate(?float $tasaOrden, ?float $tasaConfigurada): float
+    {
+        $tasa = $tasaOrden ?? (
+            $tasaConfigurada !== null && self::isValidRate($tasaConfigurada)
+                ? $tasaConfigurada
+                : self::GENERAL
+        );
+
+        return self::isValidRate($tasa) ? $tasa : self::GENERAL;
+    }
+
     public static function compute(float $partsTotal, float $laborTotal, float $rate): array
     {
         if (! self::isValidRate($rate)) {

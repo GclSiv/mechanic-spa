@@ -41,22 +41,13 @@ class CalculateOrderTotalsAction
 
         // 2. La tasa queda fijada en la orden. Si aún no tiene, toma la configuración vigente.
         //    Así un cambio futuro en settings no altera cotizaciones anteriores.
-        $rate = $repairOrder->tax_rate !== null
-            ? (float) $repairOrder->tax_rate
-            : $this->configuredRate();
-
-        if (! TaxCalculator::isValidRate($rate)) {
-            $rate = TaxCalculator::GENERAL;
-        }
+        //    Regla compartida con el lector en lote: TaxCalculator::resolveRate.
+        $rate = TaxCalculator::resolveRate(
+            $repairOrder->tax_rate !== null ? (float) $repairOrder->tax_rate : null,
+            $repairOrder->tax_rate === null ? (float) Setting::current()->iva : null,
+        );
 
         // 3. Desglose fiscal (IVA general 16% o zona fronteriza 8% sobre todo el concepto)
         return TaxCalculator::compute($partsTotal, $laborTotal, $rate);
-    }
-
-    private function configuredRate(): float
-    {
-        $rate = (float) Setting::current()->iva;
-
-        return TaxCalculator::isValidRate($rate) ? $rate : TaxCalculator::GENERAL;
     }
 }
