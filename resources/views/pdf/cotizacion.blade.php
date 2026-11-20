@@ -75,7 +75,7 @@
             {{-- RECORRIDO DINÁMICO DE ITEMS --}}
             @foreach($orden->items as $item)
                 <tr>
-                    <td style="text-align: center;">{{ $item->quantity }}</td>
+                    <td style="text-align: center;">{{ \App\Support\Cantidad::texto($item->type, $item->quantity) }}</td>
                     <td>{{ $item->description }}</td>
                     <td style="text-align: right;">${{ number_format($item->unit_price, 2) }}</td>
                     <td style="text-align: right;">${{ number_format($item->subtotal, 2) }}</td>

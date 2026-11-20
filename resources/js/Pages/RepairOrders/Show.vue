@@ -103,6 +103,12 @@ const form = useForm({
     unit_price: 0,
 });
 
+// Refacciones: entero sin decimales. Mano de obra: dos decimales (p. ej. 1.50). Solo presentación; el servidor valida.
+function cantidadTexto(item) {
+    const n = Number(item.quantity);
+    return item.type === 'part' ? String(Math.round(n)) : n.toFixed(2);
+}
+
 function selectPart(partId) {
     const part = (page.props.parts ?? []).find(p => p.id === Number(partId));
     if (part) {
@@ -227,7 +233,7 @@ function removeItem(itemId) {
                             </thead>
                             <tbody class="text-gray-700 text-sm">
                                 <tr v-for="item in orden.items" :key="item.id" class="hover:bg-gray-50 transition-colors border-b border-gray-100">
-                                    <td class="p-3 font-medium">{{ item.quantity }}</td>
+                                    <td class="p-3 font-medium">{{ cantidadTexto(item) }}</td>
                                     <td class="p-3">
                                         <span :class="item.type === 'part' ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'"
                                               class="px-2 py-1 rounded-md text-[10px] font-black uppercase">
@@ -343,7 +349,7 @@ function removeItem(itemId) {
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.tipoLabel') }}</label>
-                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.quantity = 1; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="part">{{ $t('cotizacion.refaccion') }}</option>
                             <option v-if="isAdmin" value="labor">{{ $t('cotizacion.manoDeObra') }}</option>
                         </select>

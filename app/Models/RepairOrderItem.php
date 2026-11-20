@@ -22,6 +22,12 @@ class RepairOrderItem extends Model
          'type',
     ];
 
+    // Cantidad con dos decimales como texto exacto ("1.50"): evita errores de punto flotante.
+    // Refacciones: enteras (validado en addItem). Mano de obra: fraccionaria (p. ej. 1.50 h).
+    protected $casts = [
+        'quantity' => 'decimal:2',
+    ];
+
     public function part(): BelongsTo
     {
         return $this->belongsTo(Part::class);

@@ -29,8 +29,10 @@ class RepairOrderController extends Controller
             'type'        => 'required|in:part,labor',
             'description' => 'required_if:type,labor|nullable|string',
             'part_id'     => 'required_if:type,part|nullable|exists:parts,id',
-            // Refacción: piezas enteras positivas (quantity es entero en la base). Mano de obra: sin cambio.
-            'quantity'    => $esRefaccion ? 'required|integer|min:1' : 'required|numeric|min:0.01',
+            // Refacción: piezas enteras positivas. Mano de obra: magnitud positiva con máximo dos decimales (p. ej. 1.50).
+            'quantity'    => $esRefaccion
+                ? 'required|integer|min:1|max:100000'
+                : ['required', 'numeric', 'min:0.01', 'max:99999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             'unit_price'  => 'required|numeric|min:0',
         ]);
 
@@ -62,7 +64,7 @@ class RepairOrderController extends Controller
                     'part_id'     => $esRefaccion ? $request->part_id : null,
                     'quantity'    => $request->quantity,
                     'unit_price'  => $request->unit_price,
-                    'subtotal'    => $request->quantity * $request->unit_price,
+                    'subtotal'    => \App\Support\Cantidad::importe($request->quantity, $request->unit_price),
                 ]);
 
                 $calculator->execute($order);
@@ -193,7 +195,7 @@ class RepairOrderController extends Controller
                 // Devolver stock si era una refacción vinculada
                 if ($item->part_id) {
                     \App\Models\Part::where('id', $item->part_id)
-                        ->increment('stock', $item->quantity);
+                        ->increment('stock', (int) $item->quantity); // refacciones: cantidad entera
                 }
                 $item->delete();
                 $calculator->execute($order);

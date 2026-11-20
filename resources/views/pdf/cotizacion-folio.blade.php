@@ -81,7 +81,7 @@
                 <tr>
                     <td>{{ $item->type === 'labor' ? 'Mano de obra' : 'Refacción' }}</td>
                     <td>{{ $item->description }}</td>
-                    <td class="num">{{ rtrim(rtrim(number_format($item->quantity, 2), '0'), '.') }}</td>
+                    <td class="num">{{ \App\Support\Cantidad::texto($item->type, $item->quantity) }}</td>
                     <td class="num">${{ number_format($item->unit_price, 2) }}</td>
                     <td class="num">${{ number_format($item->subtotal, 2) }}</td>
                 </tr>
