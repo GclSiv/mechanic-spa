@@ -4,8 +4,9 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
+import AvancePhotos from '@/Components/AvancePhotos.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
@@ -23,6 +24,39 @@ defineProps({
 });
 
 const page = usePage();
+
+// Refresca los datos de la orden (cotizaciones, fotos, pagos, estado) cada 15 s para ver
+// al instante si el cliente aceptó o rechazó. Recarga la página completa de datos (sin "only")
+// para que nada quede desactualizado, evita dos recargas a la vez y vuelve a cargar al
+// regresar a la pestaña o a la ventana, porque el navegador pausa los temporizadores en segundo plano.
+let refrescoTimer = null;
+let recargando = false;
+
+const refrescar = () => {
+    if (document.hidden || recargando) return;
+    recargando = true;
+    router.reload({
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => (recargando = false),
+    });
+};
+
+const alVolverAVisible = () => {
+    if (!document.hidden) refrescar();
+};
+
+onMounted(() => {
+    refrescoTimer = setInterval(refrescar, 15000);
+    document.addEventListener('visibilitychange', alVolverAVisible);
+    window.addEventListener('focus', refrescar);
+});
+
+onUnmounted(() => {
+    clearInterval(refrescoTimer);
+    document.removeEventListener('visibilitychange', alVolverAVisible);
+    window.removeEventListener('focus', refrescar);
+});
 const showModal = ref(false);
 
 // ── Modal reasignación con motivo ─────────────────────────────────────
@@ -270,7 +304,11 @@ function removeItem(itemId) {
                 </div>
 
                 <!-- FASE 7: PAGOS Y ANTICIPOS — solo admin -->
-                <PaymentPanel v-if="isAdmin" :orden="orden" :breakdown="financial_breakdown" />
+                <AvancePhotos :orden="orden" />
+
+                <div v-if="isAdmin" id="pagos" class="scroll-mt-6">
+                    <PaymentPanel :orden="orden" :breakdown="financial_breakdown" />
+                </div>
             </div>
         </div>
 

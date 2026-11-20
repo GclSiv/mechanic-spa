@@ -23,7 +23,31 @@ const form = useForm({
     amount: '',
     payment_method: 'Cash',
     notes: '',
+    quote_id: '',
 });
+
+// Cotizaciones con su monto, anticipo recibido y saldo (solo las enviadas, aprobadas o rechazadas)
+const ESTADOS_COTIZACION = { enviada: 'Enviada', aprobada: 'Aprobada', rechazada: 'Rechazada' };
+const estadoCotizacion = (s) => ESTADOS_COTIZACION[s] ?? s;
+
+const cotizaciones = computed(() => (props.orden.quotes ?? [])
+    .filter(q => ['enviada', 'aprobada', 'rechazada'].includes(q.status))
+    .map(q => {
+        const total = Number(q.total);
+        const pagado = (props.orden.payments ?? [])
+            .filter(p => Number(p.quote_id) === q.id)
+            .reduce((s, p) => s + Number(p.amount), 0);
+        return { ...q, total, pagado, saldo: total - pagado };
+    })
+);
+
+const pagoSinCotizacion = computed(() =>
+    (props.orden.payments ?? [])
+        .filter(p => !p.quote_id)
+        .reduce((s, p) => s + Number(p.amount), 0)
+);
+
+const etiquetaCotizacion = (c) => `${c.folio} · ${c.kind === 'adicional' ? 'Adicional' : 'Principal'} · $${c.total.toFixed(2)}`;
 
 function submit() {
     form.post(route('payments.store', props.orden.id), {
@@ -87,6 +111,30 @@ function metodLabel(method) {
             </div>
         </div>
 
+        <!-- Cotizaciones con monto y anticipo -->
+        <div v-if="cotizaciones.length" class="mb-5">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cotizaciones</p>
+            <div v-for="c in cotizaciones" :key="c.id"
+                 class="flex flex-wrap justify-between items-center gap-3 p-3 rounded-lg bg-gray-50 mb-2">
+                <div>
+                    <p class="font-bold text-[#10213E]">{{ c.folio }} — {{ c.kind === 'adicional' ? 'Trabajo adicional' : 'Principal' }}</p>
+                    <p class="text-xs text-gray-400 uppercase">{{ estadoCotizacion(c.status) }}</p>
+                </div>
+                <div class="text-right text-sm space-y-0.5">
+                    <p>Monto: <span class="font-black text-[#10213E]">${{ c.total.toFixed(2) }}</span></p>
+                    <p>Anticipo: <span class="font-bold text-green-700">${{ c.pagado.toFixed(2) }}</span></p>
+                    <p>Saldo:
+                        <span class="font-bold" :class="c.saldo <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
+                            {{ c.saldo <= 0 ? 'Liquidada' : '$' + c.saldo.toFixed(2) }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            <p v-if="pagoSinCotizacion > 0" class="text-xs text-gray-500">
+                Anticipo general sin asignar a una cotización: ${{ pagoSinCotizacion.toFixed(2) }}
+            </p>
+        </div>
+
         <!-- Payment history -->
         <div v-if="orden.payments && orden.payments.length > 0" class="mb-5 space-y-2">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ t('payments.historialPagos') }}</p>
@@ -105,6 +153,8 @@ function metodLabel(method) {
                     <span class="text-xs text-gray-400">
                         {{ new Date(p.created_at).toLocaleDateString('en-US') }}
                     </span>
+                    <a :href="route('payments.ticket', { order: orden.id, payment: p.id })" target="_blank"
+                        class="text-xs font-bold text-[#10213E] hover:underline">🧾 Ticket</a>
                     <button @click="eliminar(p.id)"
                         class="text-gray-300 hover:text-[#EE2857] transition font-bold text-sm">✕</button>
                 </div>
@@ -118,6 +168,14 @@ function metodLabel(method) {
         <!-- New payment form -->
         <div class="border-t border-gray-100 pt-4">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ t('payments.registrarPago') }}</p>
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Aplicar a</label>
+                <select v-model="form.quote_id"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#EE2857] focus:outline-none">
+                    <option value="">Anticipo general (sin cotización)</option>
+                    <option v-for="c in cotizaciones" :key="c.id" :value="c.id">{{ etiquetaCotizacion(c) }}</option>
+                </select>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('payments.monto') }}</label>

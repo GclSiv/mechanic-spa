@@ -5,34 +5,24 @@ namespace App\Http\Controllers;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Models\Payment;
 use App\Models\RepairOrder;
-use App\Models\RepairOrderStatus;
 use Inertia\Inertia;
 
 class FinanceController extends Controller
 {
     public function index(CalculateOrderTotalsAction $calculator)
     {
-        // Solo admins (middleware en ruta)
-        $statusReparado  = RepairOrderStatus::where('slug', 'reparado')->first();
-        $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
-
-        $repEntregadoIds = array_filter([
-            $statusReparado?->id,
-            $statusEntregado?->id,
-        ]);
-
         // ── Cuentas por cobrar ────────────────────────────────────────────
-        $cuentasPorCobrar = collect();
-        if (!empty($repEntregadoIds)) {
-            $cuentasPorCobrar = RepairOrder::with([
+        // Cualquier orden con saldo pendiente, excepto las rechazadas.
+        // Se muestra el estado para saber si aún está en proceso o ya se entregó.
+        $cuentasPorCobrar = RepairOrder::with([
                 'payments',
                 'status',
                 'recepcion.client',
                 'recepcion.vehicle.brand',
                 'recepcion.vehicle.vehicleModel',
             ])
-            ->whereIn('status_id', $repEntregadoIds)
-            ->where('is_paid', false)
+            ->whereHas('status', fn ($q) => $q->where('slug', '!=', 'rechazado'))
+            ->where('estimated_cost', '>', 0)
             ->orderByDesc('updated_at')
             ->get()
             ->map(function ($order) {
@@ -63,7 +53,6 @@ class FinanceController extends Controller
             })
             ->filter()
             ->values();
-        }
 
         // ── Órdenes recientes (últimas 15) con saldo ─────────────────────
         $recentOrders = RepairOrder::with([

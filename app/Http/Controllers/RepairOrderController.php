@@ -110,6 +110,7 @@ class RepairOrderController extends Controller
             'items', 'status', 'mechanic', 'quotes.items',
             'followUps.mechanic',
             'payments',
+            'avancePhotos',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',

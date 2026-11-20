@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'module' => \App\Http\Middleware\ModuleEnabled::class,
+            'own.order' => \App\Http\Middleware\OwnOrderForMechanic::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
