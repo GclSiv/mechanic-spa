@@ -10,6 +10,12 @@ class Category extends Model
 {
     use HasFactory;
 
+    /** Categoría de refacciones y consumibles. */
+    public const TYPE_PART = 'part';
+
+    /** Categoría de herramientas y activos. */
+    public const TYPE_TOOL = 'tool';
+
     protected $fillable = ['name', 'slug'];
 
     public function parts(): HasMany

@@ -11,7 +11,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::withCount('parts')->orderBy('name')->get();
+        $categories = Category::where('type', Category::TYPE_PART)->withCount('parts')->orderBy('name')->get();
 
         return Inertia::render('Categories/Index', [
             'categories' => $categories,

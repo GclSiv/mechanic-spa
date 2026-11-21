@@ -103,6 +103,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('export.ordenes')
         ->middleware('role:admin');
     // ========================================================
+    // ── Herramientas y activos (solo admin/owner) ─────────────────────
+    Route::resource('tools', \App\Http\Controllers\ToolController::class)
+        ->names('tools')
+        ->middleware('role:admin');
+
     Route::resource('parts', \App\Http\Controllers\PartController::class)
         ->except(['show'])
         ->names('parts')

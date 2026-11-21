@@ -27,7 +27,7 @@ class PartController extends Controller
 
         return Inertia::render('Parts/Index', [
             'parts'      => $parts,
-            'categories' => Category::orderBy('name')->get(),
+            'categories' => Category::where('type', Category::TYPE_PART)->orderBy('name')->get(),
             'filters'    => $request->only(['search', 'category_id']),
         ]);
     }
@@ -35,7 +35,7 @@ class PartController extends Controller
     public function create()
     {
         return Inertia::render('Parts/Create', [
-            'categories' => Category::orderBy('name')->get(),
+            'categories' => Category::where('type', Category::TYPE_PART)->orderBy('name')->get(),
         ]);
     }
 
@@ -63,7 +63,7 @@ class PartController extends Controller
     {
         return Inertia::render('Parts/Edit', [
             'part'       => $part->load('category'),
-            'categories' => Category::orderBy('name')->get(),
+            'categories' => Category::where('type', Category::TYPE_PART)->orderBy('name')->get(),
         ]);
     }
 

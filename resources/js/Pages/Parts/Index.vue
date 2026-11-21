@@ -52,6 +52,7 @@ function doDel() {
                     📦 {{ $t('inventario.titulo') }}
                 </h2>
                 <div class="flex items-center gap-3">
+                    <a :href="route('tools.index')" class="text-sm text-gray-500 hover:text-[#10213E] font-bold transition border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">🔧 Herramientas</a>
                     <a :href="route('categories.index')"
                         class="text-sm text-gray-500 hover:text-[#10213E] font-bold transition border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
                         🏷️ {{ $t('categories.gestionar') }}
