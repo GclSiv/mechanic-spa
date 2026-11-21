@@ -108,7 +108,7 @@ THANK YOU FOOTER & PÁGINA 2
 
 {{-- ESCUDO PROTECTOR CONTRA VARIABLES INDEFINIDAS --}}
 @php
-    $settings = $settings ?? \App\Models\Setting::first();
+    $settings = $settings ?? \App\Models\Setting::current();
 @endphp
 
 <div class="page">
@@ -119,11 +119,12 @@ THANK YOU FOOTER & PÁGINA 2
 <img src="{{ $settings->logoFilePath() }}" alt="Logo">
 </td>
 <td class="header-info-cell">
-<div class="company-name">{{ $settings->company_name ?: 'Mi taller' }}</div>
+<div class="company-name">{{ $settings->company_name }}</div>
 <div class="company-sub">
 @if(!empty($settings->razon_social)){{ $settings->razon_social }}<br>@endif
-{{ $settings->address ?? '' }}<br>
-Phone: {{ $settings->phone ?? '' }}@if(!empty($settings->email)) | {{ $settings->email }}@endif
+@if(!empty($settings->address)){{ $settings->address }}<br>@endif
+@if(!empty($settings->phone))Tel. {{ $settings->phone }}@endif
+@if(!empty($settings->email)){{ $settings->email }}@endif
 @if(!empty($settings->rfc)) | RFC: {{ $settings->rfc }}@endif
 @if(!empty($settings->license_number)) | Lic: #{{ $settings->license_number }}@endif
 </div>
@@ -246,7 +247,7 @@ Refacciones: {{ $settings->warranty_parts_days }} días a partir de la entrega.<
 
 {{-- ── TÉRMINOS LEGALES ── --}}
 <div class="legal-box">
-<strong>Terms:</strong> {{ $settings->clauses ?? 'You are entitled by law to the return of all parts replaced, except those for which there is a core charge. STORAGE FEES: Vehicles not picked up within 48 hours of completion are subject to a $50/day storage fee. I authorize the above repairs and employees to operate the vehicle for testing.' }}
+<strong>Términos:</strong> {{ $settings->clauses ?? 'You are entitled by law to the return of all parts replaced, except those for which there is a core charge. STORAGE FEES: Vehicles not picked up within 48 hours of completion are subject to a $50/day storage fee. I authorize the above repairs and employees to operate the vehicle for testing.' }}
 </div>
 
 {{-- ── FIRMAS ── --}}
@@ -296,8 +297,8 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <div class="page-footer-bar">
 <table style="width: 100%; border-collapse: collapse;">
 <tr>
-<td><strong>{{ $settings->company_name ?: 'Mi taller' }}</strong> | {{ $settings->address ?? '' }}</td>
-<td style="text-align: right;">Official Attachment to Order #{{ str_pad($recepcion->id, 4, '0', STR_PAD_LEFT) }} | Page 2 of 2</td>
+<td><strong>{{ $settings->company_name }}</strong>@if(!empty($settings->address)) | {{ $settings->address }}@endif</td>
+<td style="text-align: right;">Anexo oficial a la orden #{{ str_pad($recepcion->id, 4, '0', STR_PAD_LEFT) }} | Página 2 de 2</td>
 </tr>
 </table>
 </div>

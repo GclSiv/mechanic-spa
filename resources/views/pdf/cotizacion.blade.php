@@ -38,10 +38,15 @@
     {{-- HEADER --}}
     <table class="header-table">
         <tr>
-            <td class="header-logo-cell"><img src="{{ \App\Models\Setting::current()->logoFilePath() }}"></td>
+            <td class="header-logo-cell"><img src="{{ $settings->logoFilePath() }}"></td>
             <td class="header-info-cell">
                 <div class="company-name">{{ $settings->company_name }}</div>
-                <div style="font-size: 8px; color: #555;">{{ $settings->address }}<br>Phone: {{ $settings->phone }}</div>
+                <div style="font-size: 8px; color: #555;">
+    @if(!empty($settings->razon_social)){{ $settings->razon_social }}<br>@endif
+    @if(!empty($settings->rfc))RFC: {{ $settings->rfc }}<br>@endif
+    @if(!empty($settings->address)){{ $settings->address }}<br>@endif
+    @if(!empty($settings->phone))Tel. {{ $settings->phone }}@endif
+</div>
             </td>
             <td class="header-folio-cell">
                 <div class="quote-title">COTIZACIÓN</div>
@@ -131,7 +136,7 @@
     <table style="width: 100%; margin-top: 30px; text-align: center;">
         <tr>
             <td style="width: 50%;"><div style="border-top: 1px solid #333; width: 80%; margin: 0 auto;"></div><strong>ACEPTO COTIZACIÓN</strong></td>
-            <td><div style="border-top: 1px solid #333; width: 80%; margin: 0 auto;"></div><strong>ASESOR {{ strtoupper($settings->company_name) }}</strong></td>
+            <td><div style="border-top: 1px solid #333; width: 80%; margin: 0 auto;"></div><strong>ASESOR {{ strtoupper((string) $settings->company_name) }}</strong></td>
         </tr>
     </table>
 </div>

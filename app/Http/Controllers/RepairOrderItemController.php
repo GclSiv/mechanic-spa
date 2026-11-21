@@ -65,6 +65,6 @@ class RepairOrderItemController extends Controller
             'total'     => $breakdown['total']
         ]);
 
-        return $pdf->stream("Cotizacion_JK_{$orden->id}.pdf");
+        return $pdf->stream('Cotizacion_' . strtoupper(\Illuminate\Support\Str::slug($settings->company_name ?: 'taller')) . "_{$orden->id}.pdf");
     }
 }

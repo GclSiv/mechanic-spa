@@ -138,13 +138,13 @@
     <table class="header-table">
         <tr>
             <td class="header-logo-cell">
-                <img src="{{ public_path('images/Taller.png') }}" alt="Logo">
+                <img src="{{ $settings->logoFilePath() }}" alt="Logo">
             </td>
             <td class="header-info-cell">
-                <div class="company-name">{{ $settings->company_name ?: 'Mi taller' }}</div>
+                <div class="company-name">{{ $settings->company_name }}</div>
                 <div class="company-sub">
-                    {{ $settings->address ?? '' }}<br>
-                    {{ $settings->phone ?? '' }}
+                    @if(!empty($settings->address)){{ $settings->address }}<br>@endif
+                    @if(!empty($settings->phone))Tel. {{ $settings->phone }}@endif
                 </div>
             </td>
             <td class="header-title-cell">
@@ -270,7 +270,7 @@
 
     {{-- ── FOOTER ───────────────────────────────────────────── --}}
     <div class="footer-note">
-        {{ $settings->company_name ?: 'Mi taller' }} &mdash;
+        {{ $settings->company_name }} &mdash;
         {{ $lang === 'en'
             ? 'This report includes only orders with status Repaired or Delivered. Generated automatically.'
             : 'Este reporte incluye únicamente órdenes con estatus Reparado o Entregado. Generado automáticamente.' }}

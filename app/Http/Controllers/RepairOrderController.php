@@ -258,7 +258,7 @@ class RepairOrderController extends Controller
         ]);
 
         // Limpiamos el nombre y descargamos
-        $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'JK-Automotive';
+        $empresaSegura = $settings->company_name ? \Illuminate\Support\Str::slug($settings->company_name) : 'taller';
         return $pdf->stream('Cotizacion_' . strtoupper($empresaSegura) . '_' . ($order->folio ?? $order->id) . '.pdf');
     }
 

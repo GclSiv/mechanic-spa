@@ -30,7 +30,7 @@ class ExportController extends Controller
         ->orderByDesc('created_at')
         ->get();
 
-        $filename = 'JK_Automotive_Ordenes_' . $mes . '.csv';
+        $filename = 'Ordenes_' . $mes . '.csv';
 
         $headers = [
             'Content-Type'        => 'text/csv; charset=UTF-8',

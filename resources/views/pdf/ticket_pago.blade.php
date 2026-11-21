@@ -15,13 +15,16 @@
 </style>
 </head>
 <body>
-<div class="c b" style="font-size: 12px;">{{ $settings->company_name ?? 'Mi taller' }}</div>
+<div class="c"><img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:46px; height:auto;"></div>
+<div class="c b" style="font-size: 12px;">{{ $settings->company_name }}</div>
 @if($settings->razon_social)<div class="c">{{ $settings->razon_social }}</div>@endif
 @if($settings->rfc)<div class="c">RFC: {{ $settings->rfc }}</div>@endif
 @if($settings->address)<div class="c">{{ $settings->address }}</div>@endif
 @if($settings->phone)<div class="c">Tel. {{ $settings->phone }}</div>@endif
+@if($settings->email)<div class="c">{{ $settings->email }}</div>@endif
 <hr>
 <div class="c b">TICKET DE PAGO</div>
+<div class="c" style="font-size: 8px;">Comprobante interno de pago. No es un CFDI ni sustituye una factura fiscal.</div>
 <table>
   <tr><td>Orden:</td><td class="r">{{ $order->folio }}</td></tr>
   <tr><td>Fecha:</td><td class="r">{{ $payment->created_at?->format('d/m/Y H:i') }}</td></tr>

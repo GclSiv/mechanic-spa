@@ -33,7 +33,7 @@
                 <img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:60px; height:auto;">
             </td>
             <td>
-                <div class="brand">{{ $settings->company_name ?: 'Mi taller' }}</div>
+                <div class="brand">{{ $settings->company_name }}</div>
                 @if(!empty($settings->razon_social))<div class="muted">{{ $settings->razon_social }}</div>@endif
                 @if(!empty($settings->rfc))<div class="muted">RFC: {{ $settings->rfc }}</div>@endif
                 @if(!empty($settings->address))<div class="muted">{{ $settings->address }}</div>@endif
