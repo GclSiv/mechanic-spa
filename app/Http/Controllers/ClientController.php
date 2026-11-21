@@ -5,6 +5,8 @@ use App\Models\Brand;
 use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
 use App\Models\Client;
 use App\Models\Recepcion;
+use App\Models\RepairOrder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
@@ -137,6 +139,8 @@ public function index()
 
         $fmt = fn ($fecha) => $fecha ? Carbon::parse($fecha)->format('d/m/Y') : null;
 
+        $servicios = $this->serviciosDelCliente($client, $lector);
+
         return Inertia::render('Clients/Show', [
             'client' => [
                 'id'            => $client->id,
@@ -160,6 +164,7 @@ public function index()
                 'ultima_visita' => $fmt($client->recepciones_max_created_at),
             ],
             'resumen_financiero' => $resumenFinanciero,
+            'servicios' => $servicios,
             'vehiculos' => $vehiculos->map(fn ($v) => [
                 'id'          => $v->id,
                 'marca'       => $v->brand?->name ?? $v->getRawOriginal('brand'),
@@ -173,6 +178,50 @@ public function index()
                 'kilometraje' => $kilometrajes[$v->id] ?? null,
             ])->values(),
         ]);
+    }
+
+    /**
+     * Servicios del cliente (B1.2.3): órdenes del cliente, más recientes primero, 15 por página.
+     * El estado financiero de la página se calcula en lote con EstadosFinancierosOrdenesAction.
+     * Orden: created_at DESC y id DESC como desempate. entry_date se muestra como fecha del servicio.
+     */
+    private function serviciosDelCliente(Client $client, EstadosFinancierosOrdenesAction $lector): LengthAwarePaginator
+    {
+        $pagina = $client->repairOrders()
+            ->with(['status', 'mechanic', 'vehicle.brand', 'vehicle.vehicleModel'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        // Una sola llamada en lote para las órdenes de la página (se pasan instancias: no se releen)
+        $estados = $lector->execute($pagina->getCollection()->all());
+
+        return $pagina->through(function (RepairOrder $o) use ($estados) {
+            $f = $estados[$o->id] ?? null;
+            $v = $o->vehicle;
+
+            return [
+                'id'       => $o->id,
+                'folio'    => $o->folio,
+                'fecha'    => Carbon::parse($o->entry_date ?? $o->created_at)->locale('es')->isoFormat('D MMM YYYY'),
+                'estado'   => $o->status ? ['slug' => $o->status->slug, 'color_class' => $o->status->color_class] : null,
+                'vehiculo' => $v ? [
+                    'marca'  => $v->brand?->name ?? $v->getRawOriginal('brand'),
+                    'modelo' => $v->vehicleModel?->name ?? $v->getRawOriginal('model'),
+                    'year'   => $v->year,
+                    'plate'  => $v->plate,
+                ] : null,
+                'mecanico'   => $o->mechanic?->name,
+                'financiero' => [
+                    'total_tecnico'          => $f['total_tecnico'] ?? 0.0,
+                    'total_autorizado'       => $f['total_autorizado'] ?? 0.0,
+                    'total_pagado'           => $f['total_pagado'] ?? 0.0,
+                    'saldo_autorizado'       => $f['saldo_autorizado'] ?? 0.0,
+                    'pendiente_autorizacion' => $f['pendiente_autorizacion'] ?? 0.0,
+                ],
+            ];
+        });
     }
 
     /** Suma un campo numérico de los estados por orden. Solo suma; no recalcula reglas financieras. */
