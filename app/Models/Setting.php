@@ -68,6 +68,35 @@ class Setting extends Model
         return public_path('images/Taller.png');
     }
 
+    /**
+     * Lista blanca de branding: lo único que se comparte con todas las páginas autenticadas.
+     * Cualquier campo nuevo queda oculto por defecto porque no está aquí.
+     */
+    public function brandingData(): array
+    {
+        return [
+            'company_name'    => $this->company_name,
+            'logo_url'        => route('settings.logo'),
+            'primary_color'   => $this->primary_color,
+            'secondary_color' => $this->secondary_color,
+        ];
+    }
+
+    /**
+     * Lista blanca de contacto público: única información empresarial que ve un visitante sin sesión (portada).
+     * No incluye fiscales, cláusulas, garantías, IVA ni identificadores técnicos.
+     */
+    public function publicContactData(): array
+    {
+        return [
+            'company_name' => $this->company_name,
+            'logo_url'     => route('settings.logo'),
+            'phone'        => $this->phone,
+            'email'        => $this->email,
+            'address'      => $this->address,
+        ];
+    }
+
     public static function current(): self
     {
         $config = static::query()->where('singleton_key', self::SINGLETON_KEY)->first();

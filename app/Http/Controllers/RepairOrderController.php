@@ -167,7 +167,7 @@ class RepairOrderController extends Controller
             'recepcion'           => $order->recepcion,
             'financial_breakdown' => $isAdmin ? $breakdown : null,
             'estado_financiero'   => $estadoFinanciero,
-            'settings'            => \App\Models\Setting::current(),
+            'settings'            => \App\Models\Setting::current()->brandingData(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
             'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')

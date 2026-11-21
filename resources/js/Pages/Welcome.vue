@@ -74,7 +74,7 @@ const props = defineProps({
             </main>
 
             <footer class="py-10 bg-white/50 backdrop-blur-md border-t border-gray-200">
-                <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+                <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-center md:text-left">
                     <div>
                         <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.ubicacion') }}</h4>
                         <p class="text-gray-600 italic">{{ settings.address }}</p>
@@ -83,10 +83,6 @@ const props = defineProps({
                         <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.contacto') }}</h4>
                         <p class="text-gray-600">{{ t('welcome.telefono') }} <span class="font-bold">{{ settings.phone }}</span></p>
                         <p class="text-gray-600 text-xs">{{ settings.email }}</p>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.licencia') }}</h4>
-                        <p class="text-gray-600">#{{ settings.license_number }}</p>
                     </div>
                 </div>
                 <div class="mt-8 text-center text-xs text-gray-400">

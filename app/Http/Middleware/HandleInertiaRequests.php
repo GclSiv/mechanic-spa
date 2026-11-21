@@ -41,8 +41,8 @@ class HandleInertiaRequests extends Middleware
                 'error'   => fn () => $request->session()->get('error'),
                 'last_id' => fn () => $request->session()->get('last_id'),
             ],
-            // Datos fiscales de la empresa fuera del prop global (todos los roles lo reciben).
-            'settings' => fn () => \App\Models\Setting::current()->makeHidden(['regimen_fiscal', 'codigo_postal_fiscal', 'domicilio_fiscal']),
+            // Solo branding (nombre, logo y colores) para todos los roles. Datos fiscales y de contacto NO viajan aquí.
+            'settings' => fn () => \App\Models\Setting::current()->brandingData(),
             'logo_url' => fn () => route('settings.logo'),
             'modules' => fn () => \App\Support\Modules::enabledMap(),
         ]);

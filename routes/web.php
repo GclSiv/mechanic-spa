@@ -15,7 +15,7 @@ use App\Models\Setting;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'    => Route::has('login'),
-        'settings'    => Setting::current(),
+        'settings'    => Setting::current()->publicContactData(),
     ]);
 });
 
