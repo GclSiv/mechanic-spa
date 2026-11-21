@@ -54,6 +54,11 @@ class RepairOrder extends Model
         return $this->belongsTo(Recepcion::class);
     }
 
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
+
     /**
      * Relación con los items (refacciones y mano de obra) de la cotización.
      */

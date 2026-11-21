@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 
 // Datos ya resueltos por ClientController::show. Esta vista solo los renderiza.
 const props = defineProps({
@@ -9,11 +9,13 @@ const props = defineProps({
     resumen:   { type: Object, required: true },
     vehiculos: { type: Array, default: () => [] },
     resumen_financiero: { type: Object, default: () => ({}) },
+    servicios: { type: Object, default: null },
 });
 
 const tabs = [
     { id: 'resumen',   label: 'Resumen' },
     { id: 'vehiculos', label: 'Vehículos' },
+    { id: 'servicios', label: 'Servicios' },
 ];
 const activa = ref('resumen');
 
@@ -28,6 +30,17 @@ const tarjetasFinancieras = [
     { clave: 'pendiente_autorizacion', etiqueta: 'Pendiente de autorizar', nota: 'Trabajo sin cotización aprobada' },
     { clave: 'excedente_registrado',   etiqueta: 'Excedente',           nota: 'Pagado sobre lo autorizado; no es saldo a favor' },
 ];
+const vehiculoTexto = (v) => {
+    if (!v) return 'Vehículo no registrado';
+    const auto = [v.marca, v.modelo, v.year].filter(Boolean).join(' ');
+    return [auto, v.plate].filter(Boolean).join(' · ') || 'Vehículo no registrado';
+};
+// Solo resalta visualmente; el monto lo calcula el backend.
+const pendienteClase = (v) => Number(v) > 0 ? 'text-[#EE2857] font-black' : 'text-gray-400';
+const irPagina = (url) => {
+    if (url) router.get(url, {}, { preserveState: true, preserveScroll: true, only: ['servicios'] });
+};
+
 </script>
 
 <template>
@@ -172,6 +185,121 @@ const tarjetasFinancieras = [
                         </div>
                     </div>
                 </div>
+
+            <!-- Servicios: órdenes del cliente (página actual). Estado financiero calculado en lote en el backend -->
+            <div v-else-if="activa === 'servicios'" class="space-y-4">
+                <div v-if="!servicios || servicios.data.length === 0"
+                     class="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center space-y-4">
+                    <p class="text-gray-400 italic">Este cliente todavía no tiene servicios registrados.</p>
+                    <Link :href="route('recepcion.create', { client_id: client.id })"
+                          class="inline-flex items-center justify-center min-h-[44px] bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition shadow-sm">
+                        ➕ Nueva recepción
+                    </Link>
+                </div>
+
+                <template v-else>
+                    <!-- Escritorio: tabla -->
+                    <div class="hidden lg:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-[11px] font-black text-gray-400 uppercase tracking-wider">
+                                <tr>
+                                    <th class="text-left px-4 py-3">Servicio</th>
+                                    <th class="text-left px-4 py-3">Vehículo</th>
+                                    <th class="text-left px-4 py-3">Fecha</th>
+                                    <th class="text-left px-4 py-3">Estado</th>
+                                    <th class="text-left px-4 py-3">Mecánico</th>
+                                    <th class="text-right px-4 py-3">Técnico</th>
+                                    <th class="text-right px-4 py-3">Autorizado</th>
+                                    <th class="text-right px-4 py-3">Pagado</th>
+                                    <th class="text-right px-4 py-3">Saldo</th>
+                                    <th class="text-right px-4 py-3">Pendiente</th>
+                                    <th class="px-4 py-3"><span class="sr-only">Acción</span></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="s in servicios.data" :key="s.id" class="hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 font-black text-[#10213E] whitespace-nowrap">{{ dato(s.folio) }}</td>
+                                    <td class="px-4 py-3 text-gray-700">{{ vehiculoTexto(s.vehiculo) }}</td>
+                                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ dato(s.fecha) }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full whitespace-nowrap"
+                                              :class="s.estado?.color_class ?? 'bg-gray-100 text-gray-600'">
+                                            {{ s.estado ? $t('status.' + s.estado.slug) : '—' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-gray-600">{{ s.mecanico ?? 'Sin asignar' }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums">{{ mxn(s.financiero.total_tecnico) }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums">{{ mxn(s.financiero.total_autorizado) }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums">{{ mxn(s.financiero.total_pagado) }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums font-black text-[#10213E]">{{ mxn(s.financiero.saldo_autorizado) }}</td>
+                                    <td class="px-4 py-3 text-right tabular-nums" :class="pendienteClase(s.financiero.pendiente_autorizacion)">{{ mxn(s.financiero.pendiente_autorizacion) }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <Link :href="route('repair-orders.show', s.id)"
+                                              class="inline-flex items-center min-h-[44px] text-xs font-black uppercase text-[#10213E] hover:text-[#EE2857] whitespace-nowrap">
+                                            Abrir orden →
+                                        </Link>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Tablet y móvil: tarjetas por servicio -->
+                    <div class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div v-for="s in servicios.data" :key="s.id"
+                             class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col gap-3 min-w-0">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="font-black text-[#10213E] break-words">{{ dato(s.folio) }}</p>
+                                    <p class="text-sm text-gray-600 break-words">{{ vehiculoTexto(s.vehiculo) }}</p>
+                                </div>
+                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0"
+                                      :class="s.estado?.color_class ?? 'bg-gray-100 text-gray-600'">
+                                    {{ s.estado ? $t('status.' + s.estado.slug) : '—' }}
+                                </span>
+                            </div>
+
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase">Saldo por cobrar</p>
+                                <p class="text-xl font-black text-[#10213E] tabular-nums">{{ mxn(s.financiero.saldo_autorizado) }}</p>
+                            </div>
+
+                            <div>
+                                <p class="text-xs font-bold text-gray-400 uppercase">Pendiente de autorizar</p>
+                                <p class="text-base font-black tabular-nums" :class="pendienteClase(s.financiero.pendiente_autorizacion)">{{ mxn(s.financiero.pendiente_autorizacion) }}</p>
+                            </div>
+
+                            <dl class="grid grid-cols-3 gap-x-3 text-sm">
+                                <div><dt class="text-xs font-bold text-gray-400 uppercase">Técnico</dt><dd class="tabular-nums">{{ mxn(s.financiero.total_tecnico) }}</dd></div>
+                                <div><dt class="text-xs font-bold text-gray-400 uppercase">Autorizado</dt><dd class="tabular-nums">{{ mxn(s.financiero.total_autorizado) }}</dd></div>
+                                <div><dt class="text-xs font-bold text-gray-400 uppercase">Pagado</dt><dd class="tabular-nums">{{ mxn(s.financiero.total_pagado) }}</dd></div>
+                            </dl>
+
+                            <p class="text-xs text-gray-500">{{ s.mecanico ?? 'Sin asignar' }} · {{ dato(s.fecha) }}</p>
+
+                            <Link :href="route('repair-orders.show', s.id)"
+                                  class="inline-flex items-center justify-center min-h-[44px] bg-[#10213E] hover:bg-blue-900 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition">
+                                Abrir orden →
+                            </Link>
+                        </div>
+                    </div>
+
+                    <!-- Paginación: conserva cliente, pestaña y query string -->
+                    <nav class="flex items-center justify-between gap-3 text-sm" aria-label="Paginación de servicios">
+                        <button type="button" :disabled="!servicios.prev_page_url"
+                                @click="irPagina(servicios.prev_page_url)"
+                                class="min-h-[44px] px-4 rounded-xl bg-white border border-gray-200 font-bold text-[#10213E] disabled:opacity-40 disabled:cursor-not-allowed">
+                            ← Anterior
+                        </button>
+                        <span class="text-xs font-bold text-gray-500 uppercase">Página {{ servicios.current_page }} de {{ servicios.last_page }}</span>
+                        <button type="button" :disabled="!servicios.next_page_url"
+                                @click="irPagina(servicios.next_page_url)"
+                                class="min-h-[44px] px-4 rounded-xl bg-white border border-gray-200 font-bold text-[#10213E] disabled:opacity-40 disabled:cursor-not-allowed">
+                            Siguiente →
+                        </button>
+                    </nav>
+                </template>
+            </div>
 
             </div>
         </div>
