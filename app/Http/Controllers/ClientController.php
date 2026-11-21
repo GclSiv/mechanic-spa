@@ -5,6 +5,7 @@ use App\Models\Brand;
 use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
 use App\Models\Client;
 use App\Models\Recepcion;
+use App\Models\Quote;
 use App\Models\RepairOrder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
@@ -94,7 +95,7 @@ public function index()
     /**
      * Expediente del cliente (B1.1): encabezado, resumen y vehículos.
      * Solo admin/owner (ClientPolicy). El resumen financiero (B1.2.2) se calcula en lote con EstadosFinancierosOrdenesAction;
-     * no carga cotizaciones, pagos ni historial completo en la vista.
+     * las cotizaciones de la página se cargan en lote, solo para lectura; no hay historial completo.
      */
     public function show(Client $client, EstadosFinancierosOrdenesAction $lector)
     {
@@ -194,6 +195,16 @@ public function index()
             ->paginate(15)
             ->withQueryString();
 
+        // Cotizaciones de las órdenes de la página en UNA consulta (eager load). Solo lectura para el expediente.
+        // Orden: principal primero, luego adicionales; dentro de cada grupo, versión ascendente y luego id.
+        $pagina->getCollection()->load(['quotes' => fn ($q) => $q
+            ->select(['id', 'repair_order_id', 'folio', 'kind', 'version', 'status', 'total', 'sent_at', 'approved_at', 'rejected_at'])
+            ->reorder()
+            ->orderByRaw("CASE WHEN kind = 'principal' THEN 0 ELSE 1 END")
+            ->orderBy('version')
+            ->orderBy('id'),
+        ]);
+
         // Una sola llamada en lote para las órdenes de la página (se pasan instancias: no se releen)
         $estados = $lector->execute($pagina->getCollection()->all());
 
@@ -213,6 +224,15 @@ public function index()
                     'plate'  => $v->plate,
                 ] : null,
                 'mecanico'   => $o->mechanic?->name,
+                'cotizaciones' => $o->quotes->map(fn (Quote $q) => [
+                    'id'      => $q->id,
+                    'folio'   => $q->folio,
+                    'version' => (int) $q->version,
+                    'kind'    => $q->kind,
+                    'status'  => $q->status,
+                    'total'   => (float) $q->total,
+                    'fecha'   => $this->fechaCotizacion($q),
+                ])->values()->all(),
                 'financiero' => [
                     'total_tecnico'          => $f['total_tecnico'] ?? 0.0,
                     'total_autorizado'       => $f['total_autorizado'] ?? 0.0,
@@ -222,6 +242,19 @@ public function index()
                 ],
             ];
         });
+    }
+
+    /** Fecha relevante de una cotización según su estado. Sin fecha clara, devuelve null. */
+    private function fechaCotizacion(Quote $q): ?string
+    {
+        $fecha = match ($q->status) {
+            Quote::APROBADA   => $q->approved_at,
+            Quote::RECHAZADA  => $q->rejected_at,
+            Quote::ENVIADA    => $q->sent_at,
+            default           => null,
+        };
+
+        return $fecha ? Carbon::parse($fecha)->locale('es')->isoFormat('D MMM YYYY') : null;
     }
 
     /** Suma un campo numérico de los estados por orden. Solo suma; no recalcula reglas financieras. */

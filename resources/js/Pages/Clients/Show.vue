@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import CotizacionesResumen from '@/Components/Clients/CotizacionesResumen.vue';
 
 // Datos ya resueltos por ClientController::show. Esta vista solo los renderiza.
 const props = defineProps({
@@ -37,6 +38,8 @@ const vehiculoTexto = (v) => {
 };
 // Solo resalta visualmente; el monto lo calcula el backend.
 const pendienteClase = (v) => Number(v) > 0 ? 'text-[#EE2857] font-black' : 'text-gray-400';
+const abiertas = ref({});
+const alternarCotizaciones = (id) => { abiertas.value[id] = !abiertas.value[id]; };
 const irPagina = (url) => {
     if (url) router.get(url, {}, { preserveState: true, preserveScroll: true, only: ['servicios'] });
 };
@@ -217,8 +220,16 @@ const irPagina = (url) => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                <tr v-for="s in servicios.data" :key="s.id" class="hover:bg-gray-50 transition">
-                                    <td class="px-4 py-3 font-black text-[#10213E] whitespace-nowrap">{{ dato(s.folio) }}</td>
+                                <template v-for="s in servicios.data" :key="s.id">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <p class="font-black text-[#10213E]">{{ dato(s.folio) }}</p>
+                                        <button v-if="s.cotizaciones.length" type="button" @click="alternarCotizaciones(s.id)"
+                                                class="mt-1 min-h-[44px] inline-flex items-center text-xs font-bold text-[#10213E] hover:text-[#EE2857]">
+                                            {{ abiertas[s.id] ? 'Ocultar' : 'Ver' }} cotizaciones ({{ s.cotizaciones.length }})
+                                        </button>
+                                        <p v-else class="mt-1 text-xs text-gray-400 italic">Sin cotizaciones</p>
+                                    </td>
                                     <td class="px-4 py-3 text-gray-700">{{ vehiculoTexto(s.vehiculo) }}</td>
                                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ dato(s.fecha) }}</td>
                                     <td class="px-4 py-3">
@@ -240,6 +251,12 @@ const irPagina = (url) => {
                                         </Link>
                                     </td>
                                 </tr>
+                                <tr v-if="abiertas[s.id] && s.cotizaciones.length" class="bg-gray-50/70">
+                                    <td colspan="11" class="px-4 py-3">
+                                        <CotizacionesResumen :cotizaciones="s.cotizaciones" />
+                                    </td>
+                                </tr>
+                                </template>
                             </tbody>
                         </table>
                     </div>
@@ -276,6 +293,15 @@ const irPagina = (url) => {
                             </dl>
 
                             <p class="text-xs text-gray-500">{{ s.mecanico ?? 'Sin asignar' }} · {{ dato(s.fecha) }}</p>
+
+                            <div>
+                                <button v-if="s.cotizaciones.length" type="button" @click="alternarCotizaciones(s.id)"
+                                        class="min-h-[44px] inline-flex items-center text-xs font-bold text-[#10213E] hover:text-[#EE2857]">
+                                    {{ abiertas[s.id] ? 'Ocultar' : 'Ver' }} cotizaciones ({{ s.cotizaciones.length }})
+                                </button>
+                                <p v-else class="text-xs text-gray-400 italic">Sin cotizaciones</p>
+                                <CotizacionesResumen v-if="abiertas[s.id]" :cotizaciones="s.cotizaciones" class="mt-2" />
+                            </div>
 
                             <Link :href="route('repair-orders.show', s.id)"
                                   class="inline-flex items-center justify-center min-h-[44px] bg-[#10213E] hover:bg-blue-900 text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition">
