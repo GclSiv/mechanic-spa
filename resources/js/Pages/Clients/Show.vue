@@ -8,6 +8,7 @@ const props = defineProps({
     client:    { type: Object, required: true },
     resumen:   { type: Object, required: true },
     vehiculos: { type: Array, default: () => [] },
+    resumen_financiero: { type: Object, default: () => ({}) },
 });
 
 const tabs = [
@@ -18,6 +19,15 @@ const activa = ref('resumen');
 
 const nombre = () => `${props.client.first_name ?? ''} ${props.client.last_name ?? ''}`.trim();
 const dato = (v) => v || '—';
+// Formateo de presentación: el backend ya entrega los montos; aquí solo se muestran.
+const mxn = (v) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(v ?? 0));
+const tarjetasFinancieras = [
+    { clave: 'total_autorizado',       etiqueta: 'Autorizado',          nota: 'Cotizaciones aprobadas' },
+    { clave: 'total_pagado',           etiqueta: 'Pagado',              nota: 'Todos los pagos del cliente' },
+    { clave: 'saldo_autorizado',       etiqueta: 'Saldo por cobrar',    nota: 'Suma por orden, sin compensar' },
+    { clave: 'pendiente_autorizacion', etiqueta: 'Pendiente de autorizar', nota: 'Trabajo sin cotización aprobada' },
+    { clave: 'excedente_registrado',   etiqueta: 'Excedente',           nota: 'Pagado sobre lo autorizado; no es saldo a favor' },
+];
 </script>
 
 <template>
@@ -73,6 +83,16 @@ const dato = (v) => v || '—';
                                 : 'border-transparent text-gray-400 hover:text-gray-600'">
                         {{ p.label }}
                     </button>
+                </div>
+
+                <!-- Resumen financiero: montos ya calculados por el backend (EstadosFinancierosOrdenesAction) -->
+                <div v-if="activa === 'resumen'" class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div v-for="t in tarjetasFinancieras" :key="t.clave"
+                         class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 min-w-0">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ t.etiqueta }}</p>
+                        <p class="text-lg sm:text-xl font-black text-[#10213E] break-words">{{ mxn(resumen_financiero[t.clave]) }}</p>
+                        <p class="text-[11px] text-gray-400 mt-1 leading-snug">{{ t.nota }}</p>
+                    </div>
                 </div>
 
                 <!-- Resumen -->

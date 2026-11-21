@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use App\Models\Brand;
+use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
 use App\Models\Client;
 use App\Models\Recepcion;
 use Carbon\Carbon;
@@ -90,9 +91,10 @@ public function index()
 }
     /**
      * Expediente del cliente (B1.1): encabezado, resumen y vehículos.
-     * Solo admin/owner (ClientPolicy). No carga órdenes, cotizaciones, pagos ni historial completo.
+     * Solo admin/owner (ClientPolicy). El resumen financiero (B1.2.2) se calcula en lote con EstadosFinancierosOrdenesAction;
+     * no carga cotizaciones, pagos ni historial completo en la vista.
      */
-    public function show(Client $client)
+    public function show(Client $client, EstadosFinancierosOrdenesAction $lector)
     {
         $this->authorize('view', $client);
 
@@ -122,6 +124,17 @@ public function index()
             ->get(['r.vehicle_id', 'r.miles'])
             ->pluck('miles', 'vehicle_id');
 
+        // Resumen financiero del cliente: suma de los estados por orden que calcula el lector en lote.
+        // Cada cifra es SUMA por orden; nunca se netea entre órdenes ni se deriva el saldo del total.
+        $estados = $lector->execute($client->repairOrders()->pluck('id')->all());
+        $resumenFinanciero = [
+            'total_autorizado'       => $this->sumarEstados($estados, 'total_autorizado'),
+            'total_pagado'           => $this->sumarEstados($estados, 'total_pagado'),
+            'saldo_autorizado'       => $this->sumarEstados($estados, 'saldo_autorizado'),
+            'pendiente_autorizacion' => $this->sumarEstados($estados, 'pendiente_autorizacion'),
+            'excedente_registrado'   => $this->sumarEstados($estados, 'sobrepago'),
+        ];
+
         $fmt = fn ($fecha) => $fecha ? Carbon::parse($fecha)->format('d/m/Y') : null;
 
         return Inertia::render('Clients/Show', [
@@ -146,6 +159,7 @@ public function index()
                 'ordenes'       => $client->repair_orders_count,
                 'ultima_visita' => $fmt($client->recepciones_max_created_at),
             ],
+            'resumen_financiero' => $resumenFinanciero,
             'vehiculos' => $vehiculos->map(fn ($v) => [
                 'id'          => $v->id,
                 'marca'       => $v->brand?->name ?? $v->getRawOriginal('brand'),
@@ -159,6 +173,12 @@ public function index()
                 'kilometraje' => $kilometrajes[$v->id] ?? null,
             ])->values(),
         ]);
+    }
+
+    /** Suma un campo numérico de los estados por orden. Solo suma; no recalcula reglas financieras. */
+    private function sumarEstados(array $estados, string $campo): float
+    {
+        return round(array_sum(array_column($estados, $campo)), 2);
     }
 
     public function print($id)
