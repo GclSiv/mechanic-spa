@@ -182,7 +182,11 @@ class EmpresaDocumentosTest extends TestCase
         try {
             $html = view('pdf.reporte_ingresos', $this->datosReporte($settings))->render();
 
-            $this->assertStringContainsString($ruta, $html);
+            // Los separadores dependen del sistema operativo (Windows usa \ y la plantilla puede mezclarlos).
+            $rutaNormalizada = str_replace('\\', '/', $ruta);
+            $htmlNormalizado = str_replace('\\', '/', $html);
+
+            $this->assertStringContainsString($rutaNormalizada, $htmlNormalizado);
             $this->assertStringNotContainsString('Taller.png', $html);
         } finally {
             File::delete($ruta);
