@@ -45,8 +45,8 @@ export default defineConfig({
             ],
 
             manifest: {
-                name: 'JK Automotive ERP',
-                short_name: 'JK Auto',
+                name: 'Taller ERP',
+                short_name: 'Taller',
                 description: 'Sistema de Gestión de Taller Mecánico',
                 theme_color: '#10213E',
                 background_color: '#ffffff',

@@ -369,7 +369,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Head :title="$t('recepcion_form.titulo') + ' - JK Automotive'" />
+    <Head :title="$t('recepcion_form.titulo')" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">

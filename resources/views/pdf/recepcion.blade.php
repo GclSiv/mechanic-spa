@@ -116,7 +116,11 @@ THANK YOU FOOTER & PÁGINA 2
 <table class="header-wrap">
 <tr>
 <td class="header-logo-cell">
+
+@if($settings->logoFilePath())
 <img src="{{ $settings->logoFilePath() }}" alt="Logo">
+@endif
+
 </td>
 <td class="header-info-cell">
 <div class="company-name">{{ $settings->company_name }}</div>
@@ -234,7 +238,7 @@ $fuelPct = $fuelMap[$recepcion->fuel_level] ?? 50;
 <div style="border:1px solid #d5d8de; border-radius:6px; padding:8px 10px; margin-top:10px; font-size:8.5px; color:#333;">
 <strong style="color:#10213E;">GARANTÍA</strong><br>
 @if($settings->warranty_service_enabled)
-Servicio: {{ $settings->warranty_service_days }} días@if($settings->warranty_service_km), o {{ number_format($settings->warranty_service_km) }} km@endif, lo que ocurra primero.<br>
+Servicio: {{ $settings->warranty_service_days }} días<!-- -->@if($settings->warranty_service_km), o {{ number_format($settings->warranty_service_km) }} km<!-- -->@endif, lo que ocurra primero.<br>
 @endif
 @if($settings->warranty_parts_enabled)
 Refacciones: {{ $settings->warranty_parts_days }} días a partir de la entrega.<br>

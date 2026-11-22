@@ -15,7 +15,11 @@
 </style>
 </head>
 <body>
-<div class="c"><img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:46px; height:auto;"></div>
+<div class="c">
+@if($settings->logoFilePath())
+<img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:46px; height:auto;">
+@endif
+</div>
 <div class="c b" style="font-size: 12px;">{{ $settings->company_name }}</div>
 @if($settings->razon_social)<div class="c">{{ $settings->razon_social }}</div>@endif
 @if($settings->rfc)<div class="c">RFC: {{ $settings->rfc }}</div>@endif

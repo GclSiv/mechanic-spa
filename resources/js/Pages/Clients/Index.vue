@@ -12,7 +12,7 @@ defineProps({
 </script>
 
 <template>
-    <Head title="Clientes - JK Automotive" />
+    <Head title="Clientes" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center">

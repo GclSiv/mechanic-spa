@@ -57,7 +57,7 @@ class EmpresaConfiguracionTest extends TestCase
         $config = Setting::current();
 
         $this->assertSame(1, Setting::count());
-        $this->assertSame('Mi taller', $config->company_name);
+        $this->assertSame('Taller', $config->company_name);
         $this->assertEquals(16.0, (float) $config->iva);
         $this->assertNull($config->whatsapp);
         $this->assertNull($config->domicilio_fiscal);

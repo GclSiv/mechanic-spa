@@ -8,7 +8,7 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { i18n } from './i18n/index.js';
 
 
-const appName = import.meta.env.VITE_APP_NAME || 'CarbaFix';
+const appName = import.meta.env.VITE_APP_NAME || 'Taller';
 
 // ── PWA Service Worker: auto-actualización ──────────────────────────────
 // En producción, cuando Vite genera un nuevo SW, el usuario ve una
@@ -53,7 +53,6 @@ if ('serviceWorker' in navigator) {
             },
 
             onOfflineReady() {
-                console.log('[PWA] JK Automotive listo para uso offline.');
             },
 
             onRegisteredSW(swUrl, registration) {
@@ -70,7 +69,7 @@ createInertiaApp({
     title: (title) => {
         // El nombre dinámico se maneja en AuthenticatedLayout con <Head>
         // Aquí solo usamos el fallback para las páginas sin layout (login, etc.)
-        return title ? `${title} — ${appName}` : appName;
+        return title ? (title.includes(appName) ? title : `${title} — ${appName}`) : appName;
     },
     resolve: (name) =>
         resolvePageComponent(

@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
             ],
             // Solo branding (nombre, logo y colores) para todos los roles. Datos fiscales y de contacto NO viajan aquí.
             'settings' => fn () => \App\Models\Setting::current()->brandingData(),
-            'logo_url' => fn () => route('settings.logo'),
+            'logo_url' => fn () => \App\Models\Setting::current()->logoUrl(),
             'modules' => fn () => \App\Support\Modules::enabledMap(),
         ]);
     }

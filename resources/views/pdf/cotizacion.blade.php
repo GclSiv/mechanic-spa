@@ -38,7 +38,11 @@
     {{-- HEADER --}}
     <table class="header-table">
         <tr>
-            <td class="header-logo-cell"><img src="{{ $settings->logoFilePath() }}"></td>
+            <td class="header-logo-cell">
+@if($settings->logoFilePath())
+<img src="{{ $settings->logoFilePath() }}">
+@endif
+</td>
             <td class="header-info-cell">
                 <div class="company-name">{{ $settings->company_name }}</div>
                 <div style="font-size: 8px; color: #555;">

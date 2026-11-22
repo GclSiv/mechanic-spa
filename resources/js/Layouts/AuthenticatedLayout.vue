@@ -11,7 +11,7 @@ const showingNavigationDropdown = ref(false);
 
 const primaryColor   = computed(() => page.props.settings?.primary_color ?? '#10213E');
 const secondaryColor = computed(() => page.props.settings?.secondary_color ?? '#EE2857');
-const companyName    = computed(() => page.props.settings?.company_name ?? 'CarbaFix');
+const companyName    = computed(() => page.props.settings?.company_name ?? 'Taller');
 
 
 // ── Toast global ──────────────────────────────────────────────────────
@@ -61,7 +61,8 @@ watch(
                     <div class="flex">
                         <div class="flex shrink-0 items-center">
                             <Link :href="route('dashboard')">
-                                <img :src="page.props.logo_url" class="h-10 w-auto" alt="Logo" />
+                                <img v-if="page.props.logo_url" :src="page.props.logo_url" class="h-10 w-auto" :alt="companyName" />
+                                <span v-else class="text-sm font-black uppercase text-[#10213E]">{{ companyName }}</span>
                             </Link>
                         </div>
                         <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex text-xs">
@@ -252,12 +253,6 @@ watch(
             <slot />
         </main>
 
-        <!-- Footer CarbaFix -->
-        <footer class="mt-8 py-4 text-center text-xs text-gray-400 border-t border-gray-100">
-            {{ $t('welcome.poweredBy') }}
-            <a href="https://www.instagram.com/carbafix/" target="_blank" rel="noopener noreferrer"
-               class="font-bold text-[#10213E] hover:underline">CarbaFix</a>
-        </footer>
 
     </div>
 </template>

@@ -185,11 +185,11 @@ class EmpresaPrivacidadTest extends TestCase
 
         $settings = $response->inertiaProps('settings');
 
-        // AuthenticatedLayout debe mostrar la empresa configurada, nunca el valor por defecto 'CarbaFix'.
+        // AuthenticatedLayout debe mostrar la empresa configurada, nunca un valor heredado.
         $this->assertSame('Taller Real', $settings['company_name']);
-        $this->assertNotSame('CarbaFix', $settings['company_name']);
+        $this->assertNotSame('Taller Demo', $settings['company_name']);
         $this->assertSame('#123456', $settings['primary_color']);
         $this->assertSame('#654321', $settings['secondary_color']);
-        $this->assertStringContainsString('/logo-taller', (string) $response->inertiaProps('logo_url'));
+        $this->assertNull($response->inertiaProps('logo_url'));
     }
 }

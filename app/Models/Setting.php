@@ -53,19 +53,31 @@ class Setting extends Model
      * valores por defecto para que la aplicación nunca reciba null.
      */
     /**
-     * Ruta absoluta del logo para los PDFs. Usa el logo subido por el administrador
-     * y, si no hay uno, el logo por defecto del sistema.
+     * Ruta absoluta del logo subido por el administrador, o null si no existe.
+     * No hay logo por defecto: sin logo, los documentos y las vistas omiten la imagen.
      */
-    public function logoFilePath(): string
+    public function logoFilePath(): ?string
     {
         if ($this->logo_path) {
-            $path = storage_path('app/public/' . $this->logo_path);
+            $path = \Illuminate\Support\Facades\Storage::disk('public')->path($this->logo_path);
             if (is_file($path)) {
                 return $path;
             }
         }
 
-        return public_path('images/Taller.png');
+        return null;
+    }
+
+    /** Indica si hay un logo subido y accesible. */
+    public function hasLogo(): bool
+    {
+        return $this->logoFilePath() !== null;
+    }
+
+    /** URL del logo para Inertia y vistas, o null si no hay logo. */
+    public function logoUrl(): ?string
+    {
+        return $this->hasLogo() ? route('settings.logo') : null;
     }
 
     /**
@@ -76,7 +88,7 @@ class Setting extends Model
     {
         return [
             'company_name'    => $this->company_name,
-            'logo_url'        => route('settings.logo'),
+            'logo_url'        => $this->logoUrl(),
             'primary_color'   => $this->primary_color,
             'secondary_color' => $this->secondary_color,
         ];
@@ -90,7 +102,7 @@ class Setting extends Model
     {
         return [
             'company_name' => $this->company_name,
-            'logo_url'     => route('settings.logo'),
+            'logo_url'     => $this->logoUrl(),
             'phone'        => $this->phone,
             'email'        => $this->email,
             'address'      => $this->address,
@@ -107,7 +119,7 @@ class Setting extends Model
 
         // singleton_key NO es fillable: solo se asigna aquí, nunca desde un formulario.
         $nueva = new static([
-            'company_name' => 'Mi taller',
+            'company_name' => 'Taller',
             'tax_type'     => 'MX',
             'iva'          => 16.00,
         ]);

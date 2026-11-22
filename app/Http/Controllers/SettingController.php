@@ -12,7 +12,10 @@ class SettingController extends Controller
 {
     public function logo()
     {
-        return response()->file(Setting::current()->logoFilePath(), [
+        $path = Setting::current()->logoFilePath();
+        abort_if($path === null, 404);
+
+        return response()->file($path, [
             'Cache-Control' => 'public, max-age=300',
         ]);
     }
@@ -63,6 +66,6 @@ class SettingController extends Controller
 
         $settings->update($data);
 
-        return back()->with('message', 'Sistema JK Automotive calibrado con éxito.');
+        return back()->with('message', 'Configuración actualizada con éxito.');
     }
 }

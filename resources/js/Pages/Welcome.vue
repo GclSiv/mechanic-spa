@@ -13,7 +13,7 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head :title="t('welcome.tituloPagina') + ' ' + settings?.company_name || 'JKAutomotive'" />
+    <Head :title="t('welcome.tituloPagina') + ' ' + (settings?.company_name || 'Taller')" />
 
     <div class="relative min-h-screen bg-gray-100 selection:bg-jk-blue selection:text-white">
         <div class="absolute inset-0 z-0 overflow-hidden">
@@ -47,15 +47,11 @@ const props = defineProps({
 
             <main class="flex-grow flex flex-col items-center justify-center px-6 text-center">
             <div class="mb-8">
-    <img 
-        src="/images/logo-taller.svg" 
-        alt="Logo JK Automotive" 
-        class="h-32 md:h-48 w-auto mx-auto drop-shadow-lg object-contain"
-    />
+    <img v-if="settings?.logo_url" :src="settings.logo_url" :alt="settings.company_name" class="h-32 md:h-48 w-auto mx-auto drop-shadow-lg object-contain" />
 </div>
 
                 <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
-                   {{settings?.company_name ?? 'JKAutomotive' }}
+                   {{ settings?.company_name || 'Taller' }}
                 </h2>
                 
                 <p class="max-w-2xl text-lg text-gray-600 mb-8">
@@ -75,21 +71,18 @@ const props = defineProps({
 
             <footer class="py-10 bg-white/50 backdrop-blur-md border-t border-gray-200">
                 <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 text-center md:text-left">
-                    <div>
+                    <div v-if="settings.address">
                         <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.ubicacion') }}</h4>
                         <p class="text-gray-600 italic">{{ settings.address }}</p>
                     </div>
-                    <div>
+                    <div v-if="settings.phone || settings.email">
                         <h4 class="font-bold text-jk-blue uppercase mb-2">{{ t('welcome.contacto') }}</h4>
-                        <p class="text-gray-600">{{ t('welcome.telefono') }} <span class="font-bold">{{ settings.phone }}</span></p>
-                        <p class="text-gray-600 text-xs">{{ settings.email }}</p>
+                        <p v-if="settings.phone" class="text-gray-600">{{ t('welcome.telefono') }} <span class="font-bold">{{ settings.phone }}</span></p>
+                        <p v-if="settings.email" class="text-gray-600 text-xs">{{ settings.email }}</p>
                     </div>
                 </div>
                 <div class="mt-8 text-center text-xs text-gray-400">
                     &copy; 2026 {{ settings.company_name }} - {{ t('welcome.derechos') }}
-                    &mdash; {{ t('welcome.poweredBy') }}
-                    <a href="https://www.instagram.com/carbafix/" target="_blank" rel="noopener noreferrer"
-                       class="font-bold text-[#10213E] hover:underline">CarbaFix</a>
                 </div>
             </footer>
         </div>
@@ -97,7 +90,7 @@ const props = defineProps({
 </template>
 
 <style>
-/* Colores corporativos de JK Automotive */
+/* Colores corporativos */
 .text-jk-blue { color: #003366; }
 .bg-jk-blue { background-color: #003366; }
 .text-jk-red { color: #cc0000; }

@@ -30,7 +30,11 @@
     <table class="row">
         <tr>
             <td style="width:70px">
-                <img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:60px; height:auto;">
+
+@if($settings->logoFilePath())
+<img src="{{ $settings->logoFilePath() }}" alt="Logo" style="width:60px; height:auto;">
+@endif
+
             </td>
             <td>
                 <div class="brand">{{ $settings->company_name }}</div>

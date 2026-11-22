@@ -42,7 +42,7 @@ const volver = () => {
             
             <div class="flex justify-between items-start mb-10 border-b-2 border-jk-red pb-6">
                 <div class="w-1/3">
-                    <img src="/images/logo-taller.svg" alt="Logo" class="h-24 w-auto mb-2" />
+                    <img v-if="$page.props.logo_url" :src="$page.props.logo_url" alt="Logo" class="h-24 w-auto mb-2" />
                 </div>
                 <div class="w-2/3 text-right">
                     <h1 class="text-2xl font-black text-jk-blue uppercase">{{ setting.company_name }}</h1>
@@ -109,7 +109,7 @@ const volver = () => {
 </template>
 
 <style>
-/* COLORES JK */
+/* COLORES */
 .text-jk-blue { color: #003366; }
 .bg-jk-blue { background-color: #003366; }
 .text-jk-red { color: #cc0000; }

@@ -48,7 +48,7 @@ function formatCurrency(val) {
         <template #header>
             <h2 class="text-xl font-black leading-tight text-[#10213E] uppercase tracking-tighter">
                 {{ $t('dashboard.title') }}
-                <span class="text-[#10213E]">JK</span><span class="text-[#EE2857]">Automotive</span>
+                <span class="text-[#EE2857]">{{ page.props.settings?.company_name || 'Taller' }}</span>
             </h2>
         </template>
 

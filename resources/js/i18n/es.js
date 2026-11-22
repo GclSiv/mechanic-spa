@@ -424,7 +424,7 @@ export default {
     cotizacion: {
         ivaGeneral: 'IVA general 16%',
         ivaFrontera: 'Frontera 8%',
-        titulo:           'Cotización JK - Orden #',
+        titulo:           'Cotización - Orden #',
         descargarPdf:     '🖨️ Descargar PDF',
         datosIngreso:     'Datos del Ingreso',
         cliente:          'Cliente',

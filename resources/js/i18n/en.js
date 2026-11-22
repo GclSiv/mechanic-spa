@@ -424,7 +424,7 @@ export default {
     cotizacion: {
         ivaGeneral: 'General VAT 16%',
         ivaFrontera: 'Border zone 8%',
-        titulo:           'JK Quote - Order #',
+        titulo:           'Quote - Order #',
         descargarPdf:     '🖨️ Download PDF',
         datosIngreso:     'Intake Details',
         cliente:          'Client',

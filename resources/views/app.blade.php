@@ -7,9 +7,9 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="JK Auto">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'Taller') }}">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'Taller') }}</title>
 
         <!-- PWA Icons -->
         <link rel="apple-touch-icon" href="/images/pwa-apple-180x180.png">

@@ -138,7 +138,11 @@
     <table class="header-table">
         <tr>
             <td class="header-logo-cell">
-                <img src="{{ $settings->logoFilePath() }}" alt="Logo">
+
+@if($settings->logoFilePath())
+<img src="{{ $settings->logoFilePath() }}" alt="Logo">
+@endif
+
             </td>
             <td class="header-info-cell">
                 <div class="company-name">{{ $settings->company_name }}</div>

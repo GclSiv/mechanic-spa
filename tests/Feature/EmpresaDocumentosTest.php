@@ -201,4 +201,39 @@ class EmpresaDocumentosTest extends TestCase
         $this->assertStringNotContainsString('Tel.', $html);
         $this->assertStringNotContainsString('RFC:', $html);
     }
+
+    public function test_los_cinco_documentos_con_logo_configurado(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put(
+            'logos/documentos.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+        );
+        \App\Models\Setting::current()->update(['logo_path' => 'logos/documentos.png']);
+
+        $this->test_los_cinco_documentos_se_generan_con_el_motor_pdf();
+    }
+
+    public function test_garantia_de_recepcion_no_imprime_directivas_literales(): void
+    {
+        $order    = $this->orden();
+        $settings = $this->empresa();
+        $settings->update([
+            'warranty_service_enabled' => true,
+            'warranty_service_days'    => 30,
+            'warranty_service_km'      => 1000,
+            'warranty_parts_enabled'   => true,
+            'warranty_parts_days'      => 90,
+        ]);
+
+        $html = view('pdf.recepcion', [
+            'recepcion' => $order->recepcion,
+            'settings'  => $settings->fresh(),
+            'client'    => $order->recepcion->client,
+        ])->render();
+
+        $this->assertStringNotContainsString('@if', $html);
+        $this->assertStringNotContainsString('@endif', $html);
+        $this->assertStringContainsString('1,000 km', $html);
+    }
 }
