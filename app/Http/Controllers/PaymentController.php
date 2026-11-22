@@ -33,17 +33,40 @@ class PaymentController extends Controller
 
         DB::transaction(function () use ($data, $order, $estado, $monto) {
             // Bloqueo de la orden: dos pagos simultáneos no pueden superar juntos el saldo autorizado
-            RepairOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $order->bloquearParaCambioFinanciero();
 
             $financiero = $estado->execute($order);
             $autorizado = $financiero['total_autorizado'];
 
-            // Sin importe autorizado se admiten anticipos (quote_id nulo). Con autorización, el total pagado
-            // no puede superar lo autorizado. Los anticipos ya registrados no se tocan.
+            // Regla global (A2): sin importe autorizado se admiten anticipos (quote_id nulo). Con autorización,
+            // el total pagado no puede superar lo autorizado. Los anticipos ya registrados no se tocan.
             if ($autorizado > 0 && round($financiero['total_pagado'] + $monto, 2) > $autorizado) {
                 throw ValidationException::withMessages([
-                    'amount' => 'El pago de $' . number_format($monto, 2) . ' excede el saldo autorizado pendiente de $' . number_format($financiero['saldo_autorizado'], 2) . '.',
+                    'amount' => 'El saldo pendiente de la orden es $' . number_format($financiero['saldo_autorizado'], 2)
+                        . '. Ya se han aplicado $' . number_format($financiero['total_pagado'], 2)
+                        . ' en pagos y anticipos al total autorizado de $' . number_format($autorizado, 2)
+                        . '. No puedes registrar un pago superior al saldo pendiente.',
                 ]);
+            }
+
+            // Regla por cotización: además de la global, un pago asociado debe caber en el saldo de
+            // referencia de SU cotización. Los anticipos generales no cuentan aquí (no se reasignan).
+            if (! empty($data['quote_id'])) {
+                $cotizacion = collect($financiero['cotizaciones'])->firstWhere('id', (int) $data['quote_id']);
+                $saldoRef   = round((float) ($cotizacion['saldo'] ?? 0), 2);
+
+                if ($saldoRef <= 0) {
+                    throw ValidationException::withMessages([
+                        'quote_id' => 'La cotización seleccionada ya está liquidada y no admite nuevos pagos asociados. Puedes registrar un anticipo general.',
+                    ]);
+                }
+
+                if ($monto > $saldoRef) {
+                    throw ValidationException::withMessages([
+                        'quote_id' => 'La cotización seleccionada tiene un saldo de referencia de $' . number_format($saldoRef, 2)
+                            . '. No puedes asociarle un pago superior a ese importe.',
+                    ]);
+                }
             }
 
             $order->payments()->create([
@@ -109,7 +132,7 @@ class PaymentController extends Controller
         $this->authorize('delete', $payment);
 
         DB::transaction(function () use ($payment, $order, $estado) {
-            RepairOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $order->bloquearParaCambioFinanciero();
             $payment->delete();
             $estado->sincronizar($order);
         });

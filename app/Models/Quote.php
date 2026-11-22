@@ -80,6 +80,10 @@ class Quote extends Model
     public function approve(string $method, string $byName): void
     {
         DB::transaction(function () use ($method, $byName) {
+            // Bloqueo antes de cualquier comprobación: dos aprobaciones simultáneas de principales
+            // se serializan aquí y la segunda ve la primera ya aprobada.
+            $this->repairOrder()->firstOrFail()->bloquearParaCambioFinanciero();
+
             // A2: un concepto solo puede quedar autorizado en una cotización
             $ids = $this->items()->whereNotNull('order_item_id')->pluck('order_item_id');
             if ($ids->isNotEmpty()) {

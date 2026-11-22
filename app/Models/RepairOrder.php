@@ -81,6 +81,17 @@ class RepairOrder extends Model
     }
 
     /**
+     * Bloquea la fila de la orden dentro de una transacción. Toda operación que cambie la
+     * autorización (aprobar o crear principal) o registre pagos debe llamarla antes de comprobar
+     * las reglas, para que dos procesos simultáneos no pasen la misma comprobación a la vez.
+     * Debe llamarse dentro de DB::transaction.
+     */
+    public function bloquearParaCambioFinanciero(): void
+    {
+        static::whereKey($this->id)->lockForUpdate()->firstOrFail();
+    }
+
+    /**
      * Cotización vigente: la aprobada; si no hay, la más reciente abierta.
      */
     public function currentQuote(): ?Quote

@@ -23,6 +23,8 @@ class CreateQuoteAction
     public function execute(RepairOrder $order, ?string $notes = null, string $kind = Quote::KIND_PRINCIPAL): Quote
     {
         return DB::transaction(function () use ($order, $notes, $kind) {
+            // Mismo bloqueo que Quote::approve(): la creación de principal no compite con una aprobación
+            $order->bloquearParaCambioFinanciero();
             $order->load('items');
 
             // Solo una cotización enviada y sin respuesta bloquea otra del mismo tipo

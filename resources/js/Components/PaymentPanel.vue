@@ -23,9 +23,23 @@ const ESTADOS_COTIZACION = { enviada: 'Enviada', aprobada: 'Aprobada', rechazada
 const estadoCotizacion = (s) => ESTADOS_COTIZACION[s] ?? s;
 
 const cotizaciones = computed(() => props.estado.cotizaciones ?? []);
-const cotizacionesAplicables = computed(() => cotizaciones.value.filter(c => c.status === 'aprobada'));
+// Solo cotizaciones aprobadas con saldo de referencia > 0 admiten pagos asociados nuevos.
+// Las liquidadas siguen visibles en la lista de cotizaciones.
+const cotizacionesAplicables = computed(() =>
+    cotizaciones.value.filter(c => c.status === 'aprobada' && Number(c.saldo) > 0));
 
-const etiquetaCotizacion = (c) => `${c.folio} · ${c.kind === 'adicional' ? 'Adicional' : 'Principal'} · $${Number(c.total).toFixed(2)}`;
+const etiquetaCotizacion = (c) => `${c.folio} — saldo de referencia $${Number(c.saldo).toFixed(2)}`;
+
+// Tope visible antes de enviar. Son valores ya calculados por el servidor; el backend revalida siempre.
+const cotizacionElegida = computed(() =>
+    cotizacionesAplicables.value.find(c => String(c.id) === String(form.quote_id)) ?? null);
+
+const maximoRegistrable = computed(() => {
+    if (cotizacionElegida.value) {
+        return Math.min(Number(props.estado.saldo_autorizado), Number(cotizacionElegida.value.saldo));
+    }
+    return Number(props.estado.saldo_autorizado);
+});
 
 function submit() {
     form.post(route('payments.store', props.orden.id), {
@@ -82,7 +96,7 @@ function metodLabel(method) {
                 <p class="text-lg font-black text-green-700">${{ Number(estado.total_pagado).toFixed(2) }}</p>
             </div>
             <div class="rounded-lg p-3 text-center" :class="estado.saldo_autorizado <= 0 ? 'bg-emerald-100' : 'bg-red-50'">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Saldo autorizado</p>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Saldo por cobrar</p>
                 <p class="text-lg font-black" :class="estado.saldo_autorizado <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
                     {{ estado.saldo_autorizado <= 0 ? t('payments.liquidado') : '$' + Number(estado.saldo_autorizado).toFixed(2) }}
                 </p>
@@ -111,16 +125,20 @@ function metodLabel(method) {
                 </div>
                 <div class="text-right text-sm space-y-0.5">
                     <p>Monto: <span class="font-black text-[#10213E]">${{ Number(c.total).toFixed(2) }}</span></p>
-                    <p>Anticipo: <span class="font-bold text-green-700">${{ Number(c.pagado).toFixed(2) }}</span></p>
-                    <p v-if="c.status === 'aprobada'">Saldo:
+                    <p>Pagos asociados: <span class="font-bold text-green-700">${{ Number(c.pagado).toFixed(2) }}</span></p>
+                    <p v-if="c.status === 'aprobada'">Saldo de referencia:
                         <span class="font-bold" :class="c.saldo <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
                             {{ c.saldo <= 0 ? 'Liquidada' : '$' + Number(c.saldo).toFixed(2) }}
                         </span>
                     </p>
                 </div>
             </div>
+            <p class="text-xs text-gray-400">El saldo total por cobrar de la orden también considera los anticipos generales.</p>
+            <p v-if="estado.pago_sin_cotizacion > 0" class="text-xs font-bold text-gray-600 mt-2">
+                Anticipos generales aplicados a la orden: ${{ Number(estado.pago_sin_cotizacion).toFixed(2) }}
+            </p>
             <p v-if="estado.pago_sin_cotizacion > 0" class="text-xs text-gray-500">
-                Anticipo general sin asignar a una cotización: ${{ Number(estado.pago_sin_cotizacion).toFixed(2) }}
+                Estos pagos reducen el saldo total por cobrar aunque no estén asociados a una cotización específica.
             </p>
         </div>
 
@@ -158,12 +176,20 @@ function metodLabel(method) {
         <div class="border-t border-gray-100 pt-4">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ t('payments.registrarPago') }}</p>
             <div class="mb-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Aplicar a</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Asociar pago a</label>
                 <select v-model="form.quote_id"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#EE2857] focus:outline-none">
-                    <option value="">Anticipo general (sin cotización)</option>
+                    <option value="">Pago general de la orden</option>
                     <option v-for="c in cotizacionesAplicables" :key="c.id" :value="c.id">{{ etiquetaCotizacion(c) }}</option>
                 </select>
+                <p v-if="estado.total_autorizado > 0 || cotizacionElegida" class="text-xs text-gray-500 mt-1">
+                    Máximo que puede registrarse ahora:
+                    <span class="font-bold text-[#10213E]">${{ maximoRegistrable.toFixed(2) }}</span>
+                    <span v-if="cotizacionElegida"> (límite de la cotización seleccionada)</span>
+                </p>
+                <p v-else class="text-xs text-gray-500 mt-1">
+                    Sin autorización aún: se admiten anticipos generales sin límite por autorización.
+                </p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
