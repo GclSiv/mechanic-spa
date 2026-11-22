@@ -30,3 +30,16 @@ dev-router.php
 Claude outputs/
 .fuse_hidden*
 storage/framework/lsp-*.php
+
+# Secretos, certificados y volcados (PROD-1)
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*.sql
+*.dump
+*.bak
