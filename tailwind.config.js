@@ -73,6 +73,10 @@ export default {
                 'control-touch': '44px',
             },
 
+            // Margen del contenido junto al sidebar (ml-sidebar / lg:ml-sidebar).
+            spacing: {
+                sidebar: '232px',
+            },
             // Anchos de layout del DS: sidebar desktop 232, side panel de referencia 300.
             width: {
                 sidebar: '232px',
