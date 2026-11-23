@@ -75,7 +75,7 @@ watch(
                             <NavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
                                 {{ $t('nav.recepciones') }}
                             </NavLink>
-                            <NavLink :href="route('quotes.follow-up')" :active="route().current('quotes.follow-up')">
+                            <NavLink v-if="$page.props.auth.isAdmin" :href="route('quotes.follow-up')" :active="route().current('quotes.follow-up')">
                                 Cotizaciones
                             </NavLink>
                             <NavLink :href="route('repair-orders.lista')" :active="route().current('repair-orders.lista')">
@@ -177,7 +177,7 @@ watch(
                     <ResponsiveNavLink :href="route('recepcion.index')" :active="route().current('recepcion.*')">
                         {{ $t('nav.recepciones') }}
                     </ResponsiveNavLink>
-                    <ResponsiveNavLink :href="route('quotes.follow-up')" :active="route().current('quotes.follow-up')">
+                    <ResponsiveNavLink v-if="$page.props.auth.isAdmin" :href="route('quotes.follow-up')" :active="route().current('quotes.follow-up')">
                         Cotizaciones
                     </ResponsiveNavLink>
                     <ResponsiveNavLink :href="route('repair-orders.lista')" :active="route().current('repair-orders.lista')">

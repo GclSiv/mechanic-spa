@@ -18,6 +18,8 @@ const form = useForm({
     mechanic_type_id: props.mechanic.mechanic_type_id,
     phone:            props.mechanic.phone ?? '',
     commission_rate:  props.mechanic.commission_rate ?? 0,
+    password:         '',
+    password_confirmation: '',
 });
 
 function submit() {
@@ -69,6 +71,22 @@ function submit() {
                             <input v-model="form.email" type="email"
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
+                        </div>
+
+                        <!-- Contraseña inicial: solo si el mecánico aún no tiene cuenta. Nunca se cambia desde aquí. -->
+                        <div v-if="!mechanic.user_id" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.passwordInicial') }}</label>
+                                <input v-model="form.password" type="password" autocomplete="new-password"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                                <p class="text-xs text-gray-400 mt-1">{{ t('mechanics_form.passwordAyuda') }}</p>
+                                <p v-if="form.errors.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.passwordConfirmar') }}</label>
+                                <input v-model="form.password_confirmation" type="password" autocomplete="new-password"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

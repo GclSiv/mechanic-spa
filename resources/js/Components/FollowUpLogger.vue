@@ -1,10 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+
+// Admin/dueño eligen mecánico; el mecánico escribe siempre como sí mismo (el backend lo fuerza igual).
+const page = usePage();
+const esAdmin = computed(() => page.props.auth.isAdmin);
+const nombreAutorActual = computed(() => page.props.auth.user?.name ?? '');
 
 const props = defineProps({
     orden:     { type: Object, required: true },
@@ -53,7 +58,12 @@ function removePhoto(index) {
 }
 
 function submitFollowUp() {
-    followForm.post(route('repair-orders.follow-ups.store', props.orden.id), {
+    // El mecánico no envía mechanic_id: el backend toma su propia identidad. Admin/owner conservan el selector.
+    followForm.transform((data) => {
+        if (esAdmin.value) return data;
+        const { mechanic_id, ...sinAutor } = data;
+        return sinAutor;
+    }).post(route('repair-orders.follow-ups.store', props.orden.id), {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => {
@@ -84,8 +94,8 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
 <template>
     <div class="space-y-6">
 
-        <!-- ── ASSIGNED MECHANIC ─────────────────────────────── -->
-        <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
+        <!-- ── ASSIGNED MECHANIC (solo admin/dueño: la ruta de asignación es role:admin) ── -->
+        <div v-if="esAdmin" class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
             <h3 class="text-sm font-black text-[#10213E] uppercase tracking-widest border-b pb-2 mb-4">
                 🔧 {{ t('followup.mecanico') }}
             </h3>
@@ -121,13 +131,20 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
             <!-- New note form -->
             <div class="space-y-3 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
+                    <div v-if="esAdmin">
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">{{ t('followup.mecanicoBit') }}</label>
                         <select v-model="followForm.mechanic_id"
                             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="" disabled>{{ t('followup.seleccionar') }}</option>
                             <option v-for="m in mechanics" :key="m.id" :value="m.id">{{ m.name }}</option>
                         </select>
+                        <p v-if="followForm.errors.mechanic_id" class="text-red-500 text-xs mt-1">
+                            {{ followForm.errors.mechanic_id }}
+                        </p>
+                    </div>
+                    <div v-else>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">{{ t('followup.mecanicoBit') }}</label>
+                        <p class="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm font-bold text-[#10213E]">{{ nombreAutorActual }}</p>
                         <p v-if="followForm.errors.mechanic_id" class="text-red-500 text-xs mt-1">
                             {{ followForm.errors.mechanic_id }}
                         </p>
@@ -182,7 +199,7 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
 
                 <div class="flex justify-end">
                     <button @click="submitFollowUp"
-                        :disabled="followForm.processing || !followForm.description || !followForm.mechanic_id"
+                        :disabled="followForm.processing || !followForm.description || (esAdmin && !followForm.mechanic_id)"
                         class="bg-[#EE2857] hover:bg-red-700 disabled:opacity-40 text-white font-black text-xs uppercase px-6 py-2.5 rounded-lg transition shadow-sm flex items-center gap-2">
                         <span v-if="followForm.processing" class="animate-spin inline-block">⟳</span>
                         {{ followForm.processing
@@ -205,7 +222,7 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
                                 <span class="text-[10px] text-gray-400">
                                     {{ new Date(note.date).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) }}
                                 </span>
-                                <button @click="deleteNote(note.id)"
+                                <button v-if="note.puede_eliminar" @click="deleteNote(note.id)"
                                     :title="t('followup.eliminarNota')"
                                     class="text-gray-300 hover:text-[#EE2857] transition text-xs font-bold leading-none">✕</button>
                             </div>

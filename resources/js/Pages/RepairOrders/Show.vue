@@ -214,7 +214,7 @@ function removeItem(itemId) {
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-xl">
                     <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
                         <h3 class="text-white font-black text-sm uppercase tracking-wider">{{ $t('cotizacion.conceptos') }}</h3>
-                        <button @click="showModal = true"
+                        <button v-if="isAdmin || !orden.esta_cerrada" @click="showModal = true"
                             class="bg-[#EE2857] hover:bg-red-700 text-white px-5 py-2 rounded-lg font-bold shadow-md transition-all text-xs uppercase">
                             {{ $t('cotizacion.agregarConcepto') }}
                         </button>
@@ -245,7 +245,7 @@ function removeItem(itemId) {
                                     <td v-if="isAdmin" class="p-3 text-right">${{ Number(item.unit_price).toFixed(2) }}</td>
                                     <td v-if="isAdmin" class="p-3 text-right font-black">${{ Number(item.subtotal).toFixed(2) }}</td>
                                     <td class="p-3 text-center">
-                                        <button v-if="isAdmin || item.type === 'part'" @click="removeItem(item.id)" class="text-gray-400 hover:text-[#EE2857] text-sm font-bold transition">
+                                        <button v-if="isAdmin || (item.type === 'part' && !orden.esta_cerrada)" @click="removeItem(item.id)" class="text-gray-400 hover:text-[#EE2857] text-sm font-bold transition">
                                             ✕
                                         </button>
                                     </td>
@@ -311,7 +311,7 @@ function removeItem(itemId) {
                 </div>
 
                 <!-- FASE 7: PAGOS Y ANTICIPOS — solo admin -->
-                <AvancePhotos :orden="orden" />
+                <AvancePhotos :orden="orden" :puede-borrar="isAdmin || !orden.esta_cerrada" />
 
                 <div v-if="isAdmin" id="pagos" class="scroll-mt-6">
                     <PaymentPanel :orden="orden" :estado="estado_financiero" />

@@ -18,10 +18,15 @@ const form = useForm({
     mechanic_type_id: '',
     phone:            '',
     commission_rate:  0,
+    password:         '',
+    password_confirmation: '',
 });
 
 function submit() {
-    form.post(route('mechanics.store'));
+    form.post(route('mechanics.store'), {
+        // La contraseña no se conserva en el formulario tras un alta correcta.
+        onSuccess: () => form.reset('password', 'password_confirmation'),
+    });
 }
 </script>
 
@@ -41,16 +46,6 @@ function submit() {
                     </div>
                     <div class="p-6 space-y-5">
 
-                        <!-- Nota contraseña temporal -->
-                        <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                            <span class="text-amber-500 text-lg leading-none">🔑</span>
-                            <p class="text-xs text-amber-800">
-                                <strong>{{ t('mechanics_form.passwordNota') }}</strong>
-                                <span class="font-mono bg-amber-100 px-1.5 py-0.5 rounded ml-1">password123</span>
-                                — {{ t('mechanics_form.passwordCambiar') }}
-                            </p>
-                        </div>
-
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.nombre') }}</label>
                             <input v-model="form.name" type="text" :placeholder="t('mechanics_form.nombrePh')"
@@ -65,6 +60,20 @@ function submit() {
                             <p v-if="form.errors.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</p>
                         </div>
 
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.passwordInicial') }}</label>
+                            <input v-model="form.password" type="password" autocomplete="new-password"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                            <p class="text-xs text-gray-400 mt-1">{{ t('mechanics_form.passwordAyuda') }}</p>
+                            <p v-if="form.errors.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.passwordConfirmar') }}</label>
+                            <input v-model="form.password_confirmation" type="password" autocomplete="new-password"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                        </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('mechanics_form.rol') }}</label>

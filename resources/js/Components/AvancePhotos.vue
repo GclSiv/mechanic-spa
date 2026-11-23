@@ -4,6 +4,8 @@ import { router, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     orden: Object,
+    // Lo calcula la vista (admin o orden abierta); el backend vuelve a validarlo.
+    puedeBorrar: { type: Boolean, default: false },
 });
 
 const fotos = computed(() => props.orden?.avance_photos ?? props.orden?.avancePhotos ?? []);
@@ -64,7 +66,7 @@ function borrar(f) {
                     <p class="font-bold">{{ fechaFoto(f) }}</p>
                     <p v-if="f.note">{{ f.note }}</p>
                 </div>
-                <button type="button" @click="borrar(f)"
+                <button v-if="puedeBorrar" type="button" @click="borrar(f)"
                     class="absolute top-1 right-1 bg-white/90 text-red-600 rounded px-2 py-0.5 text-xs font-bold">✕</button>
             </div>
         </div>
