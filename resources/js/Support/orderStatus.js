@@ -33,3 +33,33 @@ export const ORDER_STATUS_VARIANT = {
 export function orderStatusVariant(slug) {
     return ORDER_STATUS_VARIANT[slug] ?? 'neutral';
 }
+
+/** Estados que el tablero y el Expediente ofrecen al admin: solo operativos, nunca cierre. */
+export const ESTADOS_TABLERO = ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado'];
+
+/** Secuencia visual del ciclo de vida del taller. Rechazado no forma parte de ella. */
+export const ESTADOS_SECUENCIA = ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado', 'entregado'];
+
+/** Opciones de cambio de estado en el Expediente, por rol. El backend sigue siendo la autoridad. */
+export function opcionesDeEstado(statuses, isAdmin) {
+    const permitidos = isAdmin ? ESTADOS_TABLERO : ESTADOS_OPERATIVOS_MECANICO;
+    return (statuses ?? []).filter(s => permitidos.includes(s.slug));
+}
+
+/**
+ * Situación de cada etapa del lifecycle respecto a la orden actual:
+ * 'completed' (anterior a la actual), 'current' (la actual), 'future' (posterior).
+ * Rechazado no pertenece a la secuencia: no se infiere ningún recorrido; todas las etapas quedan 'future'.
+ * Representación visual del estado actual, no historial ni fechas de transición.
+ */
+export function estadosDelLifecycle(slug) {
+    const indice = ESTADOS_SECUENCIA.indexOf(slug);
+    return ESTADOS_SECUENCIA.map((estado, i) => {
+        let situacion = 'future';
+        if (indice !== -1) {
+            if (i < indice) situacion = 'completed';
+            else if (i === indice) situacion = 'current';
+        }
+        return { slug: estado, situacion };
+    });
+}

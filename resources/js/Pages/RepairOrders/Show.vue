@@ -1,18 +1,21 @@
 <script setup>
 import OrderTotals from '@/Components/OrderTotals.vue';
-import StatusBadge from '@/Components/StatusBadge.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
 import AvancePhotos from '@/Components/AvancePhotos.vue';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import OrderHeader from '@/Components/UI/OrderHeader.vue';
+import OrderStatusTrack from '@/Components/UI/OrderStatusTrack.vue';
+import ContentTabs from '@/Components/UI/ContentTabs.vue';
+import SideInfoPanel from '@/Components/UI/SideInfoPanel.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-defineProps({
+const props = defineProps({
     orden: Object,
     recepcion: Object,
     financial_breakdown: Object,
@@ -25,6 +28,36 @@ defineProps({
 });
 
 const page = usePage();
+
+// ── Expediente: pestañas, condición financiera y fechas ───────────────
+// Mecánico: no ve Cotizaciones ni Pagos. El backend ya no le envía esos datos; esto solo oculta pestañas.
+const tabActiva = ref('resumen');
+const tabs = computed(() => [
+    { key: 'resumen', label: t('expediente.tabs.resumen') },
+    { key: 'diagnostico', label: t('expediente.tabs.diagnostico') },
+    { key: 'trabajo', label: t('expediente.tabs.trabajo') },
+    ...(props.isAdmin ? [
+        { key: 'cotizaciones', label: t('expediente.tabs.cotizaciones') },
+        { key: 'pagos', label: t('expediente.tabs.pagos') },
+    ] : []),
+    { key: 'evidencia', label: t('expediente.tabs.evidencia') },
+    { key: 'historial', label: t('expediente.tabs.historial') },
+]);
+
+// Mecánico y bitácora: mismo alcance de estados que antes de este frente.
+const bitacoraVisible = computed(() => ['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(props.orden.status?.slug));
+
+// Condición derivada y montos: solo se leen de la fuente financiera central (estado_financiero). No se recalcula.
+const pendienteAutorizacion = computed(() => Number(props.estado_financiero?.pendiente_autorizacion ?? 0));
+const dinero = (n) => '$' + Number(n ?? 0).toFixed(2);
+const saldoTexto = computed(() => {
+    const saldo = Number(props.estado_financiero?.saldo_autorizado ?? 0);
+    return saldo <= 0 ? t('expediente.liquidado') : dinero(saldo);
+});
+const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+const fechaRecepcion = computed(() => fecha(props.recepcion?.created_at));
+const fechaCreada = computed(() => fecha(props.orden.created_at));
+const fechaActualizada = computed(() => fecha(props.orden.updated_at));
 
 // Refresca los datos de la orden (cotizaciones, fotos, pagos, estado) cada 15 s para ver
 // al instante si el cliente aceptó o rechazó. Recarga la página completa de datos (sin "only")
@@ -160,57 +193,148 @@ function removeItem(itemId) {
 </script>
 
 <template>
-    <AuthenticatedLayout :title="$t('cotizacion.gestionTitulo')">
-        <template #header>
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider leading-tight">
-                        {{ $t('cotizacion.titulo') }}{{ orden.id }}
-                    </h2>
-                    <StatusBadge :orden="orden" :statuses="statuses ?? []" />
-                </div>
-                <button @click="imprimirCotizacion"
-                    class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all flex items-center gap-2">
-                    {{ $t('cotizacion.descargarPdf') }}
-                </button>
-            </div>
-        </template>
+    <AppShellLayout>
+        <Head :title="$t('expediente.titulo')" />
 
-        <div class="py-12 min-h-screen transition-colors">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                <!-- DATOS DEL INGRESO -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-[#10213E]">
-                    <h3 class="text-sm font-black mb-4 text-[#10213E] uppercase tracking-widest border-b pb-2">{{ $t('cotizacion.datosIngreso') }}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.cliente') }}</span> {{ recepcion.client?.first_name }} {{ recepcion.client?.last_name }}</div>
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.vehiculo') }}</span> {{ recepcion.vehicle?.brand?.name ?? recepcion.vehicle?.brand_id }} {{ recepcion.vehicle?.vehicleModel?.name }} / {{ recepcion.vehicle?.year }}</div>
-                        <div><span class="font-bold text-gray-400 uppercase text-xs block">{{ $t('cotizacion.placasVin') }}</span> <span class="font-bold uppercase">{{ recepcion.vehicle?.plate }}</span> / {{ recepcion.vehicle?.vin }}
-                            <a v-if="recepcion.vehicle && isAdmin" :href="route('vehicles.history', recepcion.vehicle.id)" class="block text-xs font-bold text-[#EE2857] hover:underline mt-1">🕘 Ver historial del vehículo</a></div>
+        <div class="space-y-6">
+            <OrderHeader :orden="orden" :statuses="statuses ?? []" :is-admin="isAdmin" :pendiente="pendienteAutorizacion">
+                <template #acciones>
+                    <Link
+                        :href="route('repair-orders.index')"
+                        class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                    >{{ $t('expediente.volver') }}</Link>
+                    <button
+                        v-if="isAdmin"
+                        type="button"
+                        class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:opacity-90"
+                        @click="imprimirCotizacion"
+                    >{{ $t('cotizacion.descargarPdf') }}</button>
+                </template>
+            </OrderHeader>
+
+            <OrderStatusTrack :slug="orden.status?.slug ?? null" />
+
+            <ContentTabs v-model="tabActiva" :tabs="tabs" :label="$t('expediente.tabsLabel')" />
+
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+                <div :id="`panel-${tabActiva}`" role="tabpanel" :aria-labelledby="`tab-${tabActiva}`" class="min-w-0 space-y-6">
+
+                    <!-- RESUMEN -->
+                    <div v-if="tabActiva === 'resumen'" class="grid gap-4 md:grid-cols-2">
+                        <section class="rounded-xl border border-line bg-surface p-4 md:col-span-2">
+                            <h2 class="mb-2 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.motivo') }}</h2>
+                            <p class="text-ds-body text-ink">{{ recepcion?.symptoms || $t('expediente.sinMotivo') }}</p>
+                        </section>
+
+                        <section class="rounded-xl border border-line bg-surface p-4">
+                            <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.datosCliente') }}</h2>
+                            <dl class="space-y-2 text-ds-body">
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.cliente') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.client?.first_name }} {{ recepcion?.client?.last_name }}</dd>
+                                </div>
+                                <div v-if="isAdmin">
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.telefono') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.client?.phone || $t('expediente.sinDato') }}</dd>
+                                </div>
+                                <div v-if="isAdmin">
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.rfc') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.client?.rfc || $t('expediente.sinDato') }}</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section class="rounded-xl border border-line bg-surface p-4">
+                            <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.datosVehiculo') }}</h2>
+                            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-ds-body">
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.marca') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.vehicle?.brand?.name ?? '—' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.modelo') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.vehicle?.vehicleModel?.name ?? '—' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.anio') }}</dt>
+                                    <dd class="text-ink">{{ recepcion?.vehicle?.year ?? '—' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.placa') }}</dt>
+                                    <dd class="font-mono uppercase text-ink">{{ recepcion?.vehicle?.plate ?? '—' }}</dd>
+                                </div>
+                                <div class="col-span-2">
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.vin') }}</dt>
+                                    <dd class="break-all font-mono text-ink">{{ recepcion?.vehicle?.vin ?? '—' }}</dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section v-if="isAdmin" class="rounded-xl border border-line bg-surface p-4 md:col-span-2">
+                            <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.financiero') }}</h2>
+                            <dl class="grid grid-cols-2 gap-4 text-ds-body md:grid-cols-4">
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.autorizado') }}</dt>
+                                    <dd class="font-semibold tabular-nums text-ink">{{ dinero(estado_financiero?.total_autorizado) }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.pagado') }}</dt>
+                                    <dd class="font-semibold tabular-nums text-ink">{{ dinero(estado_financiero?.total_pagado) }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.saldo') }}</dt>
+                                    <dd class="font-semibold tabular-nums text-ink">{{ saldoTexto }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.pendienteAutorizacion') }}</dt>
+                                    <dd class="font-semibold tabular-nums text-ink">{{ dinero(estado_financiero?.pendiente_autorizacion) }}</dd>
+                                </div>
+                            </dl>
+                            <p v-if="pendienteAutorizacion > 0" class="mt-3 text-ds-caption text-ink-secondary">{{ $t('expediente.pendienteNota') }}</p>
+                        </section>
                     </div>
 
-                    <!-- Fotos de evidencia — visibles para todos los roles (lectura) -->
-                    <div v-if="recepcion.photos && recepcion.photos.length > 0" class="mt-5 pt-4 border-t border-gray-100">
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                            📷 {{ $t('cotizacion.evidenciaFotos') }}
-                        </p>
-                        <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
+                    <!-- DIAGNÓSTICO -->
+                    <div v-if="tabActiva === 'diagnostico'" class="space-y-4">
+                        <template v-if="bitacoraVisible">
+                            <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-black text-[#10213E] uppercase tracking-wider">
+                                🔧 {{ $t('show.mecanico') }}:
+                                <span class="text-blue-600 font-bold normal-case">
+                                    {{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}
+                                </span>
+                            </p>
+                            <p v-if="orden.needs_quote"
+                                class="text-xs text-amber-600 font-bold mt-1">
+                                ⏳ {{ $t('show.pendienteCotizacion') }}
+                            </p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <!-- Diagnóstico Terminado — visible para mecánico y admin en cualquier estado activo -->
                             <button
-                                v-for="(photo, i) in recepcion.photos"
-                                :key="i"
-                                @click="openPhotoLightbox('/storage/' + photo)"
-                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-[#10213E] hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-[#10213E]"
-                            >
-                                <img
-                                    :src="'/storage/' + photo"
-                                    class="w-full h-full object-cover"
-                                    :alt="'Foto ' + (i + 1)"
-                                />
+                                v-if="!orden.needs_quote && !['entregado','rechazado'].includes(orden.status?.slug)"
+                                @click="markDiagnosisComplete"
+                                :disabled="diagnosisForm.processing"
+                                class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2 rounded-lg transition shadow-sm">
+                                ✅ {{ $t('show.diagnosticoTerminado') }}
+                            </button>
+                            <!-- Reasignar — solo admin -->
+                            <button
+                                v-if="isAdmin"
+                                @click="openReassign"
+                                class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg transition">
+                                🔄 {{ $t('show.reasignar') }}
                             </button>
                         </div>
                     </div>
-                </div>
+                        </template>
+                        <p v-else class="text-ds-body text-ink-muted">{{ $t('expediente.sinEtapa') }}</p>
+                    </div>
 
-                <!-- CONCEPTOS DE LA COTIZACIÓN -->
+                    <!-- TRABAJO -->
+                    <div v-if="tabActiva === 'trabajo'" class="space-y-6">
+                        <!-- CONCEPTOS DE LA COTIZACIÓN -->
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-xl">
                     <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
                         <h3 class="text-white font-black text-sm uppercase tracking-wider">{{ $t('cotizacion.conceptos') }}</h3>
@@ -262,59 +386,86 @@ function removeItem(itemId) {
                         </div>
                     </div>
                 </div>
-
-                <!-- COTIZACIONES (versiones) -->
-                <QuotesPanel v-if="isAdmin" :orden="orden" />
-
-                <!-- MECÁNICO + BITÁCORA — visible desde Recibido en adelante -->
-                <div v-if="['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(orden.status?.slug)"
-                    class="space-y-4">
-
-                    <!-- Botón Diagnóstico Terminado (mecánico) + Reasignar (admin) -->
-                    <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-black text-[#10213E] uppercase tracking-wider">
-                                🔧 {{ $t('show.mecanico') }}:
-                                <span class="text-blue-600 font-bold normal-case">
-                                    {{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}
-                                </span>
-                            </p>
-                            <p v-if="orden.needs_quote"
-                                class="text-xs text-amber-600 font-bold mt-1">
-                                ⏳ {{ $t('show.pendienteCotizacion') }}
-                            </p>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <!-- Diagnóstico Terminado — visible para mecánico y admin en cualquier estado activo -->
-                            <button
-                                v-if="!orden.needs_quote && !['entregado','rechazado'].includes(orden.status?.slug)"
-                                @click="markDiagnosisComplete"
-                                :disabled="diagnosisForm.processing"
-                                class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2 rounded-lg transition shadow-sm">
-                                ✅ {{ $t('show.diagnosticoTerminado') }}
-                            </button>
-                            <!-- Reasignar — solo admin -->
-                            <button
-                                v-if="isAdmin"
-                                @click="openReassign"
-                                class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg transition">
-                                🔄 {{ $t('show.reasignar') }}
-                            </button>
-                        </div>
                     </div>
 
-                    <!-- Bitácora completa -->
-                    <FollowUpLogger
-                        :orden="orden"
-                        :mechanics="mechanics ?? []"
-                    />
+                    <!-- COTIZACIONES: solo admin -->
+                    <div v-if="tabActiva === 'cotizaciones' && isAdmin">
+                        <QuotesPanel :orden="orden" />
+                    </div>
+
+                    <!-- PAGOS: solo admin -->
+                    <div v-if="tabActiva === 'pagos' && isAdmin" id="pagos" class="scroll-mt-6">
+                        <PaymentPanel :orden="orden" :estado="estado_financiero" />
+                    </div>
+
+                    <!-- EVIDENCIA -->
+                    <div v-if="tabActiva === 'evidencia'" class="space-y-6">
+                        <section v-if="recepcion?.photos && recepcion.photos.length > 0" class="rounded-xl border border-line bg-surface p-4">
+                            <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('cotizacion.evidenciaFotos') }}</h2>
+                            <div class="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-8">
+                                <button
+                                    v-for="(photo, i) in recepcion.photos"
+                                    :key="i"
+                                    type="button"
+                                    class="ds-focus aspect-square overflow-hidden rounded-lg border border-line transition-all hover:border-navy"
+                                    @click="openPhotoLightbox('/storage/' + photo)"
+                                >
+                                    <img :src="'/storage/' + photo" class="h-full w-full object-cover" :alt="'Foto ' + (i + 1)" />
+                                </button>
+                            </div>
+                        </section>
+                        <AvancePhotos :orden="orden" :puede-borrar="isAdmin || !orden.esta_cerrada" />
+                    </div>
+
+                    <!-- HISTORIAL: bitácora y vehículo -->
+                    <div v-if="tabActiva === 'historial'" class="space-y-4">
+                        <template v-if="bitacoraVisible">
+                            <FollowUpLogger :orden="orden" :mechanics="mechanics ?? []" />
+                        </template>
+                        <p v-else class="text-ds-body text-ink-muted">{{ $t('expediente.sinEtapa') }}</p>
+                        <a
+                            v-if="recepcion?.vehicle && isAdmin"
+                            :href="route('vehicles.history', recepcion.vehicle.id)"
+                            class="ds-focus inline-flex text-ds-control font-semibold text-navy underline-offset-2 hover:underline"
+                        >{{ $t('expediente.verHistorial') }}</a>
+                    </div>
                 </div>
 
-                <!-- FASE 7: PAGOS Y ANTICIPOS — solo admin -->
-                <AvancePhotos :orden="orden" :puede-borrar="isAdmin || !orden.esta_cerrada" />
+                <!-- PANEL LATERAL: información complementaria, sin acciones -->
+                <div class="min-w-0 space-y-4">
+                    <SideInfoPanel :title="$t('expediente.recepcion')">
+                        <dl class="space-y-2">
+                            <div>
+                                <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.fechaRecepcion') }}</dt>
+                                <dd class="text-ink">{{ fechaRecepcion }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.kilometraje') }}</dt>
+                                <dd class="text-ink">{{ recepcion?.miles ?? $t('expediente.sinDato') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.combustible') }}</dt>
+                                <dd class="text-ink">{{ recepcion?.fuel_level ?? $t('expediente.sinDato') }}</dd>
+                            </div>
+                        </dl>
+                    </SideInfoPanel>
 
-                <div v-if="isAdmin" id="pagos" class="scroll-mt-6">
-                    <PaymentPanel :orden="orden" :estado="estado_financiero" />
+                    <SideInfoPanel :title="$t('expediente.mecanico')">
+                        <p class="text-ink">{{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}</p>
+                    </SideInfoPanel>
+
+                    <SideInfoPanel :title="$t('expediente.fechas')">
+                        <dl class="space-y-2">
+                            <div>
+                                <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.creada') }}</dt>
+                                <dd class="text-ink">{{ fechaCreada }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.actualizada') }}</dt>
+                                <dd class="text-ink">{{ fechaActualizada }}</dd>
+                            </div>
+                        </dl>
+                    </SideInfoPanel>
                 </div>
             </div>
         </div>
@@ -486,5 +637,5 @@ function removeItem(itemId) {
                 </div>
             </Transition>
         </Teleport>
-    </AuthenticatedLayout>
+    </AppShellLayout>
 </template>

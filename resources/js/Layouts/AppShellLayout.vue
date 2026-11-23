@@ -44,7 +44,7 @@ const gruposAdmin = () => [
     ]},
     { titulo: t('shell.operacion'), items: [
         { label: t('shell.recepcion'), href: route('recepcion.index'), activo: route().current('recepcion.*'), icono: 'recepcion' },
-        { label: t('shell.taller'), href: route('repair-orders.index'), activo: route().current('repair-orders.index'), icono: 'taller' },
+        { label: t('shell.taller'), href: route('repair-orders.index'), activo: route().current('repair-orders.index') || route().current('repair-orders.show'), icono: 'taller' },
         { label: t('shell.ordenes'), href: route('repair-orders.lista'), activo: route().current('repair-orders.lista'), icono: 'ordenes' },
     ]},
     { titulo: t('shell.clientes'), items: [
