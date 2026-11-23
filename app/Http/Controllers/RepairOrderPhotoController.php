@@ -42,9 +42,10 @@ class RepairOrderPhotoController extends Controller
         return Storage::disk('public')->response($photo->path);
     }
 
-    public function destroy(RepairOrder $order, RepairOrderPhoto $photo)
+    public function destroy(Request $request, RepairOrder $order, RepairOrderPhoto $photo)
     {
         abort_unless($photo->repair_order_id === $order->id, 404);
+        abort_if(! $request->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes eliminar fotos de avance.');
 
         Storage::disk('public')->delete($photo->path);
         $photo->delete();

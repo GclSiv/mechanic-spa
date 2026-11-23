@@ -102,6 +102,12 @@ class RepairOrder extends Model
             ?? $principales->whereIn('status', [Quote::ENVIADA, Quote::BORRADOR])->first();
     }
 
+    /** Orden en un estado de cierre (entregado o rechazado), según RepairOrderStatus::CERRADOS. */
+    public function estaCerrada(): bool
+    {
+        return in_array($this->status?->slug, RepairOrderStatus::CERRADOS, true);
+    }
+
     /**
      * Relación con el estado de la orden (Cotización, En Proceso, etc.)
      */

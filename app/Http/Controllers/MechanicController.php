@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class MechanicController extends Controller
@@ -42,13 +43,14 @@ class MechanicController extends Controller
             'phone'            => 'nullable|string|max:20',
             'commission_rate'  => 'nullable|numeric|min:0|max:100',
             'role'             => 'required|in:admin,mechanic',
+            'password'         => ['required', 'confirmed', Password::defaults()],
         ]);
 
         DB::transaction(function () use ($request) {
             $user = User::create([
                 'name'              => $request->name,
                 'email'             => $request->email,
-                'password'          => Hash::make('password123'),
+                'password'          => Hash::make($request->password),
                 'role'              => $request->role,
                 'email_verified_at' => now(), // Auto-verificado: mecánicos no tienen acceso a email
             ]);
@@ -65,7 +67,7 @@ class MechanicController extends Controller
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Personal registrado. Credenciales: ' . $request->email . ' / password123');
+            ->with('success', 'Personal registrado. Comparte la contraseña inicial por un medio seguro; no volverá a mostrarse.');
     }
 
     public function edit(Mechanic $mechanic)
@@ -87,9 +89,13 @@ class MechanicController extends Controller
             'phone'            => 'nullable|string|max:20',
             'commission_rate'  => 'nullable|numeric|min:0|max:100',
             'role'             => 'nullable|in:admin,mechanic',
+            // Contraseña inicial: solo para crear la cuenta de un mecánico que aún no la tiene. Nunca se cambia desde aquí.
+            'password'         => $mechanic->user_id ? 'prohibited' : ['nullable', 'confirmed', Password::defaults()],
         ]);
 
-        DB::transaction(function () use ($request, $mechanic) {
+        $cuentaNueva = false;
+
+        DB::transaction(function () use ($request, $mechanic, &$cuentaNueva) {
             // Actualizar perfil del mecánico
             $mechanic->update([
                 'name'             => $request->name,
@@ -109,19 +115,27 @@ class MechanicController extends Controller
                 ]);
             } else {
                 // ── Mecánico legacy sin cuenta: crear una ahora ───────────
-                $user = User::create([
-                    'name'              => $request->name,
-                    'email'             => $request->email,
-                    'password'          => Hash::make('password123'),
-                    'role'              => $request->role ?? 'mechanic',
-                    'email_verified_at' => now(),
-                ]);
-                $mechanic->update(['user_id' => $user->id]);
+                // Sin contraseña inicial no se crea cuenta: no hay forma de acceso que inventar.
+                if (filled($request->password)) {
+                    $user = User::create([
+                        'name'              => $request->name,
+                        'email'             => $request->email,
+                        'password'          => Hash::make($request->password),
+                        'role'              => $request->role ?? 'mechanic',
+                        'email_verified_at' => now(),
+                    ]);
+                    $mechanic->update(['user_id' => $user->id]);
+                    $cuentaNueva = true;
+                }
             }
         });
 
         return redirect()->route('mechanics.index')
-            ->with('success', 'Mecánico actualizado. Credenciales: ' . $request->email . ' / password123');
+            ->with('success', match (true) {
+                $cuentaNueva         => 'Mecánico actualizado. Se creó su cuenta de acceso con la contraseña inicial indicada.',
+                ! $mechanic->user_id => 'Mecánico actualizado. Aún no tiene cuenta de acceso: indica una contraseña inicial para crearla.',
+                default              => 'Mecánico actualizado.',
+            });
     }
 
     public function destroy(Mechanic $mechanic)

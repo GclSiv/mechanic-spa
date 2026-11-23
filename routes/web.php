@@ -33,10 +33,13 @@ Route::middleware(['auth'])->group(function () {
         ->name('clients.check');
 
     // ── Seguimiento de cotizaciones enviadas a clientes ───────────────────
+    // Listado global y exportación: solo admin/dueño (incluye datos de clientes de todas las órdenes).
     Route::get('/cotizaciones', [\App\Http\Controllers\QuoteFollowUpController::class, 'index'])
-        ->name('quotes.follow-up');
+        ->name('quotes.follow-up')
+        ->middleware('role:admin');
     Route::get('/cotizaciones/exportar', [\App\Http\Controllers\QuoteFollowUpController::class, 'exportar'])
-        ->name('quotes.follow-up.export');
+        ->name('quotes.follow-up.export')
+        ->middleware('role:admin');
 
     // ── Módulo de Cuentas / Finanzas (solo admin) ─────────────────────────
     Route::get('/cuentas', [\App\Http\Controllers\FinanceController::class, 'index'])

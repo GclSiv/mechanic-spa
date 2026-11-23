@@ -18,6 +18,8 @@ class RepairOrderController extends Controller
 {
     public function addItem(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
+        abort_if(! $request->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes registrar refacciones.');
+
         if (! $request->user()->isAdmin()) {
             // El mecánico solo registra refacciones, al precio de catálogo (nunca el que envíe el navegador).
             abort_unless($request->input('type') === 'part', 403, 'Solo puedes registrar refacciones.');
@@ -153,6 +155,15 @@ class RepairOrderController extends Controller
             $this->ocultarFinanzasParaMecanico($order);
         }
 
+        // Banderas de UI calculadas en backend: el frontend no decide permisos de borrado.
+        $order->setAttribute('esta_cerrada', $order->estaCerrada());
+        $propioMecanicoId = auth()->user()->mechanic?->id;
+        $order->followUps->each(function (\App\Models\FollowUp $nota) use ($isAdmin, $order, $propioMecanicoId) {
+            $nota->setAttribute('puede_eliminar', $isAdmin || (! $order->estaCerrada()
+                && $propioMecanicoId !== null
+                && (int) $nota->mechanic_id === (int) $propioMecanicoId));
+        });
+
         // Estado financiero autorizado (fuente única). Solo admin/owner.
         $estadoFinanciero = $isAdmin ? $estado->execute($order) : null;
 
@@ -169,7 +180,7 @@ class RepairOrderController extends Controller
             'estado_financiero'   => $estadoFinanciero,
             'settings'            => \App\Models\Setting::current()->brandingData(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
-            'mechanics'           => Mechanic::orderBy('name')->get(['id', 'name']),
+            'mechanics'           => $isAdmin ? Mechanic::orderBy('name')->get(['id', 'name']) : [],
             'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')
                 ->get($isAdmin
                     ? ['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']
@@ -198,6 +209,7 @@ class RepairOrderController extends Controller
     public function removeItem(RepairOrder $order, RepairOrderItem $item, EstadoFinancieroAction $estado)
     {
         abort_unless(auth()->user()->isAdmin() || $item->type === 'part', 403, 'Solo puedes eliminar refacciones.');
+        abort_if(! auth()->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes eliminar refacciones.');
 
         if ($item->repair_order_id !== $order->id) {
             abort(403, 'Item no pertenece a esta orden');
