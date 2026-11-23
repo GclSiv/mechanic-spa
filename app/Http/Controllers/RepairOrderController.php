@@ -9,6 +9,8 @@ use App\Models\Mechanic;
 use App\Models\FollowUp;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Actions\RepairOrders\EstadoFinancieroAction;
+use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
+use App\Support\ConteoOrdenes;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -82,56 +84,51 @@ class RepairOrderController extends Controller
             ->with('success', 'Concepto agregado correctamente.');
     }
 
+    /** Estados que el selector del tablero admin ofrece: solo operativos. Cierre (entregado/rechazado) vive en Órdenes/Expediente. */
+    private const ESTADOS_TABLERO_ADMIN = ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado'];
+
     public function index()
     {
         $user     = auth()->user();
         $isAdmin  = $user->isAdmin();
-        $statuses = RepairOrderStatus::orderBy('id')->get();
 
-        $query = RepairOrder::with([
+        // Mecánico: solo sus órdenes asignadas. Sin registro de mecánico = alcance vacío (0), nunca "todo".
+        $mechanicId = $isAdmin ? null : ($user->mechanic?->id ?? 0);
+
+        // Tablero operativo: solo estados activos. Entregadas y rechazadas no son columnas;
+        // se consultan en el listado de Órdenes.
+        $cerradosIds = RepairOrderStatus::whereIn('slug', RepairOrderStatus::CERRADOS)->pluck('id');
+
+        $orders = RepairOrder::with([
             'status', 'mechanic',
-            'payments',
             'recepcion.client',
             'recepcion.vehicle.brand',
             'recepcion.vehicle.vehicleModel',
-        ])->orderByDesc('created_at');
+        ])
+            ->whereNotIn('status_id', $cerradosIds)
+            ->when(! $isAdmin, fn ($q) => $q->where('mechanic_id', $mechanicId))
+            ->orderByDesc('created_at')
+            ->get();
 
-        // Mecánico solo ve sus propias órdenes
-        if (!$isAdmin) {
-            $mechanic = $user->mechanic;
-            $query->where('mechanic_id', $mechanic?->id ?? 0);
-        }
-
-        // ── Órdenes entregadas: solo las de las últimas 48h en el Kanban ──
-        // Las más antiguas existen en BD pero no "ensucian" el tablero operativo
-        $statusEntregado = RepairOrderStatus::where('slug', 'entregado')->first();
-        if ($statusEntregado) {
-            $query->where(function ($q) use ($statusEntregado) {
-                $q->where('status_id', '!=', $statusEntregado->id)
-                  ->orWhere('updated_at', '>=', now()->subHours(48));
+        if ($isAdmin) {
+            // Solo la condición "autorización pendiente" (sin montos): un lote desde la fuente financiera, sin N+1 ni duplicar A2.
+            $estados = app(EstadosFinancierosOrdenesAction::class)->execute($orders);
+            $orders->each(function (RepairOrder $order) use ($estados) {
+                $order->setAttribute('pendiente_autorizacion', $estados[$order->id]['pendiente_autorizacion'] ?? 0);
             });
-        }
-
-        $orders = $query->get();
-
-        if (! $isAdmin) {
-            $orders->each(fn (RepairOrder $order) => $this->ocultarFinanzasParaMecanico($order));
         } else {
-            // Saldo autorizado desde la fuente única; la vista no calcula dinero
-            $estado = app(EstadoFinancieroAction::class);
-            $orders->each(function (RepairOrder $order) use ($estado) {
-                $financiero = $estado->execute($order);
-                $order->setAttribute('saldo_autorizado', $financiero['saldo_autorizado']);
-                $order->setAttribute('pendiente_autorizacion', $financiero['pendiente_autorizacion']);
-            });
+            $orders->each(fn (RepairOrder $order) => $this->ocultarFinanzasParaMecanico($order));
         }
-
-        $orders = $orders->groupBy('status_id');
 
         return Inertia::render('RepairOrders/Index', [
-            'statuses'       => $statuses,
-            'ordersByStatus' => $orders,
-            'isAdmin'        => $isAdmin,
+            // Todos los estados sirven para mostrar columnas y nombres; los editables lo decide el backend por rol.
+            'statuses'        => RepairOrderStatus::orderBy('id')->get(['id', 'slug', 'name']),
+            'estadosEditables' => $isAdmin
+                ? collect(self::ESTADOS_TABLERO_ADMIN)->values()
+                : collect(RepairOrderStatus::OPERATIVOS_MECANICO)->values(),
+            'ordersByStatus'  => $orders->groupBy('status_id'),
+            'conteos'         => ConteoOrdenes::flujo($mechanicId),
+            'isAdmin'         => $isAdmin,
         ]);
     }
 
