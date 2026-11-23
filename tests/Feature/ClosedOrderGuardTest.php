@@ -395,4 +395,119 @@ class ClosedOrderGuardTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('parts.0.sale_price'));
     }
+
+    private function cotizacion(RepairOrder $orden, string $estado, string $kind = Quote::KIND_PRINCIPAL): Quote
+    {
+        if ($orden->items()->count() === 0) {
+            $this->concepto($orden, 'labor', 500);
+        }
+
+        $quote = app(CreateQuoteAction::class)->execute($orden, null, $kind);
+        if ($estado !== Quote::BORRADOR) {
+            $quote->update(['status' => $estado]);
+        }
+
+        return $quote->fresh();
+    }
+
+    #[DataProvider('estadosCerrados')]
+    public function test_nadie_crea_cotizaciones_en_orden_cerrada(string $slug): void
+    {
+        [, $mec] = $this->mechanic();
+        $orden = $this->orden($slug, $mec);
+        $this->concepto($orden, 'labor', 500);
+
+        $this->actingAs($this->admin())
+            ->post(route('repair-orders.quotes.store', $orden), ['kind' => Quote::KIND_PRINCIPAL])
+            ->assertForbidden();
+
+        $this->assertSame(0, Quote::count());
+    }
+
+    #[DataProvider('estadosCerrados')]
+    public function test_nadie_envia_aprueba_rechaza_ni_elimina_cotizaciones_en_orden_cerrada(string $slug): void
+    {
+        [, $mec] = $this->mechanic();
+        $orden = $this->orden($slug, $mec);
+        $enviada = $this->cotizacion($orden, Quote::ENVIADA);
+        $borrador = $this->cotizacion($orden, Quote::BORRADOR, Quote::KIND_ADICIONAL);
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->patch(route('repair-orders.quotes.send', [$orden, $borrador]))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->delete(route('repair-orders.quotes.destroy', [$orden, $borrador]))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patch(route('repair-orders.quotes.approve', [$orden, $enviada]), [
+                'approval_method' => 'presencial', 'approved_by_name' => 'Cliente de prueba',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patch(route('repair-orders.quotes.reject', [$orden, $enviada]), ['rejection_reason' => 'No'])
+            ->assertForbidden();
+
+        $this->assertSame(Quote::ENVIADA, $enviada->fresh()->status);
+        $this->assertSame(Quote::BORRADOR, $borrador->fresh()->status);
+        $this->assertSame(2, Quote::count());
+    }
+
+    #[DataProvider('estadosCerrados')]
+    public function test_cliente_no_acepta_ni_rechaza_cotizacion_de_orden_cerrada(string $slug): void
+    {
+        [, $mec] = $this->mechanic();
+        $orden = $this->orden($slug, $mec);
+        $enviada = $this->cotizacion($orden, Quote::ENVIADA);
+        $token = $orden->fresh()->tracking_token;
+
+        $this->post(route('tracking.quote.accept', [$token, $enviada]), [
+            'nombre' => 'Cliente de prueba', 'acepto' => '1', 'hash' => str_repeat('a', 64),
+        ])->assertSessionHasErrors('quote');
+
+        $this->post(route('tracking.quote.reject', [$token, $enviada]), ['motivo' => 'No'])
+            ->assertSessionHasErrors('quote');
+
+        $enviada->refresh();
+        $this->assertSame(Quote::ENVIADA, $enviada->status);
+        $this->assertNull($enviada->client_accepted_at);
+        $this->assertNull($enviada->approved_at);
+    }
+
+    #[DataProvider('estadosCerrados')]
+    public function test_tracking_de_orden_cerrada_no_invita_a_aprobar_ni_ofrece_acciones(string $slug): void
+    {
+        [, $mec] = $this->mechanic();
+        $orden = $this->orden($slug, $mec);
+        $this->cotizacion($orden, Quote::ENVIADA);
+
+        $this->get(route('tracking.show', ['token' => $orden->fresh()->tracking_token]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('orden.cerrada', true)
+                ->where('quotes.0.status', Quote::ENVIADA)
+                ->where('quotes.0.can_accept', false)
+                ->where('pendientes', [])
+            );
+    }
+
+    public function test_tracking_de_orden_abierta_con_cotizacion_enviada_invita_a_aprobar(): void
+    {
+        [, $mec] = $this->mechanic();
+        $orden = $this->orden('en-reparacion', $mec);
+        $quote = $this->cotizacion($orden, Quote::ENVIADA);
+
+        $this->get(route('tracking.show', ['token' => $orden->fresh()->tracking_token]))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('orden.cerrada', false)
+                ->where('quotes.0.can_accept', true)
+                ->where('pendientes', [[
+                    'texto' => 'Revisa y aprueba la cotización ' . $quote->folio . ' para que el taller continúe.',
+                ]])
+            );
+    }
 }

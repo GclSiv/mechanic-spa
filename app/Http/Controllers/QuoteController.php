@@ -14,10 +14,7 @@ class QuoteController extends Controller
      */
     public function store(Request $request, RepairOrder $order, CreateQuoteAction $action)
     {
-        // Un vehículo ya entregado no admite nuevas cotizaciones.
-        if ($order->status?->slug === 'entregado') {
-            return back()->withErrors(['status' => 'No se puede crear una cotización de una orden entregada.']);
-        }
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden crear cotizaciones.');
 
         $data = $request->validate([
             'notes' => 'nullable|string|max:1000',
@@ -34,6 +31,7 @@ class QuoteController extends Controller
      */
     public function send(RepairOrder $order, Quote $quote)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. Las cotizaciones son de solo lectura.');
         abort_unless($quote->repair_order_id === $order->id, 404);
 
         $quote->markSent();
@@ -46,6 +44,7 @@ class QuoteController extends Controller
      */
     public function approve(Request $request, RepairOrder $order, Quote $quote)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. Las cotizaciones son de solo lectura.');
         abort_unless($quote->repair_order_id === $order->id, 404);
 
         if ($quote->status !== Quote::ENVIADA) {
@@ -67,6 +66,7 @@ class QuoteController extends Controller
      */
     public function reject(Request $request, RepairOrder $order, Quote $quote)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. Las cotizaciones son de solo lectura.');
         abort_unless($quote->repair_order_id === $order->id, 404);
 
         if ($quote->status !== Quote::ENVIADA) {
@@ -104,6 +104,7 @@ class QuoteController extends Controller
      */
     public function destroy(RepairOrder $order, Quote $quote)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. Las cotizaciones son de solo lectura.');
         abort_unless($quote->repair_order_id === $order->id, 404);
 
         if ($quote->status !== Quote::BORRADOR) {

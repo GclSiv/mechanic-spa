@@ -67,6 +67,13 @@ const quoteStatusClass = (status) => ({
     rechazada:   'bg-red-100 text-red-800',
     reemplazada: 'bg-gray-200 text-gray-500',
 }[status] ?? 'bg-gray-100 text-gray-700');
+
+// En orden cerrada una cotización enviada se muestra como histórica: sin "Pendiente de aprobación"
+const enHistorico = (q) => props.orden?.cerrada && q.status === 'enviada';
+const claseCotizacion = (q) => enHistorico(q) ? 'bg-gray-100 text-gray-700' : quoteStatusClass(q.status);
+const textoCotizacion = (q) => enHistorico(q)
+    ? t('seguimiento.quoteStatus.enviadaHistorica')
+    : t('seguimiento.quoteStatus.' + q.status);
 </script>
 
 <template>
@@ -167,6 +174,7 @@ const quoteStatusClass = (status) => ({
 
             <section>
                 <h2 class="text-sm font-bold uppercase text-gray-500 mb-3">{{ $t('seguimiento.cotizaciones') }}</h2>
+                <p v-if="orden?.cerrada" class="text-sm text-gray-600 bg-white rounded-xl border border-gray-200 p-4 mb-4">{{ $t('seguimiento.cerradaReferencia') }}</p>
 
                 <p v-if="!quotes?.length" class="text-sm text-gray-400 bg-white rounded-xl border border-dashed border-gray-300 p-6 text-center">
                     {{ $t('seguimiento.sinCotizaciones') }}
@@ -183,8 +191,8 @@ const quoteStatusClass = (status) => ({
                                 <span v-if="q.expired" class="text-red-600 font-bold"> · {{ $t('seguimiento.vencida') }}</span>
                             </p>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold" :class="quoteStatusClass(q.status)">
-                            {{ $t('seguimiento.quoteStatus.' + q.status) }}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold" :class="claseCotizacion(q)">
+                            {{ textoCotizacion(q) }}
                         </span>
                     </div>
 
@@ -271,8 +279,8 @@ const quoteStatusClass = (status) => ({
                         <p v-if="estado(q.id).error" class="text-sm text-red-600 font-medium">{{ estado(q.id).error }}</p>
                     </div>
 
-                    <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-                        <p class="text-xs text-gray-500">{{ $t('seguimiento.comoAprobar') }}</p>
+                    <div class="mt-5 flex flex-wrap items-center gap-3" :class="q.can_accept ? 'justify-between' : 'justify-end'">
+                        <p v-if="q.status === 'enviada' && q.can_accept" class="text-xs text-gray-500">{{ $t('seguimiento.comoAprobar') }}</p>
                         <a :href="q.pdf_url" target="_blank"
                             class="px-4 py-2 rounded-lg bg-[#10213E] text-white text-sm font-bold hover:bg-[#1c3660]">
                             {{ $t('seguimiento.descargarPdf') }}

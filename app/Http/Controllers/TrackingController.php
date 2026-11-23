@@ -39,8 +39,11 @@ class TrackingController extends Controller
         $saldo      = $financiero['saldo_autorizado'];
 
         // Pendientes: lo que el cliente tiene que hacer, redactado en el servidor
+        // Orden cerrada: la cotización enviada es histórica, no una acción pendiente del cliente
+        $cerrada    = $order->estaCerrada();
         $pendientes = [];
-        foreach ($order->quotes->where('status', Quote::ENVIADA) as $pendiente) {
+        $enviadas   = $cerrada ? collect() : $order->quotes->where('status', Quote::ENVIADA);
+        foreach ($enviadas as $pendiente) {
             $pendientes[] = ['texto' => $pendiente->isExpired()
                 ? 'La cotización ' . $pendiente->folio . ' venció. Pide una nueva al taller.'
                 : 'Revisa y aprueba la cotización ' . $pendiente->folio . ' para que el taller continúe.'];
@@ -86,6 +89,7 @@ class TrackingController extends Controller
         return Inertia::render('Tracking/Show', [
             'orden' => [
                 'folio'   => $order->folio,
+                'cerrada' => $cerrada,
                 // Si la orden perdió su estado, el cliente ve "En proceso" en vez de un espacio vacío
                 'status'  => [
                     'slug'  => $slug,
@@ -122,7 +126,7 @@ class TrackingController extends Controller
                 'fecha' => optional($f->created_at)->format('d/m/Y'),
                 'url'   => route('tracking.avance.photo', ['token' => $token, 'photo' => $f->id]),
             ])->values(),
-            'quotes' => $order->quotes()->where('status', '!=', Quote::BORRADOR)->get()->map(fn (Quote $q) => $this->quoteSummary($q, $token))->values(),
+            'quotes' => $order->quotes()->where('status', '!=', Quote::BORRADOR)->get()->map(fn (Quote $q) => $this->quoteSummary($q, $token, $cerrada))->values(),
             'current_quote_id' => $quote?->id,
             'token' => $token,
             'settings' => [
@@ -164,6 +168,11 @@ class TrackingController extends Controller
         $order = $this->findOrder($token);
         abort_unless($quote->repair_order_id === $order->id, 404);
         abort_if($quote->status === Quote::BORRADOR, 404);
+
+        // Orden cerrada = histórica: el enlace público ya no puede aprobar nada.
+        if ($order->estaCerrada()) {
+            return back()->withErrors(['quote' => 'Esta orden ya está cerrada. La cotización ya no se puede aceptar.']);
+        }
 
         if ($quote->status !== Quote::ENVIADA || $quote->isExpired()) {
             return back()->withErrors(['quote' => 'Esta cotización ya no se puede aceptar.']);
@@ -207,6 +216,10 @@ class TrackingController extends Controller
         abort_unless($quote->repair_order_id === $order->id, 404);
         abort_if($quote->status === Quote::BORRADOR, 404);
 
+        if ($order->estaCerrada()) {
+            return back()->withErrors(['quote' => 'Esta orden ya está cerrada. La cotización ya no se puede rechazar.']);
+        }
+
         if ($quote->status !== Quote::ENVIADA) {
             return back()->withErrors(['quote' => 'Esta cotización ya no se puede rechazar.']);
         }
@@ -236,7 +249,7 @@ class TrackingController extends Controller
             ->firstOrFail();
     }
 
-    private function quoteSummary(Quote $quote, string $token): array
+    private function quoteSummary(Quote $quote, string $token, bool $cerrada): array
     {
         $quote->load('items');
 
@@ -247,7 +260,7 @@ class TrackingController extends Controller
             'status'      => $quote->status,
             'kind'        => $quote->kind,
             'hash'        => $quote->snapshotHash(),
-            'can_accept'  => $quote->status === Quote::ENVIADA && ! $quote->isExpired(),
+            'can_accept'  => $quote->status === Quote::ENVIADA && ! $quote->isExpired() && ! $cerrada,
             'accepted_name' => $quote->client_accepted_name ?? $quote->approved_by_name,
             'accepted_at'   => optional($quote->approved_at)->format('d/m/Y H:i'),
             'rejection_reason' => $quote->rejection_reason,
