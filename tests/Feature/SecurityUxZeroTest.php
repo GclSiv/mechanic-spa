@@ -417,7 +417,7 @@ class SecurityUxZeroTest extends TestCase
         $this->assertTrue(RepairOrderPhoto::whereKey($foto->id)->exists());
     }
 
-    public function test_admin_conserva_poder_de_eliminar_foto_en_orden_cerrada(): void
+    public function test_admin_no_elimina_foto_en_orden_cerrada(): void
     {
         Storage::fake('public');
         [, $mecanico] = $this->mechanic();
@@ -425,11 +425,13 @@ class SecurityUxZeroTest extends TestCase
         Storage::disk('public')->put('avance/admin.jpg', 'x');
         $foto = RepairOrderPhoto::create(['repair_order_id' => $orden->id, 'path' => 'avance/admin.jpg']);
 
+        // Regla de dominio: la evidencia de una orden cerrada es de solo lectura, también para admin.
         $this->actingAs($this->admin())
             ->delete(route('repair-orders.avance.destroy', [$orden, $foto]))
-            ->assertRedirect();
+            ->assertForbidden();
 
-        $this->assertFalse(RepairOrderPhoto::whereKey($foto->id)->exists());
+        $this->assertTrue(RepairOrderPhoto::whereKey($foto->id)->exists());
+        Storage::disk('public')->assertExists('avance/admin.jpg');
     }
 
     // ── SECURITY-UX-0.2 · 1-2: contraseña inicial definida por el admin ──

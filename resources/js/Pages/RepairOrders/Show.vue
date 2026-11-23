@@ -430,7 +430,7 @@ function removeItem(itemId) {
                                 </button>
                             </div>
                         </section>
-                        <AvancePhotos :orden="orden" :puede-borrar="isAdmin || !orden.esta_cerrada" />
+                        <AvancePhotos :orden="orden" :puede-borrar="!orden.esta_cerrada" />
                     </div>
 
                     <!-- HISTORIAL: bitácora y vehículo -->

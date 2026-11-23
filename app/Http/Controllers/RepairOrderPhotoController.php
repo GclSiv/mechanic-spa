@@ -16,6 +16,9 @@ class RepairOrderPhotoController extends Controller
 
     public function store(Request $request, RepairOrder $order)
     {
+        // Regla de dominio: una orden cerrada es evidencia histórica de solo lectura.
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden subir fotos de avance.');
+
         if (! in_array($order->status?->slug, self::ESTADOS_CON_FOTOS, true)) {
             return back()->withErrors(['photo' => 'Las fotos se suben cuando el vehículo está en diagnóstico, espera de piezas, reparación o listo.']);
         }
@@ -45,7 +48,8 @@ class RepairOrderPhotoController extends Controller
     public function destroy(Request $request, RepairOrder $order, RepairOrderPhoto $photo)
     {
         abort_unless($photo->repair_order_id === $order->id, 404);
-        abort_if(! $request->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes eliminar fotos de avance.');
+        // Regla de dominio: nadie (ni admin) elimina evidencia de una orden cerrada.
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar fotos de avance.');
 
         Storage::disk('public')->delete($photo->path);
         $photo->delete();
