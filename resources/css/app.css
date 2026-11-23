@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    /* Design System v1: foco visible de 2 px para controles interactivos nuevos. */
+    .ds-focus {
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2;
+    }
+}
