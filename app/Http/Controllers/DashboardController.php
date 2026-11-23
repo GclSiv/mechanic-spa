@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Actions\RepairOrders\EstadoFinancieroAction;
-use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
 use App\Models\Part;
 use App\Models\Payment;
 use App\Models\Quote;
 use App\Models\Recepcion;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
+use App\Support\ConteoOrdenes;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -31,20 +31,8 @@ class DashboardController extends Controller
             ->when(! $isAdmin, fn ($q) => $q->where('mechanic_id', $mechanicId));
         $ordenesActivas = $pendingQuery->count();
 
-        // Flujo del taller: cinco estados operativos en UNA sola consulta agrupada por status_id.
-        // Mismo alcance que "órdenes activas": el mecánico solo cuenta sus órdenes asignadas.
-        // Los estados sin fila en repair_order_statuses quedan en 0; nunca se consulta uno por uno.
-        $flujoSlugs = ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado'];
-        $slugPorId  = RepairOrderStatus::whereIn('slug', $flujoSlugs)->pluck('slug', 'id');
-        $flujo      = array_fill_keys($flujoSlugs, 0);
-        RepairOrder::whereIn('status_id', $slugPorId->keys())
-            ->when(! $isAdmin, fn ($q) => $q->where('mechanic_id', $mechanicId))
-            ->selectRaw('status_id, COUNT(*) as total')
-            ->groupBy('status_id')
-            ->pluck('total', 'status_id')
-            ->each(function ($total, $statusId) use (&$flujo, $slugPorId) {
-                $flujo[$slugPorId[$statusId]] = (int) $total;
-            });
+        // Flujo del taller: conteo compartido con Órdenes (ConteoOrdenes). Mecánico = solo sus órdenes.
+        $flujo           = ConteoOrdenes::flujo($mechanicId);
         $esperandoPiezas = $flujo['espera-piezas'];
         $listosRecoger   = $flujo['reparado'];
 
@@ -59,17 +47,8 @@ class DashboardController extends Controller
             ? Part::whereColumn('stock', '<=', 'low_stock_threshold')->count()
             : null;
 
-        // Esperando autorización: métrica DERIVADA, no es estado de orden.
-        // Órdenes activas con pendiente_autorizacion > 0 según la fuente única del estado financiero
-        // (EstadoFinancieroCalculator vía el lector en lote). Una sola llamada: consultas fijas, sin N+1.
-        // Solo admin/owner: es dato financiero.
-        $esperandoAutorizacion = null;
-        if ($isAdmin) {
-            $idsActivas = RepairOrder::whereIn('status_id', $pendingStatuses)->pluck('id')->all();
-            $esperandoAutorizacion = collect(app(EstadosFinancierosOrdenesAction::class)->execute($idsActivas))
-                ->filter(fn (array $estado) => $estado['pendiente_autorizacion'] > 0)
-                ->count();
-        }
+        // Esperando autorización: métrica DERIVADA, solo admin/owner (fuente financiera en lote).
+        $esperandoAutorizacion = $isAdmin ? ConteoOrdenes::esperandoAutorizacion() : null;
 
         // Ingresos del mes = dinero realmente cobrado: SUM(payments.amount) del mes en curso.
         // Misma fuente que FinanceController. No usa estimated_cost ni órdenes entregadas.

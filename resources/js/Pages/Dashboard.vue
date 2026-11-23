@@ -57,7 +57,7 @@ const enlaceDetalle = (rec) => {
     return rec.repair_order ? route('repair-orders.show', rec.repair_order.id) : null;
 };
 
-const estadoLabel = (slug) => (te(`dashboard.estadoUi.${slug}`) ? t(`dashboard.estadoUi.${slug}`) : t(`status.${slug}`));
+const estadoLabel = (slug) => (te(`estadoUi.${slug}`) ? t(`estadoUi.${slug}`) : t(`status.${slug}`));
 
 const formatCurrency = (val) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val ?? 0);

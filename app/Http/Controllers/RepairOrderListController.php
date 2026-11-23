@@ -6,6 +6,7 @@ use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Models\Mechanic;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
+use App\Support\ConteoOrdenes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -99,6 +100,9 @@ class RepairOrderListController extends Controller
             'filtros'   => $filtros,
             'estados'   => RepairOrderStatus::orderBy('id')->get(['slug', 'name']),
             'mecanicos' => Mechanic::orderBy('name')->get(['id', 'name']),
+            // Indicadores del encabezado: conteos del taller completo (no dependen de los filtros).
+            'resumen'              => ConteoOrdenes::flujo(null),
+            'autorizacionPendiente' => ConteoOrdenes::esperandoAutorizacion(),
         ]);
     }
 }
