@@ -388,6 +388,9 @@ class RepairOrderController extends Controller
      */
     public function updateStatus(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
+        // Regla de dominio: entregado/rechazado no se reabren por el endpoint genérico (ningún rol).
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. Su estado no puede cambiarse desde aquí.');
+
         $request->validate([
             'status_id' => 'required|exists:repair_order_statuses,id',
         ]);
@@ -433,6 +436,9 @@ class RepairOrderController extends Controller
      */
     public function updateTaxRate(Request $request, RepairOrder $order, CalculateOrderTotalsAction $calculator)
     {
+        // Regla de dominio: una orden cerrada es histórica; no se cambia su IVA ni se recalculan sus totales.
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se puede cambiar el IVA.');
+
         $data = $request->validate([
             'tax_rate' => ['required', 'numeric', \Illuminate\Validation\Rule::in([16, 8])],
         ]);

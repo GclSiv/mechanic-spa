@@ -501,7 +501,7 @@ function removeItem(itemId) {
                 
                 <div class="p-6 space-y-4">
                     <!-- BOTONES DE CONFIGURACIÓN FISCAL FUNCIONALES -->
-                    <div v-if="isAdmin" class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
+                    <div v-if="isAdmin && !cerradaOrden" class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
                         <span class="text-xs font-bold text-gray-500 pl-3">{{ $t('cotizacion.fiscalConfig') }}</span>
                         <div class="flex gap-1">
                             <button type="button" @click="updateTax(8)"

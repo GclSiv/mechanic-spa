@@ -146,14 +146,49 @@ class RepairOrderStatusPermissionsTest extends TestCase
         $this->assertSame($this->estado('entregado')->id, $order->fresh()->status_id);
     }
 
-    public function test_admin_can_reopen_a_closed_order(): void
+    public function test_admin_cannot_reopen_a_closed_order(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
         $order = $this->orderIn('rechazado');
 
-        $this->cambiar($admin, $order, 'en-reparacion')->assertRedirect();
+        $this->cambiar($admin, $order, 'en-reparacion')->assertForbidden();
 
-        $this->assertSame($this->estado('en-reparacion')->id, $order->fresh()->status_id);
+        $this->assertSame($this->estado('rechazado')->id, $order->fresh()->status_id);
+    }
+
+    public function test_admin_cannot_change_an_entregada_order(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $order = $this->orderIn('entregado');
+
+        $this->cambiar($admin, $order, 'reparado')->assertForbidden();
+        $this->cambiar($admin, $order, 'rechazado')->assertForbidden();
+
+        $this->assertSame($this->estado('entregado')->id, $order->fresh()->status_id);
+    }
+
+    public function test_admin_cannot_change_a_rechazada_order_to_any_status(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $order = $this->orderIn('rechazado');
+
+        foreach (['recibido', 'diagnostico', 'entregado'] as $slug) {
+            $this->cambiar($admin, $order, $slug)->assertForbidden();
+        }
+
+        $this->assertSame($this->estado('rechazado')->id, $order->fresh()->status_id);
+    }
+
+    public function test_admin_valid_transitions_on_open_orders_still_work(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $order = $this->orderIn('recibido');
+
+        $this->cambiar($admin, $order, 'diagnostico')->assertRedirect();
+        $this->assertSame($this->estado('diagnostico')->id, $order->fresh()->status_id);
+
+        $this->cambiar($admin, $order, 'espera-piezas')->assertRedirect();
+        $this->assertSame($this->estado('espera-piezas')->id, $order->fresh()->status_id);
     }
 
     public function test_cancelling_an_order_does_not_return_parts_to_stock(): void

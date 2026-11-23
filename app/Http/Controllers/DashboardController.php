@@ -40,6 +40,7 @@ class DashboardController extends Controller
         // Por cotizar: diagnóstico terminado y todavía sin principal aprobada (A2, no is_paid)
         $porCotizar   = $isAdmin
             ? RepairOrder::where('needs_quote', true)
+                ->whereHas('status', fn ($q) => $q->whereNotIn('slug', RepairOrderStatus::CERRADOS))
                 ->whereDoesntHave('quotes', fn ($q) => $q->where('kind', Quote::KIND_PRINCIPAL)->where('status', Quote::APROBADA))
                 ->count()
             : null;
