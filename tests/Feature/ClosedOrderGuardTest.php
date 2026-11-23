@@ -2,16 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Quotes\CreateQuoteAction;
 use App\Models\Client;
 use App\Models\FollowUp;
 use App\Models\Gender;
 use App\Models\Mechanic;
+use App\Models\Part;
+use App\Models\Quote;
+use App\Models\RepairOrderItem;
 use App\Models\MechanicType;
 use App\Models\Recepcion;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderStatus;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -278,5 +283,116 @@ class ClosedOrderGuardTest extends TestCase
             ->assertRedirect();
         $this->assertSame($mec->id, (int) $orden->refresh()->mechanic_id);
         $this->assertSame(1, FollowUp::count());
+    }
+
+    private function parte(): Part
+    {
+        return Part::create([
+            'name'                => 'Balata delantera',
+            'sku'                 => 'BAL-' . uniqid(),
+            'cost_price'          => 60,
+            'sale_price'          => 80,
+            'stock'               => 5,
+            'low_stock_threshold' => 1,
+        ]);
+    }
+
+    private function concepto(RepairOrder $order, string $tipo, float $importe): RepairOrderItem
+    {
+        return RepairOrderItem::create([
+            'repair_order_id' => $order->id, 'type' => $tipo, 'description' => 'Concepto',
+            'quantity' => 1, 'unit_price' => $importe, 'subtotal' => $importe,
+        ]);
+    }
+
+    #[DataProvider('estadosCerrados')]
+    public function test_nadie_agrega_ni_quita_conceptos_en_orden_cerrada(string $slug): void
+    {
+        [$user, $mec] = $this->mechanic();
+        $orden = $this->orden($slug, $mec);
+        $mano = $this->concepto($orden, 'labor', 500);
+        $refaccion = $this->concepto($orden, 'part', 200);
+        $parte = $this->parte();
+
+        $this->actingAs($this->admin())
+            ->post(route('repair-orders.items.store', $orden), [
+                'type' => 'labor', 'description' => 'Extra', 'quantity' => 1, 'unit_price' => 100,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('repair-orders.items.store', $orden), [
+                'type' => 'part', 'part_id' => $parte->id, 'quantity' => 1,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($this->admin())
+            ->delete(route('repair-orders.items.destroy', [$orden, $mano]))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->delete(route('repair-orders.items.destroy', [$orden, $refaccion]))
+            ->assertForbidden();
+
+        $this->assertSame(2, RepairOrderItem::count());
+        $this->assertSame(5, $parte->fresh()->stock);
+    }
+
+    public function test_mecanico_no_recibe_importes_ni_id_de_cotizacion_en_conceptos(): void
+    {
+        [$user, $mec] = $this->mechanic();
+        $orden = $this->orden('en-reparacion', $mec);
+        $this->concepto($orden, 'part', 300);
+
+        $this->actingAs($user)
+            ->get(route('repair-orders.show', $orden))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('orden.items', 1)
+                ->missing('orden.items.0.unit_price')
+                ->missing('orden.items.0.subtotal')
+                ->missing('orden.items.0.billed_quote_id')
+                ->where('orden.items.0.autorizado', false));
+    }
+
+    public function test_concepto_facturado_se_marca_autorizado_sin_exponer_cotizacion_a_mecanico(): void
+    {
+        [$user, $mec] = $this->mechanic();
+        $orden = $this->orden('en-reparacion', $mec);
+        $item = $this->concepto($orden, 'part', 300);
+
+        $quote = app(CreateQuoteAction::class)->execute($orden, null, Quote::KIND_PRINCIPAL);
+        $quote->update(['total' => 300]);
+        $quote->approve('presencial', 'Cliente de prueba');
+        $this->assertNotNull($item->fresh()->billed_quote_id);
+
+        $this->actingAs($user)
+            ->get(route('repair-orders.show', $orden))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('orden.items.0.autorizado', true)
+                ->missing('orden.items.0.billed_quote_id'));
+
+        $this->actingAs($this->admin())
+            ->get(route('repair-orders.show', $orden))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('orden.items.0.autorizado', true)
+                ->missing('orden.items.0.billed_quote_id'));
+    }
+
+    public function test_catalogo_de_refacciones_no_expone_precio_de_venta_a_mecanico(): void
+    {
+        [$user, $mec] = $this->mechanic();
+        $orden = $this->orden('en-reparacion', $mec);
+        $this->parte();
+
+        $this->actingAs($user)
+            ->get(route('repair-orders.show', $orden))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('parts', 1)
+                ->missing('parts.0.sale_price'));
+
+        $this->actingAs($this->admin())
+            ->get(route('repair-orders.show', $orden))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('parts.0.sale_price'));
     }
 }

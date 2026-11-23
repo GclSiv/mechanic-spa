@@ -20,7 +20,7 @@ class RepairOrderController extends Controller
 {
     public function addItem(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
-        abort_if(! $request->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes registrar refacciones.');
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden registrar conceptos.');
 
         if (! $request->user()->isAdmin()) {
             // El mecánico solo registra refacciones, al precio de catálogo (nunca el que envíe el navegador).
@@ -148,6 +148,12 @@ class RepairOrderController extends Controller
             'recepcion.vehicle.vehicleModel',
         ]);
 
+        // Derivado del backend: concepto ya facturado. La pantalla solo necesita el booleano, no el id de cotización.
+        $order->items->each(function ($item) {
+            $item->setAttribute('autorizado', $item->billed_quote_id !== null);
+            $item->makeHidden('billed_quote_id');
+        });
+
         if (! $isAdmin) {
             $this->ocultarFinanzasParaMecanico($order);
         }
@@ -206,7 +212,7 @@ class RepairOrderController extends Controller
     public function removeItem(RepairOrder $order, RepairOrderItem $item, EstadoFinancieroAction $estado)
     {
         abort_unless(auth()->user()->isAdmin() || $item->type === 'part', 403, 'Solo puedes eliminar refacciones.');
-        abort_if(! auth()->user()->isAdmin() && $order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes eliminar refacciones.');
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar conceptos.');
 
         if ($item->repair_order_id !== $order->id) {
             abort(403, 'Item no pertenece a esta orden');

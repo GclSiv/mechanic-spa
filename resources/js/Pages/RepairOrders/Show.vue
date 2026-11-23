@@ -1,5 +1,4 @@
 <script setup>
-import OrderTotals from '@/Components/OrderTotals.vue';
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
@@ -150,10 +149,16 @@ function cantidadTexto(item) {
     return item.type === 'part' ? String(Math.round(n)) : n.toFixed(2);
 }
 
+// Permisos de Trabajo: el backend es la autoridad; aquí solo se reflejan sus reglas para no ofrecer acciones que darían 403.
+const puedeAgregarConceptos = computed(() => !props.orden.esta_cerrada);
+function puedeQuitarConcepto(item) {
+    return !props.orden.esta_cerrada && !item.autorizado && (props.isAdmin || item.type === 'part');
+}
+
 function selectPart(partId) {
     const part = (page.props.parts ?? []).find(p => p.id === Number(partId));
     if (part) {
-        form.unit_price = part.sale_price;
+        if (props.isAdmin) form.unit_price = part.sale_price;
         form.part_id = part.id;
     }
 }
@@ -170,7 +175,7 @@ const filteredParts = computed(() => {
 
 function pickPart(part) {
     form.part_id    = part.id;
-    form.unit_price = part.sale_price;
+    if (props.isAdmin) form.unit_price = part.sale_price;
     partSearch.value = part.name;
     showPartList.value = false;
 }
@@ -359,58 +364,44 @@ function removeItem(itemId) {
 
                     <!-- TRABAJO -->
                     <div v-if="tabActiva === 'trabajo'" class="space-y-6">
-                        <!-- CONCEPTOS DE LA COTIZACIÓN -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-xl">
-                    <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
-                        <h3 class="text-white font-black text-sm uppercase tracking-wider">{{ $t('cotizacion.conceptos') }}</h3>
-                        <button v-if="isAdmin || !orden.esta_cerrada" @click="showModal = true"
-                            class="bg-[#EE2857] hover:bg-red-700 text-white px-5 py-2 rounded-lg font-bold shadow-md transition-all text-xs uppercase">
-                            {{ $t('cotizacion.agregarConcepto') }}
-                        </button>
-                    </div>
-                    
-                    <div class="p-6">
-                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse mb-6">
-                            <thead>
-                                <tr class="bg-gray-100 text-gray-500 uppercase text-xs tracking-wider font-bold border-b border-gray-200">
-                                    <th class="p-3">{{ $t('cotizacion.cant') }}</th>
-                                    <th class="p-3">{{ $t('cotizacion.tipo') }}</th>
-                                    <th class="p-3">{{ $t('cotizacion.descripcion') }}</th>
-                                    <th v-if="isAdmin" class="p-3 text-right">{{ $t('cotizacion.unitario') }}</th>
-                                    <th v-if="isAdmin" class="p-3 text-right">{{ $t('cotizacion.totalParcial') }}</th>
-                                    <th class="p-3 text-center">{{ $t('cotizacion.accion') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-gray-700 text-sm">
-                                <tr v-for="item in orden.items" :key="item.id" class="hover:bg-gray-50 transition-colors border-b border-gray-100">
-                                    <td class="p-3 font-medium">{{ cantidadTexto(item) }}</td>
-                                    <td class="p-3">
-                                        <span :class="item.type === 'part' ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-700'"
-                                              class="px-2 py-1 rounded-md text-[10px] font-black uppercase">
-                                            {{ item.type === 'part' ? $t('cotizacion.refaccion') : $t('cotizacion.manoDeObra') }}
-                                        </span>
-                                    </td>
-                                    <td class="p-3">{{ item.description }}</td>
-                                    <td v-if="isAdmin" class="p-3 text-right">${{ Number(item.unit_price).toFixed(2) }}</td>
-                                    <td v-if="isAdmin" class="p-3 text-right font-black">${{ Number(item.subtotal).toFixed(2) }}</td>
-                                    <td class="p-3 text-center">
-                                        <button v-if="isAdmin || (item.type === 'part' && !orden.esta_cerrada)" @click="removeItem(item.id)" class="text-gray-400 hover:text-[#EE2857] text-sm font-bold transition">
-                                            ✕
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr v-if="!orden.items || orden.items.length === 0">
-                                    <td colspan="6" class="p-10 text-center text-gray-400 italic font-medium">{{ $t('cotizacion.sinArticulos') }}</td>
-                                </tr>
-                            </tbody>
-                        </table></div>
+                        <!-- TRABAJO: conceptos operativos de la orden. Permisos y estados vienen del backend; sin cálculos en Vue -->
+                        <section class="rounded-xl border border-line bg-surface p-4 md:p-5">
+                            <header class="mb-2 flex flex-wrap items-center justify-between gap-3">
+                                <h2 class="text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.trabTitulo') }}</h2>
+                                <button v-if="puedeAgregarConceptos" type="button" @click="showModal = true"
+                                    class="ds-focus rounded-lg bg-navy px-4 py-2 text-ds-caption font-semibold text-white transition hover:opacity-90">
+                                    {{ $t('cotizacion.agregarConcepto') }}
+                                </button>
+                            </header>
 
-                        <!-- Calculadora Financiera — solo admin -->
-                        <div v-if="isAdmin" class="flex justify-end mt-4 pt-4 border-t border-gray-200">
-                            <OrderTotals :orden="orden" :breakdown="financial_breakdown" />
-                        </div>
-                    </div>
-                </div>
+                            <p v-if="orden.esta_cerrada" class="mb-3 text-ds-caption text-ink-muted">{{ $t('expediente.trabCerrada') }}</p>
+                            <p v-if="page.props.errors?.item" class="mb-3 text-ds-caption font-semibold text-red-600">{{ page.props.errors.item }}</p>
+
+                            <ul v-if="orden.items && orden.items.length > 0" class="divide-y divide-line">
+                                <li v-for="item in orden.items" :key="item.id" class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="break-words text-ds-body font-medium text-ink">{{ item.description }}</p>
+                                        <p class="text-ds-caption text-ink-muted">
+                                            {{ item.type === 'part' ? $t('cotizacion.refaccion') : $t('cotizacion.manoDeObra') }}
+                                            · {{ $t('expediente.trabCantidad') }} {{ cantidadTexto(item) }}
+                                        </p>
+                                        <p v-if="item.autorizado" class="mt-1 text-ds-caption font-semibold text-ink-muted">{{ $t('expediente.trabAutorizado') }}</p>
+                                    </div>
+                                    <div v-if="isAdmin" class="text-right tabular-nums">
+                                        <p class="text-ds-caption text-ink-muted">{{ dinero(item.unit_price) }}</p>
+                                        <p class="font-semibold text-ink">{{ dinero(item.subtotal) }}</p>
+                                    </div>
+                                    <button v-if="puedeQuitarConcepto(item)" type="button" @click="removeItem(item.id)"
+                                        class="ds-focus rounded-md px-2 py-1 text-ds-caption font-semibold text-ink-muted transition hover:text-red-600">
+                                        {{ $t('expediente.trabQuitar') }}
+                                    </button>
+                                </li>
+                            </ul>
+                            <p v-else class="py-8 text-center text-ds-body text-ink-muted">
+                                {{ puedeAgregarConceptos && isAdmin ? $t('cotizacion.sinArticulos') : puedeAgregarConceptos ? $t('expediente.trabSinRefaccionesMecanico') : $t('expediente.trabSinConceptos') }}
+                            </p>
+                        </section>
+
                     </div>
 
                     <!-- COTIZACIONES: solo admin -->
@@ -508,7 +499,7 @@ function removeItem(itemId) {
                 
                 <div class="p-6 space-y-4">
                     <!-- BOTONES DE CONFIGURACIÓN FISCAL FUNCIONALES -->
-                    <div class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
+                    <div v-if="isAdmin" class="flex justify-between items-center bg-gray-100 p-1 rounded-lg mb-2">
                         <span class="text-xs font-bold text-gray-500 pl-3">{{ $t('cotizacion.fiscalConfig') }}</span>
                         <div class="flex gap-1">
                             <button type="button" @click="updateTax(8)"
@@ -585,6 +576,10 @@ function removeItem(itemId) {
                         </div>
                     </div>
                     
+                    <div v-if="Object.keys(form.errors).length" class="space-y-1">
+                        <p v-for="(msg, campo) in form.errors" :key="campo" class="text-xs font-semibold text-red-600">{{ msg }}</p>
+                    </div>
+
                     <div v-if="isAdmin" class="bg-gray-100 rounded-lg px-4 py-3 flex justify-between text-sm font-black text-[#10213E] border border-gray-200 mt-2">
                         <span>{{ $t('cotizacion.subtotalEst') }}</span>
                         <span>${{ (Number(form.quantity) * Number(form.unit_price)).toFixed(2) }}</span>

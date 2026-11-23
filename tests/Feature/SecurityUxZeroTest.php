@@ -335,8 +335,9 @@ class SecurityUxZeroTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_admin_conserva_poder_de_agregar_refaccion_en_orden_cerrada(): void
+    public function test_admin_no_agrega_refaccion_en_orden_cerrada(): void
     {
+        // Decisión de dominio UI-4C: una orden entregada/rechazada es histórica y de solo lectura para todos los roles.
         [, $mecanico] = $this->mechanic();
         $orden = $this->orderIn('entregado', $mecanico);
 
@@ -344,7 +345,7 @@ class SecurityUxZeroTest extends TestCase
             ->post(route('repair-orders.items.store', $orden), [
                 'type' => 'part', 'part_id' => $this->part()->id, 'quantity' => 1, 'unit_price' => 1,
             ])
-            ->assertRedirect();
+            ->assertForbidden();
     }
 
     // ── SECURITY-5: evidencia no se elimina en órdenes cerradas ──────────
