@@ -285,9 +285,11 @@ class RecepcionController extends Controller
 
     public function index()
     {
+        // Paginación de servidor (mismo criterio que RepairOrderListController): nunca se envía el dataset completo.
         $recepciones = Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'repairOrder.status'])
             ->orderBy('id', 'desc')
-            ->get();
+            ->paginate(25)
+            ->withQueryString();
 
         return Inertia::render('Recepciones/Index', [
             'recepciones' => $recepciones,

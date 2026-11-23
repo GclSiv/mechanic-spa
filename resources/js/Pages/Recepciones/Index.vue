@@ -1,57 +1,58 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Recepciones (solo admin/owner): registro de ingresos antes de generar la orden de reparación.
+// La lista llega paginada desde el servidor (paginator de Laravel). La vista solo navega y representa.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
+import EmptyState from '@/Components/UI/EmptyState.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { orderStatusVariant } from '@/Support/orderStatus.js';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ref, computed } from 'vue';
 
-defineProps({ recepciones: Array });
+const props = defineProps({ recepciones: Object });
 
 const page = usePage();
-const isAdmin = computed(() => page.props.auth.isAdmin);
-const { t } = useI18n();
+const { t, te } = useI18n();
 
-const search = ref('');
-const currentPage = ref(1);
-const perPage = 15;
+const isAdmin = computed(() => page.props.auth?.isAdmin === true);
 
-const filtered = computed(() => {
-    const q = search.value.toLowerCase().trim();
-    const list = page.props.recepciones ?? [];
-    if (!q) return list;
-    return list.filter(r =>
-        (r.client?.first_name + ' ' + r.client?.last_name).toLowerCase().includes(q) ||
-        r.vehicle?.plate?.toLowerCase().includes(q) ||
-        String(r.id).includes(q)
-    );
-});
+const filas = computed(() => props.recepciones?.data ?? []);
 
-// Estado de la recepción según su orden de reparación. Rojo queda reservado para rechazado.
-const ESTADOS = {
-    'recibido':      { label: 'Recibido',         cls: 'bg-green-100 text-green-800' },
-    'diagnostico':   { label: 'En diagnóstico',   cls: 'bg-yellow-100 text-yellow-800' },
-    'espera-piezas': { label: 'Espera de piezas', cls: 'bg-orange-100 text-orange-800' },
-    'en-reparacion': { label: 'En reparación',    cls: 'bg-blue-100 text-blue-800' },
-    'reparado':      { label: 'Listo para recoger', cls: 'bg-emerald-200 text-emerald-900' },
-    'entregado':     { label: 'Entregado',        cls: 'bg-gray-200 text-gray-700' },
-    'rechazado':     { label: 'Rechazado',        cls: 'bg-red-100 text-red-800' },
-};
+const estadoLabel = (slug) => (te(`estadoUi.${slug}`) ? t(`estadoUi.${slug}`) : slug);
 
-function estadoDe(rec) {
-    if (!rec.repairOrder) return { label: 'Nuevo', cls: 'bg-green-100 text-green-800' };
-    const slug = rec.repairOrder.status?.slug;
-    return ESTADOS[slug] ?? { label: rec.repairOrder.status?.name ?? 'En proceso', cls: 'bg-gray-100 text-gray-600' };
+// Vínculo con la orden: condición derivada de la relación, no un estado persistente de la recepción.
+function vinculo(rec) {
+    const orden = rec.repair_order;
+    if (!orden) {
+        return { sinOrden: true, label: t('recepcionUi.sinOrden'), variant: 'neutral' };
+    }
+    const slug = orden.status?.slug;
+    return {
+        sinOrden: false,
+        label: slug ? estadoLabel(slug) : t('recepcionUi.ordenGenerada'),
+        variant: orderStatusVariant(slug),
+        ordenId: orden.id,
+    };
 }
 
-const totalPages = computed(() => Math.ceil(filtered.value.length / perPage));
+const vehiculo = (rec) => {
+    const v = rec.vehicle;
+    const marca = v?.brand?.name ?? (typeof v?.brand === 'string' ? v.brand : null) ?? t('recepcionUi.sinMarca');
+    const modelo = v?.vehicle_model?.name ?? v?.model ?? '';
+    return [marca, modelo, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ');
+};
 
-const paginated = computed(() => {
-    const start = (currentPage.value - 1) * perPage;
-    return filtered.value.slice(start, start + perPage);
-});
+const cliente = (rec) => [rec.client?.first_name, rec.client?.last_name].filter(Boolean).join(' ') || '—';
 
-// Reset page when searching
-function onSearch() { currentPage.value = 1; }
+const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+
+// Navegación por el paginador del servidor: Inertia conserva estado y scroll, sin recarga completa.
+const irAPagina = (url) => {
+    if (!url) return;
+    router.get(url, {}, { preserveState: true, preserveScroll: true });
+};
 
 const confirmDel = ref({ show: false, id: null });
 function askDelete(id) { confirmDel.value = { show: true, id }; }
@@ -62,134 +63,126 @@ function doDel() {
 </script>
 
 <template>
-    <AuthenticatedLayout title="Recepciones">
-        <template #header>
-            <div class="flex justify-between items-center">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">🚗 {{ $t('recepcion.titulo') }}</h2>
-                <Link :href="route('recepcion.create')"
-                    class="bg-[#EE2857] hover:bg-red-700 text-white font-black text-xs uppercase px-5 py-2.5 rounded-lg shadow transition">
-                    {{ $t('recepcion.nueva') }}
-                </Link>
+    <Head :title="t('recepcionUi.titulo')" />
+
+    <AppShellLayout>
+        <PageHeader :title="t('recepcionUi.titulo')" :description="t('recepcionUi.descripcion')">
+            <Link
+                v-if="isAdmin"
+                :href="route('recepcion.create')"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('recepcionUi.nueva') }}</Link>
+        </PageHeader>
+
+        <div class="mt-6 min-w-0 space-y-4">
+            <p v-if="filas.length" class="text-ds-caption text-ink-muted tabular-nums">
+                {{ t('recepcionUi.cuenta', { n: recepciones.total }) }}
+            </p>
+
+            <EmptyState
+                v-if="filas.length === 0"
+                :title="t('recepcionUi.sinRegistros')"
+            />
+
+            <div v-else class="min-w-0 max-w-full overflow-x-auto rounded-xl border border-line bg-surface">
+                <table class="w-full min-w-[640px] text-left text-ds-body">
+                    <caption class="sr-only">{{ t('recepcionUi.titulo') }}</caption>
+                    <thead class="bg-surface-2 text-ds-label uppercase text-ink-muted">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('recepcionUi.colRecepcion') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('recepcionUi.colCliente') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('recepcionUi.colVehiculo') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('recepcionUi.colPlaca') }}</th>
+                            <th scope="col" class="hidden px-4 py-3 font-semibold xl:table-cell">{{ t('recepcionUi.colIngreso') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('recepcionUi.colOrden') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('recepcionUi.colAcciones') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        <tr v-for="rec in filas" :key="rec.id" class="align-top">
+                            <td class="px-4 py-3 font-mono text-ds-caption text-ink-secondary">#{{ rec.id }}</td>
+                            <td class="px-4 py-3">
+                                <p class="font-semibold text-navy">{{ cliente(rec) }}</p>
+                                <p class="text-ds-caption text-ink-muted">{{ rec.client?.phone ?? '—' }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-ink">{{ vehiculo(rec) }}</td>
+                            <td class="whitespace-nowrap px-4 py-3 font-mono uppercase text-ink-secondary">{{ rec.vehicle?.plate ?? '—' }}</td>
+                            <td class="hidden px-4 py-3 text-ds-caption text-ink-muted xl:table-cell">{{ fecha(rec.created_at) }}</td>
+                            <td class="px-4 py-3">
+                                <BaseBadge v-if="vinculo(rec).sinOrden" :variant="vinculo(rec).variant">{{ vinculo(rec).label }}</BaseBadge>
+                                <Link
+                                    v-else
+                                    :href="route('repair-orders.show', vinculo(rec).ordenId)"
+                                    class="ds-focus inline-flex flex-col items-start gap-1 rounded-md"
+                                >
+                                    <BaseBadge :variant="vinculo(rec).variant">{{ vinculo(rec).label }}</BaseBadge>
+                                    <span class="text-ds-caption font-semibold text-navy underline-offset-2 hover:underline">{{ t('recepcionUi.abrirOrden') }}</span>
+                                </Link>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    <Link
+                                        :href="route('recepcion.show', rec.id)"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                                    >{{ t('recepcionUi.ver') }}</Link>
+                                    <Link
+                                        :href="route('recepcion.edit', rec.id)"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control text-ink-secondary hover:bg-surface-2"
+                                    >{{ t('recepcionUi.editar') }}</Link>
+                                    <a
+                                        :href="route('recepcion.pdf', rec.id)"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="ds-focus hidden xl:inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control text-ink-secondary hover:bg-surface-2"
+                                    >{{ t('recepcionUi.imprimir') }}</a>
+                                    <a
+                                        v-if="rec.vehicle"
+                                        :href="route('vehicles.history', rec.vehicle.id)"
+                                        class="ds-focus hidden xl:inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control text-ink-secondary hover:bg-surface-2"
+                                    >{{ t('recepcionUi.historialVehiculo') }}</a>
+                                    <button
+                                        v-if="isAdmin"
+                                        type="button"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-danger-text hover:bg-danger-soft"
+                                        @click="askDelete(rec.id)"
+                                    >{{ t('recepcionUi.eliminar') }}</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </template>
 
-        <div class="py-8 min-h-screen transition-colors">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-
-                <!-- Buscador -->
-                <div class="flex items-center gap-3 bg-white rounded-xl shadow-sm px-4 py-3 border border-gray-100">
-                    <span class="text-gray-400">🔍</span>
-                    <input v-model="search" @input="onSearch" type="text"
-                        :placeholder="$t('recepcion.buscar')"
-                        class="flex-1 text-sm focus:outline-none bg-transparent" />
-                    <span class="text-xs text-gray-400 font-medium">
-                        {{ filtered.length }} resultado{{ filtered.length !== 1 ? 's' : '' }}
-                    </span>
+            <nav
+                v-if="filas.length"
+                class="flex flex-col gap-3 text-ds-caption text-ink-muted sm:flex-row sm:items-center sm:justify-between"
+                :aria-label="t('recepcionUi.paginacion')"
+            >
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        :disabled="!recepciones.prev_page_url"
+                        class="ds-focus h-control-compact rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="irAPagina(recepciones.prev_page_url)"
+                    >{{ t('recepcionUi.anterior') }}</button>
+                    <button
+                        type="button"
+                        :disabled="!recepciones.next_page_url"
+                        class="ds-focus h-control-compact rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="irAPagina(recepciones.next_page_url)"
+                    >{{ t('recepcionUi.siguiente') }}</button>
                 </div>
-
-                <!-- Tabla -->
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                    <div class="bg-[#10213E] px-6 py-3 flex justify-between items-center">
-                        <p class="text-white text-xs font-bold uppercase tracking-widest">
-                            Historial de recepciones
-                        </p>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider font-bold border-b">
-                                <tr>
-                                    <th class="px-5 py-3">#</th>
-                                    <th class="px-5 py-3">{{ $t('tabla.cliente') }}</th>
-                                    <th class="px-5 py-3">{{ $t('tabla.vehiculo') }}</th>
-                                    <th class="px-5 py-3">{{ $t('tabla.placa') }}</th>
-                                    <th class="px-5 py-3">{{ $t('inspeccion.sintomas') }}</th>
-                                    <th class="px-5 py-3">Estado</th>
-                                    <th class="px-5 py-3">{{ $t('tabla.fecha') }}</th>
-                                    <th class="px-5 py-3 text-center">{{ $t('tabla.acciones') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50">
-                                <tr v-for="rec in paginated" :key="rec.id"
-                                    class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-5 py-4 font-mono text-gray-400 text-xs">{{ rec.id }}</td>
-                                    <td class="px-5 py-4">
-                                        <p class="font-bold text-[#10213E]">
-                                            {{ rec.client?.first_name }} {{ rec.client?.last_name }}
-                                        </p>
-                                        <p class="text-xs text-gray-400">{{ rec.client?.phone ?? '—' }}</p>
-                                    </td>
-                                    <td class="px-5 py-4 text-gray-700">
-                                        {{ rec.vehicle?.brand?.name ?? 'S/M' }}
-                                        {{ rec.vehicle?.vehicleModel?.name ?? '' }}
-                                        <span class="text-gray-400 text-xs">({{ rec.vehicle?.year ?? '—' }})</span>
-                                    </td>
-                                    <td class="px-5 py-4 font-mono font-bold uppercase text-xs text-gray-600">
-                                        {{ rec.vehicle?.plate ?? '—' }}
-                                    </td>
-                                    <td class="px-5 py-4 text-gray-600 text-xs max-w-xs truncate">
-                                        {{ rec.symptoms ?? '—' }}
-                                    </td>
-                                    <td class="px-5 py-4">
-                                        <span class="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap"
-                                            :class="estadoDe(rec).cls">{{ estadoDe(rec).label }}</span>
-                                    </td>
-                                    <td class="px-5 py-4 text-gray-500 text-xs">
-                                        {{ new Date(rec.created_at).toLocaleDateString('es-MX') }}
-                                    </td>
-                                    <td class="px-5 py-4">
-                                        <div class="flex justify-center gap-2">
-                                            <Link :href="route('recepcion.show', rec.id)"
-                                                class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                Ver
-                                            </Link>
-                                            <a v-if="rec.vehicle" :href="route('vehicles.history', rec.vehicle.id)" title="Historial del vehículo"
-                                                class="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100">🕘</a>
-                                            <Link :href="route('recepcion.edit', rec.id)"
-                                                class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                ✏️
-                                            </Link>
-                                            <a :href="route('recepcion.pdf', rec.id)" target="_blank"
-                                                class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                🖨️
-                                            </a>
-                                            <button v-if="isAdmin" @click="askDelete(rec.id)"
-                                                class="bg-red-50 hover:bg-red-100 text-[#EE2857] px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                                                ✕
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr v-if="paginated.length === 0">
-                                    <td colspan="8" class="px-6 py-12 text-center text-gray-300 italic text-sm">
-                                        {{ search ? 'Sin resultados para "' + search + '"' : 'No hay recepciones registradas.' }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table></div>
-                    </div>
-
-                    <!-- Paginación -->
-                    <div v-if="totalPages > 1"
-                        class="px-6 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span>{{ $t('dashboard.mostrando') }} {{ currentPage }} / {{ totalPages }}</span>
-                        <div class="flex gap-1">
-                            <button v-for="p in totalPages" :key="p" @click="currentPage = p"
-                                class="w-8 h-8 rounded-lg border transition font-bold"
-                                :class="p === currentPage
-                                    ? 'bg-[#10213E] text-white border-[#10213E]'
-                                    : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-600'">
-                                {{ p }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+                <span aria-live="polite">{{ t('recepcionUi.pagina', { actual: recepciones.current_page, total: recepciones.last_page }) }}</span>
+            </nav>
         </div>
 
-        <ConfirmModal :show="confirmDel.show" title="Eliminar recepción"
-            message="Se eliminará esta recepción permanentemente. Esta acción no se puede deshacer."
-            confirm-text="Sí, eliminar" @confirm="doDel" @cancel="confirmDel.show = false" />
-    </AuthenticatedLayout>
+        <ConfirmModal
+            :show="confirmDel.show"
+            :title="t('recepcionUi.eliminarTitulo')"
+            :message="t('recepcionUi.eliminarMensaje')"
+            :confirm-text="t('recepcionUi.eliminarConfirmar')"
+            @confirm="doDel"
+            @cancel="confirmDel.show = false"
+        />
+    </AppShellLayout>
 </template>
