@@ -1,5 +1,6 @@
 <script setup>
 import FollowUpLogger from '@/Components/FollowUpLogger.vue';
+import BitacoraNotas from '@/Components/Historial/BitacoraNotas.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
 import AvancePhotos from '@/Components/AvancePhotos.vue';
@@ -437,6 +438,7 @@ function removeItem(itemId) {
                     <div v-if="tabActiva === 'historial'" class="space-y-4">
                         <template v-if="bitacoraVisible">
                             <FollowUpLogger :orden="orden" :mechanics="mechanics ?? []" />
+                            <BitacoraNotas :orden="orden" :mechanics="mechanics ?? []" />
                         </template>
                         <p v-else class="text-ds-body text-ink-muted">{{ $t('expediente.sinEtapa') }}</p>
                         <a

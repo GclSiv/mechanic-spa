@@ -31,7 +31,8 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                // Solo identidad: nunca la relación `mechanic` ni campos administrativos (commission_rate, phone...).
+                'user' => $request->user()?->only(['id', 'name', 'email', 'email_verified_at']),
                 'role' => $request->user()?->role,
                 'isAdmin' => $request->user()?->isAdmin() ?? false,
                 'isOwner' => $request->user()?->isOwner() ?? false,

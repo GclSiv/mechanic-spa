@@ -167,6 +167,13 @@ class RepairOrderController extends Controller
                 && (int) $nota->mechanic_id === (int) $propioMecanicoId));
         });
 
+        // El mecánico ve el nombre del autor de cada nota, no su ficha (contacto, usuario, comisión).
+        if (! $isAdmin) {
+            $order->followUps->each(fn (\App\Models\FollowUp $nota) => $nota->mechanic?->makeHidden([
+                'email', 'phone', 'commission_rate', 'user_id', 'gender_id', 'mechanic_type_id', 'is_active',
+            ]));
+        }
+
         // Estado financiero autorizado (fuente única). Solo admin/owner.
         $estadoFinanciero = $isAdmin ? $estado->execute($order) : null;
 
@@ -201,6 +208,7 @@ class RepairOrderController extends Controller
         $order->unsetRelation('payments');
         $order->unsetRelation('quotes');
         $order->makeHidden(['estimated_cost', 'tax_rate', 'is_paid']);
+        $order->mechanic?->makeHidden(['email', 'phone', 'commission_rate', 'user_id', 'gender_id', 'mechanic_type_id', 'is_active']);
 
         if ($order->relationLoaded('items')) {
             $order->items->each->makeHidden(['unit_price', 'subtotal']);
