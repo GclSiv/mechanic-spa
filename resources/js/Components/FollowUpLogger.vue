@@ -95,7 +95,7 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
     <div class="space-y-6">
 
         <!-- ── ASSIGNED MECHANIC (solo admin/dueño: la ruta de asignación es role:admin) ── -->
-        <div v-if="esAdmin" class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
+        <div v-if="esAdmin && !orden.esta_cerrada" class="bg-white rounded-xl shadow-sm border-l-4 border-[#10213E] p-6">
             <h3 class="text-sm font-black text-[#10213E] uppercase tracking-widest border-b pb-2 mb-4">
                 🔧 {{ t('followup.mecanico') }}
             </h3>
@@ -128,6 +128,7 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
                 📋 {{ t('followup.bitacora') }}
             </h3>
 
+            <template v-if="!orden.esta_cerrada">
             <!-- New note form -->
             <div class="space-y-3 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -209,6 +210,8 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
                 </div>
             </div>
 
+            </template>
+
             <!-- Note history -->
             <div v-if="orden.follow_ups && orden.follow_ups.length > 0" class="space-y-4">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ t('followup.historial') }}</p>
@@ -222,7 +225,7 @@ function openLightbox(path) { lightboxSrc.value = '/storage/' + path; }
                                 <span class="text-[10px] text-gray-400">
                                     {{ new Date(note.date).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) }}
                                 </span>
-                                <button v-if="note.puede_eliminar" @click="deleteNote(note.id)"
+                                <button v-if="note.puede_eliminar && !orden.esta_cerrada" @click="deleteNote(note.id)"
                                     :title="t('followup.eliminarNota')"
                                     class="text-gray-300 hover:text-[#EE2857] transition text-xs font-bold leading-none">✕</button>
                             </div>

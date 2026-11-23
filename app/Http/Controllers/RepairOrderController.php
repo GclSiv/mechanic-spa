@@ -277,6 +277,8 @@ class RepairOrderController extends Controller
      */
     public function diagnosisComplete(RepairOrder $order)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se puede registrar el diagnóstico.');
+
         $mechanic   = auth()->user()->mechanic;
         $statusDiag = \App\Models\RepairOrderStatus::where('slug', 'diagnostico')->first();
 
@@ -307,6 +309,8 @@ class RepairOrderController extends Controller
      */
     public function reassignMechanic(Request $request, RepairOrder $order)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se puede cambiar el mecánico.');
+
         $request->validate([
             'mechanic_id' => 'required|exists:mechanics,id',
             'reason'      => 'required|string|min:5|max:500',
@@ -334,6 +338,8 @@ class RepairOrderController extends Controller
      */
     public function assignMechanic(Request $request, RepairOrder $order)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se puede cambiar el mecánico.');
+
         $request->validate([
             'mechanic_id' => 'nullable|exists:mechanics,id',
         ]);
@@ -349,6 +355,8 @@ class RepairOrderController extends Controller
      */
     public function storeFollowUp(Request $request, RepairOrder $order)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden agregar notas.');
+
         $request->validate([
             'mechanic_id'  => 'required|exists:mechanics,id',
             'description'  => 'required|string|max:1000',

@@ -45,7 +45,14 @@ const tabs = computed(() => [
 ]);
 
 // Mecánico y bitácora: mismo alcance de estados que antes de este frente.
-const bitacoraVisible = computed(() => ['recibido', 'diagnostico', 'espera-piezas', 'reparado', 'entregado'].includes(props.orden.status?.slug));
+// en-reparacion: el backend permite notas y diagnóstico en ese estado; no se oculta arbitrariamente.
+const bitacoraVisible = computed(() => ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado', 'entregado', 'rechazado'].includes(props.orden.status?.slug));
+
+// Diagnóstico: estado real (needs_quote) y acción real (diagnosisComplete). Sin campos nuevos.
+const cerradaOrden = computed(() => props.orden.esta_cerrada === true);
+const diagnosticoReportado = computed(() => props.orden.needs_quote === true);
+const accionDiagnosticoVisible = computed(() => !cerradaOrden.value && !diagnosticoReportado.value);
+const fotosAvance = computed(() => (props.orden.avance_photos ?? props.orden.avancePhotos ?? []).length);
 
 // Condición derivada y montos: solo se leen de la fuente financiera central (estado_financiero). No se recalcula.
 const pendienteAutorizacion = computed(() => Number(props.estado_financiero?.pendiente_autorizacion ?? 0));
@@ -294,42 +301,60 @@ function removeItem(itemId) {
                         </section>
                     </div>
 
-                    <!-- DIAGNÓSTICO -->
+                    <!-- DIAGNÓSTICO: estado real, acción real de diagnosisComplete y contexto mínimo -->
                     <div v-if="tabActiva === 'diagnostico'" class="space-y-4">
-                        <template v-if="bitacoraVisible">
-                            <div class="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-black text-[#10213E] uppercase tracking-wider">
-                                🔧 {{ $t('show.mecanico') }}:
-                                <span class="text-blue-600 font-bold normal-case">
-                                    {{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}
-                                </span>
+                        <section class="rounded-xl border border-line bg-surface p-4">
+                            <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.diagTitulo') }}</h2>
+                            <p class="text-ds-body text-ink">
+                                {{ diagnosticoReportado ? $t('expediente.diagEstadoTerminado') : $t('expediente.diagEstadoPendiente') }}
                             </p>
-                            <p v-if="orden.needs_quote"
-                                class="text-xs text-amber-600 font-bold mt-1">
-                                ⏳ {{ $t('show.pendienteCotizacion') }}
-                            </p>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <!-- Diagnóstico Terminado — visible para mecánico y admin en cualquier estado activo -->
+
+                            <dl class="mt-4 grid grid-cols-1 gap-4 text-ds-body sm:grid-cols-2">
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.mecanico') }}</dt>
+                                    <dd class="text-ink">{{ orden.mechanic?.name ?? $t('taller.sinAsignar') }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.diagFotos') }}</dt>
+                                    <dd class="flex items-center gap-3 text-ink">
+                                        <span class="tabular-nums">{{ fotosAvance }}</span>
+                                        <button
+                                            v-if="fotosAvance > 0"
+                                            type="button"
+                                            class="ds-focus text-ds-control font-semibold text-navy underline-offset-2 hover:underline"
+                                            @click="tabActiva = 'evidencia'"
+                                        >{{ $t('expediente.diagIrEvidencia') }}</button>
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div v-if="accionDiagnosticoVisible || (isAdmin && !cerradaOrden)" class="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                                <button
+                                    v-if="accionDiagnosticoVisible"
+                                    type="button"
+                                    :disabled="diagnosisForm.processing"
+                                    class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                                    @click="markDiagnosisComplete"
+                                >{{ $t('expediente.diagAccion') }}</button>
+                                <button
+                                    v-if="isAdmin && !cerradaOrden"
+                                    type="button"
+                                    class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                                    @click="openReassign"
+                                >{{ $t('show.reasignar') }}</button>
+                            </div>
+                            <p v-if="accionDiagnosticoVisible" class="mt-2 text-ds-caption text-ink-muted">{{ $t('expediente.diagAccionAyuda') }}</p>
+                            <p v-if="cerradaOrden" class="mt-4 text-ds-body text-ink-secondary">{{ $t('expediente.diagCerrada') }}</p>
+                        </section>
+
+                        <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface p-4">
+                            <p class="text-ds-body text-ink-secondary">{{ $t('expediente.diagNotas') }}</p>
                             <button
-                                v-if="!orden.needs_quote && !['entregado','rechazado'].includes(orden.status?.slug)"
-                                @click="markDiagnosisComplete"
-                                :disabled="diagnosisForm.processing"
-                                class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2 rounded-lg transition shadow-sm">
-                                ✅ {{ $t('show.diagnosticoTerminado') }}
-                            </button>
-                            <!-- Reasignar — solo admin -->
-                            <button
-                                v-if="isAdmin"
-                                @click="openReassign"
-                                class="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs px-3 py-2 rounded-lg transition">
-                                🔄 {{ $t('show.reasignar') }}
-                            </button>
-                        </div>
-                    </div>
-                        </template>
-                        <p v-else class="text-ds-body text-ink-muted">{{ $t('expediente.sinEtapa') }}</p>
+                                type="button"
+                                class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                                @click="tabActiva = 'historial'"
+                            >{{ $t('expediente.diagIrHistorial') }}</button>
+                        </section>
                     </div>
 
                     <!-- TRABAJO -->
@@ -602,7 +627,7 @@ function removeItem(itemId) {
                     @click.self="showReassignModal = false">
                     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div class="bg-[#10213E] px-6 py-4 flex justify-between items-center">
-                            <h3 class="text-white font-black text-sm uppercase tracking-wider">🔄 {{ $t('show.reasignar') }}</h3>
+                            <h3 class="text-white font-black text-sm uppercase tracking-wider">{{ $t('show.reasignar') }}</h3>
                             <button @click="showReassignModal = false" class="text-gray-400 hover:text-white text-xl">✕</button>
                         </div>
                         <div class="p-6 space-y-4">

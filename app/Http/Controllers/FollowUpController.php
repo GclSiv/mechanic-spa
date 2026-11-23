@@ -10,6 +10,8 @@ class FollowUpController extends Controller
 {
     public function store(Request $request, RepairOrder $order)
     {
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden agregar notas.');
+
         $request->validate([
             'mechanic_id'  => ($request->user()->isAdmin() ? 'required' : 'nullable') . '|exists:mechanics,id',
             'description'  => 'required|string|max:2000',
@@ -56,9 +58,10 @@ class FollowUpController extends Controller
         // La nota debe pertenecer a esta orden.
         abort_unless((int) $followUp->repair_order_id === (int) $order->id, 404);
 
-        if (! $request->user()->isAdmin()) {
-            abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No puedes eliminar notas ni evidencias.');
+        // Orden cerrada = histórica: nadie (ni admin) elimina notas.
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar notas ni evidencias.');
 
+        if (! $request->user()->isAdmin()) {
             // El mecánico solo elimina sus propias notas.
             $propio = $request->user()->mechanic?->id;
             abort_unless(
