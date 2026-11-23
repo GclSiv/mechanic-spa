@@ -200,7 +200,7 @@ class RepairOrderController extends Controller
     {
         $order->unsetRelation('payments');
         $order->unsetRelation('quotes');
-        $order->makeHidden(['estimated_cost', 'tax_rate']);
+        $order->makeHidden(['estimated_cost', 'tax_rate', 'is_paid']);
 
         if ($order->relationLoaded('items')) {
             $order->items->each->makeHidden(['unit_price', 'subtotal']);

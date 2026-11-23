@@ -18,6 +18,7 @@ class PaymentController extends Controller
     public function store(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
     {
         $this->authorize('create', Payment::class);
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden registrar pagos.');
 
         $data = $request->validate([
             'amount'         => 'required|numeric|min:0.01',
@@ -130,6 +131,7 @@ class PaymentController extends Controller
     {
         abort_unless($payment->repair_order_id === $order->id, 404);
         $this->authorize('delete', $payment);
+        abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar pagos.');
 
         DB::transaction(function () use ($payment, $order, $estado) {
             $order->bloquearParaCambioFinanciero();

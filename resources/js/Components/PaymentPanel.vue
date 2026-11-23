@@ -1,16 +1,74 @@
 <script setup>
 import { computed, ref } from 'vue';
-import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
 
-const { t } = useI18n();
-
-// Todas las cifras vienen del servidor (EstadoFinancieroAction). Aquí solo se renderizan.
 const props = defineProps({
     orden:  { type: Object, required: true },
     estado: { type: Object, required: true },
 });
+
+const { t, locale } = useI18n();
+
+// Todas las cifras vienen del servidor (EstadoFinancieroAction). Aquí solo se formatean y se muestran.
+const cerrada = computed(() => props.orden?.esta_cerrada === true);
+const pagos = computed(() => props.orden?.payments ?? []);
+const cotizaciones = computed(() => props.estado?.cotizaciones ?? []);
+const autorizado = computed(() => Number(props.estado?.total_autorizado ?? 0));
+const saldo = computed(() => Number(props.estado?.saldo_autorizado ?? 0));
+// Sin trabajo autorizado no hay saldo exigible: no se muestra "Liquidado" como si estuviera pagado.
+const saldoTexto = computed(() => {
+    if (autorizado.value <= 0) return t('payments.sinAutorizado');
+    return saldo.value > 0 ? dinero(saldo.value) : t('expediente.liquidado');
+});
+const saldoClase = computed(() => {
+    if (autorizado.value <= 0) return 'text-ink-muted';
+    return saldo.value > 0 ? 'text-danger-text' : 'text-success-text';
+});
+
+const localeFecha = () => (locale.value === 'en' ? 'en-US' : 'es-MX');
+const dinero = (n) => '$' + Number(n ?? 0).toFixed(2);
+const fecha = (iso) => (iso
+    ? new Date(iso).toLocaleDateString(localeFecha(), { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—');
+
+// Métodos reales del backend (Cash/Card/Transfer). Las claves en español son legado y se muestran igual.
+const etiquetaMetodo = (m) => ({
+    Cash: t('payments.efectivo'), Efectivo: t('payments.efectivo'),
+    Card: t('payments.tarjeta'), Tarjeta: t('payments.tarjeta'),
+    Transfer: t('payments.transferencia'), Transferencia: t('payments.transferencia'),
+}[m] ?? m);
+
+const varianteMetodo = (m) => ({
+    Cash: 'success', Efectivo: 'success',
+    Card: 'info', Tarjeta: 'info',
+    Transfer: 'neutral', Transferencia: 'neutral',
+}[m] ?? 'neutral');
+
+const varianteCotizacion = (s) => ({ enviada: 'info', aprobada: 'success', rechazada: 'danger' }[s] ?? 'neutral');
+const tipoCotizacion = (kind) => (kind === 'adicional' ? t('payments.tipo.adicional') : t('payments.tipo.principal'));
+
+// Solo cotizaciones aprobadas con saldo de referencia > 0 admiten pagos asociados nuevos (backend revalida).
+const cotizacionesAplicables = computed(() =>
+    cotizaciones.value.filter((c) => c.status === 'aprobada' && Number(c.saldo) > 0));
+const cotizacionElegida = computed(() =>
+    cotizacionesAplicables.value.find((c) => String(c.id) === String(form.quote_id)) ?? null);
+const maximoRegistrable = computed(() => (cotizacionElegida.value
+    ? Math.min(saldo.value, Number(cotizacionElegida.value.saldo))
+    : saldo.value));
+
+// Pago general (quote_id null) es un pago válido: se muestra con su propia etiqueta, sin categoría persistente.
+const asociado = (p) => {
+    if (p.quote_id === null || p.quote_id === undefined) return t('payments.pagoGeneral');
+    const c = cotizaciones.value.find((q) => q.id === p.quote_id);
+    return c ? `${c.folio} · ${tipoCotizacion(c.kind)}` : t('payments.cotizacionAsociada');
+};
+const etiquetaCotizacion = (c) => `${c.folio} · ${t('payments.saldoRef')} ${dinero(c.saldo)}`;
+
+// Espejo de una regla del backend para no ofrecer un formulario inútil; el servidor sigue siendo la autoridad.
+const liquidada = computed(() => autorizado.value > 0 && saldo.value <= 0);
 
 const form = useForm({
     amount: '',
@@ -19,27 +77,7 @@ const form = useForm({
     quote_id: '',
 });
 
-const ESTADOS_COTIZACION = { enviada: 'Enviada', aprobada: 'Aprobada', rechazada: 'Rechazada' };
-const estadoCotizacion = (s) => ESTADOS_COTIZACION[s] ?? s;
-
-const cotizaciones = computed(() => props.estado.cotizaciones ?? []);
-// Solo cotizaciones aprobadas con saldo de referencia > 0 admiten pagos asociados nuevos.
-// Las liquidadas siguen visibles en la lista de cotizaciones.
-const cotizacionesAplicables = computed(() =>
-    cotizaciones.value.filter(c => c.status === 'aprobada' && Number(c.saldo) > 0));
-
-const etiquetaCotizacion = (c) => `${c.folio} — saldo de referencia $${Number(c.saldo).toFixed(2)}`;
-
-// Tope visible antes de enviar. Son valores ya calculados por el servidor; el backend revalida siempre.
-const cotizacionElegida = computed(() =>
-    cotizacionesAplicables.value.find(c => String(c.id) === String(form.quote_id)) ?? null);
-
-const maximoRegistrable = computed(() => {
-    if (cotizacionElegida.value) {
-        return Math.min(Number(props.estado.saldo_autorizado), Number(cotizacionElegida.value.saldo));
-    }
-    return Number(props.estado.saldo_autorizado);
-});
+const puedeRegistrar = computed(() => !form.processing && !!form.amount && !liquidada.value);
 
 function submit() {
     form.post(route('payments.store', props.orden.id), {
@@ -48,186 +86,184 @@ function submit() {
     });
 }
 
-const confirmPay = ref({ show: false, id: null });
-function eliminar(id) { confirmPay.value = { show: true, id }; }
-function doEliminar() {
-    router.delete(route('payments.destroy', { order: props.orden.id, payment: confirmPay.value.id }), { preserveScroll: true });
-    confirmPay.value = { show: false, id: null };
+const confirmacion = ref({ visible: false, id: null });
+function pedirEliminar(id) {
+    confirmacion.value = { visible: true, id };
 }
-
-const metodoBadge = {
-    'Cash':          'bg-green-100 text-green-700',
-    'Card':          'bg-blue-100 text-blue-700',
-    'Transfer':      'bg-purple-100 text-purple-700',
-    // Legacy keys
-    'Efectivo':      'bg-green-100 text-green-700',
-    'Tarjeta':       'bg-blue-100 text-blue-700',
-    'Transferencia': 'bg-purple-100 text-purple-700',
-};
-
-// Traduce el valor almacenado en BD al idioma actual
-function metodLabel(method) {
-    const map = {
-        'Cash':          t('payments.efectivo'),
-        'Card':          t('payments.tarjeta'),
-        'Transfer':      t('payments.transferencia'),
-        'Efectivo':      t('payments.efectivo'),
-        'Tarjeta':       t('payments.tarjeta'),
-        'Transferencia': t('payments.transferencia'),
-    };
-    return map[method] ?? method;
+function eliminarConfirmado() {
+    router.delete(route('payments.destroy', { order: props.orden.id, payment: confirmacion.value.id }), {
+        preserveScroll: true,
+    });
+    confirmacion.value = { visible: false, id: null };
 }
 </script>
 
 <template>
-    <div class="bg-white rounded-xl shadow-sm border-l-4 border-[#EE2857] p-6">
-        <h3 class="text-sm font-black text-[#10213E] uppercase tracking-widest border-b pb-2 mb-5">
-            💳 {{ t('payments.titulo') }}
-        </h3>
-
-        <!-- Resumen autorizado: lo que el cliente debe, no el total técnico -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <div class="bg-gray-50 rounded-lg p-3 text-center">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Total autorizado</p>
-                <p class="text-lg font-black text-[#10213E]">${{ Number(estado.total_autorizado).toFixed(2) }}</p>
-            </div>
-            <div class="bg-green-50 rounded-lg p-3 text-center">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">{{ t('payments.totalPagado') }}</p>
-                <p class="text-lg font-black text-green-700">${{ Number(estado.total_pagado).toFixed(2) }}</p>
-            </div>
-            <div class="rounded-lg p-3 text-center" :class="estado.saldo_autorizado <= 0 ? 'bg-emerald-100' : 'bg-red-50'">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Saldo por cobrar</p>
-                <p class="text-lg font-black" :class="estado.saldo_autorizado <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
-                    {{ estado.saldo_autorizado <= 0 ? t('payments.liquidado') : '$' + Number(estado.saldo_autorizado).toFixed(2) }}
-                </p>
-            </div>
+    <section class="space-y-6 rounded-xl border border-line bg-surface p-5" aria-labelledby="pagos-titulo">
+        <div>
+            <h2 id="pagos-titulo" class="text-ds-label font-semibold uppercase tracking-wider text-ink-muted">
+                {{ t('payments.titulo') }}
+            </h2>
+            <p v-if="cerrada" class="mt-2 text-ds-caption text-ink-secondary">{{ t('payments.cerradaLectura') }}</p>
         </div>
 
-        <p v-if="estado.pendiente_autorizacion > 0" class="text-xs font-bold text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mb-5">
-            Trabajo pendiente de autorización: ${{ Number(estado.pendiente_autorizacion).toFixed(2) }}. No es deuda exigible hasta que el cliente lo autorice en una cotización adicional.
-        </p>
-        <p v-if="estado.anticipo_previo > 0" class="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-2">
-            Anticipo previo a autorización: ${{ Number(estado.anticipo_previo).toFixed(2) }}. Ya forma parte del pagado; no se reasigna a ninguna cotización.
-        </p>
-        <p v-if="estado.sobrepago > 0" class="text-xs font-bold text-red-700 bg-red-50 rounded-lg px-3 py-2 mb-2">
-            Pagado por encima de lo autorizado: ${{ Number(estado.sobrepago).toFixed(2) }}. Requiere revisión; el sistema no registra saldo a favor y no admite nuevos pagos que lo amplíen.
-        </p>
-        <div v-if="estado.pendiente_autorizacion <= 0" class="mb-5"></div>
-
-        <!-- Cotizaciones con monto y anticipo -->
-        <div v-if="cotizaciones.length" class="mb-5">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cotizaciones</p>
-            <div v-for="c in cotizaciones" :key="c.id"
-                 class="flex flex-wrap justify-between items-center gap-3 p-3 rounded-lg bg-gray-50 mb-2">
+        <!-- Resumen financiero: fuente única del servidor -->
+        <div class="space-y-3">
+            <h3 class="text-ds-caption font-semibold uppercase tracking-wider text-ink-muted">{{ t('expediente.financiero') }}</h3>
+            <dl class="grid grid-cols-1 gap-4 text-ds-body sm:grid-cols-3">
                 <div>
-                    <p class="font-bold text-[#10213E]">{{ c.folio }} — {{ c.kind === 'adicional' ? 'Trabajo adicional' : 'Principal' }}</p>
-                    <p class="text-xs text-gray-400 uppercase">{{ estadoCotizacion(c.status) }}</p>
+                    <dt class="text-ds-caption text-ink-muted">{{ t('expediente.autorizado') }}</dt>
+                    <dd class="font-semibold tabular-nums text-ink">{{ dinero(estado.total_autorizado) }}</dd>
                 </div>
-                <div class="text-right text-sm space-y-0.5">
-                    <p>Monto: <span class="font-black text-[#10213E]">${{ Number(c.total).toFixed(2) }}</span></p>
-                    <p>Pagos asociados: <span class="font-bold text-green-700">${{ Number(c.pagado).toFixed(2) }}</span></p>
-                    <p v-if="c.status === 'aprobada'">Saldo de referencia:
-                        <span class="font-bold" :class="c.saldo <= 0 ? 'text-emerald-700' : 'text-[#EE2857]'">
-                            {{ c.saldo <= 0 ? 'Liquidada' : '$' + Number(c.saldo).toFixed(2) }}
-                        </span>
-                    </p>
+                <div>
+                    <dt class="text-ds-caption text-ink-muted">{{ t('expediente.pagado') }}</dt>
+                    <dd class="font-semibold tabular-nums text-ink">{{ dinero(estado.total_pagado) }}</dd>
                 </div>
-            </div>
-            <p class="text-xs text-gray-400">El saldo total por cobrar de la orden también considera los anticipos generales.</p>
-            <p v-if="estado.pago_sin_cotizacion > 0" class="text-xs font-bold text-gray-600 mt-2">
-                Anticipos generales aplicados a la orden: ${{ Number(estado.pago_sin_cotizacion).toFixed(2) }}
+                <div>
+                    <dt class="text-ds-caption text-ink-muted">{{ t('expediente.saldo') }}</dt>
+                    <dd class="font-semibold tabular-nums" :class="saldoClase">{{ saldoTexto }}</dd>
+                </div>
+            </dl>
+            <p v-if="Number(estado.pendiente_autorizacion) > 0"
+               class="rounded-lg bg-warning-soft px-3 py-2 text-ds-caption text-warning-text">
+                {{ t('payments.pendienteNota', { monto: dinero(estado.pendiente_autorizacion) }) }}
             </p>
-            <p v-if="estado.pago_sin_cotizacion > 0" class="text-xs text-gray-500">
-                Estos pagos reducen el saldo total por cobrar aunque no estén asociados a una cotización específica.
+            <p v-if="Number(estado.anticipo_previo) > 0"
+               class="rounded-lg bg-surface-2 px-3 py-2 text-ds-caption text-ink-secondary">
+                {{ t('payments.anticipoPrevio', { monto: dinero(estado.anticipo_previo) }) }}
+            </p>
+            <p v-if="Number(estado.sobrepago) > 0"
+               class="rounded-lg bg-danger-soft px-3 py-2 text-ds-caption text-danger-text">
+                {{ t('payments.excedente', { monto: dinero(estado.sobrepago) }) }}
             </p>
         </div>
 
-        <!-- Payment history -->
-        <div v-if="orden.payments && orden.payments.length > 0" class="mb-5 space-y-2">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{{ t('payments.historialPagos') }}</p>
-            <div v-for="p in orden.payments" :key="p.id"
-                class="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2.5">
-                <div class="flex items-center gap-3">
-                    <span class="text-xs font-bold px-2 py-1 rounded" :class="metodoBadge[p.payment_method] ?? 'bg-gray-100 text-gray-600'">
-                        {{ metodLabel(p.payment_method) }}
-                    </span>
-                    <div>
-                        <p class="text-sm font-black text-[#10213E]">${{ Number(p.amount).toFixed(2) }}</p>
-                        <p v-if="p.notes" class="text-xs text-gray-500">{{ p.notes }}</p>
+        <!-- Cotizaciones de referencia (solo lectura) -->
+        <div v-if="cotizaciones.length" class="space-y-3">
+            <h3 class="text-ds-caption font-semibold uppercase tracking-wider text-ink-muted">{{ t('payments.cotizacionesRef') }}</h3>
+            <ul class="divide-y divide-line rounded-lg border border-line">
+                <li v-for="c in cotizaciones" :key="c.id"
+                    class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-ink">
+                            {{ c.folio }} <span class="font-normal text-ink-muted">· {{ tipoCotizacion(c.kind) }}</span>
+                        </p>
+                        <div class="mt-1">
+                            <BaseBadge :variant="varianteCotizacion(c.status)">{{ t('payments.estadoCotizacion.' + c.status) }}</BaseBadge>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400">
-                        {{ new Date(p.created_at).toLocaleDateString('en-US') }}
-                    </span>
-                    <a :href="route('payments.ticket', { order: orden.id, payment: p.id })" target="_blank"
-                        class="text-xs font-bold text-[#10213E] hover:underline">🧾 Ticket</a>
-                    <button @click="eliminar(p.id)"
-                        class="text-gray-300 hover:text-[#EE2857] transition font-bold text-sm">✕</button>
-                </div>
-            </div>
+                    <dl class="grid grid-cols-3 gap-x-6 text-right text-ds-caption tabular-nums">
+                        <div>
+                            <dt class="text-ink-muted">{{ t('expediente.autorizado') }}</dt>
+                            <dd class="font-semibold text-ink">{{ dinero(c.total) }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-ink-muted">{{ t('payments.pagosAsociados') }}</dt>
+                            <dd class="font-semibold text-ink">{{ dinero(c.pagado) }}</dd>
+                        </div>
+                        <div v-if="c.status === 'aprobada'">
+                            <dt class="text-ink-muted">{{ t('payments.saldoRef') }}</dt>
+                            <dd class="font-semibold" :class="Number(c.saldo) > 0 ? 'text-danger-text' : 'text-success-text'">
+                                {{ Number(c.saldo) > 0 ? dinero(c.saldo) : t('expediente.liquidado') }}
+                            </dd>
+                        </div>
+                    </dl>
+                </li>
+            </ul>
         </div>
 
-        <div v-else class="mb-5 text-center py-4 text-gray-400 text-sm italic bg-gray-50 rounded-lg">
-            {{ t('payments.sinPagos') }}
+        <!-- Historial de pagos -->
+        <div class="space-y-3">
+            <h3 class="text-ds-caption font-semibold uppercase tracking-wider text-ink-muted">{{ t('payments.historialPagos') }}</h3>
+            <ul v-if="pagos.length" class="divide-y divide-line rounded-lg border border-line">
+                <li v-for="p in pagos" :key="p.id" class="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                    <div class="flex min-w-0 items-start gap-3">
+                        <BaseBadge :variant="varianteMetodo(p.payment_method)">{{ etiquetaMetodo(p.payment_method) }}</BaseBadge>
+                        <div class="min-w-0">
+                            <p class="font-semibold tabular-nums text-ink">{{ dinero(p.amount) }}</p>
+                            <p class="text-ds-caption text-ink-muted">{{ asociado(p) }} · {{ fecha(p.created_at) }}</p>
+                            <p v-if="p.notes" class="break-words text-ds-caption text-ink-secondary">{{ p.notes }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-ds-caption font-semibold">
+                        <a :href="route('payments.ticket', { order: orden.id, payment: p.id })" target="_blank" rel="noopener"
+                           class="text-ink underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ds-focus">
+                            {{ t('payments.ticket') }}
+                        </a>
+                        <button v-if="!cerrada" type="button" @click="pedirEliminar(p.id)"
+                                class="text-danger-text underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ds-focus">
+                            {{ t('payments.eliminar') }}
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <p v-else class="rounded-lg bg-surface-2 px-4 py-6 text-center text-ds-body text-ink-muted">
+                {{ t('payments.sinPagos') }}
+            </p>
         </div>
 
-        <!-- New payment form -->
-        <div class="border-t border-gray-100 pt-4">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{{ t('payments.registrarPago') }}</p>
-            <div class="mb-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Asociar pago a</label>
-                <select v-model="form.quote_id"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#EE2857] focus:outline-none">
-                    <option value="">Pago general de la orden</option>
+        <!-- Registrar pago: solo en órdenes abiertas -->
+        <form v-if="!cerrada" class="space-y-4 border-t border-line pt-5" novalidate @submit.prevent="submit">
+            <h3 class="text-ds-caption font-semibold uppercase tracking-wider text-ink-muted">{{ t('payments.registrarPago') }}</h3>
+
+            <p v-if="liquidada" class="rounded-lg bg-success-soft px-3 py-2 text-ds-caption text-success-text">
+                {{ t('payments.liquidadoNota') }}
+            </p>
+
+            <div class="space-y-1">
+                <label for="pago-cotizacion" class="block text-ds-caption font-semibold text-ink-secondary">{{ t('payments.asociarA') }}</label>
+                <select id="pago-cotizacion" v-model="form.quote_id"
+                        class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-ds-body text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-focus">
+                    <option value="">{{ t('payments.pagoGeneral') }}</option>
                     <option v-for="c in cotizacionesAplicables" :key="c.id" :value="c.id">{{ etiquetaCotizacion(c) }}</option>
                 </select>
-                <p v-if="estado.total_autorizado > 0 || cotizacionElegida" class="text-xs text-gray-500 mt-1">
-                    Máximo que puede registrarse ahora:
-                    <span class="font-bold text-[#10213E]">${{ maximoRegistrable.toFixed(2) }}</span>
-                    <span v-if="cotizacionElegida"> (límite de la cotización seleccionada)</span>
+                <p v-if="form.errors.quote_id" class="text-ds-caption text-danger-text">{{ form.errors.quote_id }}</p>
+                <p v-if="autorizado > 0 || cotizacionElegida" class="text-ds-caption text-ink-muted">
+                    {{ t('payments.maximo') }}: <span class="font-semibold text-ink">{{ dinero(maximoRegistrable) }}</span>
+                    <span v-if="cotizacionElegida"> {{ t('payments.limiteCotizacion') }}</span>
                 </p>
-                <p v-else class="text-xs text-gray-500 mt-1">
-                    Sin autorización aún: se admiten anticipos generales sin límite por autorización.
-                </p>
+                <p v-else class="text-ds-caption text-ink-muted">{{ t('payments.sinAutorizacion') }}</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('payments.monto') }}</label>
-                    <input v-model="form.amount" type="number" step="0.01" min="0.01"
-                        placeholder="0.00"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
-                    <p v-if="form.errors.amount" class="text-red-500 text-xs mt-1">{{ form.errors.amount }}</p>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="space-y-1">
+                    <label for="pago-monto" class="block text-ds-caption font-semibold text-ink-secondary">{{ t('payments.monto') }}</label>
+                    <input id="pago-monto" v-model="form.amount" type="number" step="0.01" min="0.01" placeholder="0.00"
+                           :disabled="liquidada"
+                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-ds-body text-ink tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-focus disabled:opacity-50" />
+                    <p v-if="form.errors.amount" class="text-ds-caption text-danger-text">{{ form.errors.amount }}</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('payments.metodo') }}</label>
-                    <select v-model="form.payment_method"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                <div class="space-y-1">
+                    <label for="pago-metodo" class="block text-ds-caption font-semibold text-ink-secondary">{{ t('payments.metodo') }}</label>
+                    <select id="pago-metodo" v-model="form.payment_method"
+                            class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-ds-body text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-focus">
                         <option value="Cash">{{ t('payments.efectivo') }}</option>
                         <option value="Card">{{ t('payments.tarjeta') }}</option>
                         <option value="Transfer">{{ t('payments.transferencia') }}</option>
                     </select>
+                    <p v-if="form.errors.payment_method" class="text-ds-caption text-danger-text">{{ form.errors.payment_method }}</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ t('payments.notas') }}</label>
-                    <input v-model="form.notes" type="text" :placeholder="t('payments.notasPh')"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
+                <div class="space-y-1">
+                    <label for="pago-notas" class="block text-ds-caption font-semibold text-ink-secondary">{{ t('payments.notas') }}</label>
+                    <input id="pago-notas" v-model="form.notes" type="text" maxlength="500" :placeholder="t('payments.notasPh')"
+                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-ds-body text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-focus" />
+                    <p v-if="form.errors.notes" class="text-ds-caption text-danger-text">{{ form.errors.notes }}</p>
                 </div>
             </div>
-            <p v-if="form.errors.quote_id" class="text-red-500 text-xs mt-2">{{ form.errors.quote_id }}</p>
-            <div class="flex justify-end mt-3">
-                <button @click="submit" :disabled="form.processing || !form.amount"
-                    class="bg-[#EE2857] hover:bg-red-700 disabled:opacity-40 text-white font-black text-xs uppercase px-6 py-2.5 rounded-lg transition shadow-sm">
+
+            <div class="flex justify-end">
+                <button type="submit" :disabled="!puedeRegistrar"
+                        class="rounded-lg bg-navy px-5 py-2.5 text-ds-body font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-focus disabled:opacity-40">
                     {{ form.processing ? t('payments.registrando') : t('payments.registrarBtn') }}
                 </button>
             </div>
-        </div>
-    </div>
+        </form>
+    </section>
 
-    <ConfirmModal :show="confirmPay.show"
+    <ConfirmModal :show="confirmacion.visible"
         :title="t('payments.eliminarPago')"
         :message="t('payments.eliminarPagoMsg')"
-        confirm-text="OK"
-        @confirm="doEliminar"
-        @cancel="confirmPay.show = false" />
+        :confirm-text="t('payments.confirmarEliminar')"
+        @confirm="eliminarConfirmado"
+        @cancel="confirmacion.visible = false" />
 </template>
