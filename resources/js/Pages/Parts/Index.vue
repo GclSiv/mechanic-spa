@@ -1,205 +1,233 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Catálogo de refacciones (solo admin/owner). Búsqueda, filtro y paginación viven en el servidor:
+// la vista solo navega y presenta. El estado de stock se deriva de campos reales; no se guarda.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import EmptyState from '@/Components/UI/EmptyState.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { router } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
 const props = defineProps({
-    parts:      Array,
-    categories: Array,
-    filters:    Object,
+    parts: { type: Object, required: true },
+    categories: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({ search: '', category_id: '' }) },
 });
 
-// ── Filtros reactivos (frontend) ──────────────────────────────────────
-const search     = ref(props.filters?.search      ?? '');
-const categoryId = ref(props.filters?.category_id ?? '');
+const filas = computed(() => props.parts?.data ?? []);
+const hayFiltro = computed(() => (props.filters?.search ?? '') !== '' || (props.filters?.category_id ?? '') !== '');
 
-// Debounce para no hacer request en cada tecla
-let debounceTimer = null;
-function applyFilters() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        router.get(route('parts.index'), {
-            search:      search.value      || undefined,
-            category_id: categoryId.value  || undefined,
-        }, { preserveState: true, preserveScroll: true, replace: true });
-    }, 350);
+const buscar = ref(props.filters?.search ?? '');
+const categoria = ref(String(props.filters?.category_id ?? ''));
+
+// Filtros enviados al servidor; la paginación conserva search y category_id en la URL.
+function aplicarFiltros() {
+    const datos = {};
+    const texto = buscar.value.trim();
+    if (texto) datos.search = texto;
+    if (categoria.value) datos.category_id = categoria.value;
+    router.get(route('parts.index'), datos, { preserveState: true, preserveScroll: true, replace: true });
 }
 
-watch(search,     applyFilters);
-watch(categoryId, applyFilters);
+function limpiarFiltros() {
+    buscar.value = '';
+    categoria.value = '';
+    aplicarFiltros();
+}
 
-// ── Alertas de stock bajo (sobre los ya filtrados) ────────────────────
-const lowStockCount = computed(() => props.parts.filter(p => p.is_low_stock).length);
+const irAPagina = (url) => {
+    if (!url) return;
+    router.get(url, {}, { preserveState: true, preserveScroll: true });
+};
 
-// ── Eliminar ──────────────────────────────────────────────────────────
+// Estado derivado solo para presentación: agotado (stock <= 0), stock bajo (is_low_stock) o disponible.
+const estadoStock = (p) => {
+    if (p.stock <= 0) return 'agotado';
+    if (p.is_low_stock) return 'bajo';
+    return 'disponible';
+};
+const varianteStock = { agotado: 'danger', bajo: 'warning', disponible: 'success' };
+const etiquetaStock = (p) => t(`refaccionesUi.estado_${estadoStock(p)}`);
+const precio = (valor) => `$${Number(valor).toFixed(2)}`;
+
+// Borrado con confirmación del DS. El backend bloquea refacciones con uso histórico y responde con mensaje.
 const confirmDel = ref({ show: false, id: null });
-function destroy(id) { confirmDel.value = { show: true, id }; }
-function doDel() {
+function pedirBorrado(id) { confirmDel.value = { show: true, id }; }
+function confirmarBorrado() {
     router.delete(route('parts.destroy', confirmDel.value.id), { preserveScroll: true });
     confirmDel.value = { show: false, id: null };
 }
 </script>
 
 <template>
-    <AuthenticatedLayout :title="$t('inventario.titulo')">
-        <template #header>
-            <div class="flex justify-between items-center gap-4">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider shrink-0">
-                    📦 {{ $t('inventario.titulo') }}
-                </h2>
-                <div class="flex items-center gap-3">
-                    <a :href="route('tools.index')" class="text-sm text-gray-500 hover:text-[#10213E] font-bold transition border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">🔧 Herramientas</a>
-                    <a :href="route('categories.index')"
-                        class="text-sm text-gray-500 hover:text-[#10213E] font-bold transition border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">
-                        🏷️ {{ $t('categories.gestionar') }}
-                    </a>
-                    <a :href="route('parts.create')"
-                        class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg shadow-md transition text-sm uppercase shrink-0">
-                        {{ $t('inventario.nueva') }}
-                    </a>
-                </div>
+    <Head :title="t('refaccionesUi.titulo')" />
+
+    <AppShellLayout>
+        <PageHeader :title="t('refaccionesUi.titulo')" :description="t('refaccionesUi.descripcion')">
+            <Link
+                :href="route('parts.create')"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('refaccionesUi.nueva') }}</Link>
+        </PageHeader>
+
+        <form class="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center" role="search" @submit.prevent="aplicarFiltros">
+            <label for="refacciones-buscar" class="sr-only">{{ t('refaccionesUi.buscar') }}</label>
+            <input
+                id="refacciones-buscar"
+                v-model="buscar"
+                type="search"
+                :placeholder="t('refaccionesUi.buscarPlaceholder')"
+                class="ds-focus h-control w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink sm:max-w-md"
+            />
+            <label for="refacciones-categoria" class="sr-only">{{ t('refaccionesUi.colCategoria') }}</label>
+            <select
+                id="refacciones-categoria"
+                v-model="categoria"
+                class="ds-focus h-control w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink sm:w-56"
+                @change="aplicarFiltros"
+            >
+                <option value="">{{ t('refaccionesUi.todasCategorias') }}</option>
+                <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
+            </select>
+            <div class="flex gap-2">
+                <button type="submit" class="ds-focus h-control rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2">
+                    {{ t('refaccionesUi.buscar') }}
+                </button>
+                <button
+                    v-if="hayFiltro || buscar || categoria"
+                    type="button"
+                    class="ds-focus h-control rounded-lg px-3 text-ds-control font-semibold text-ink-secondary hover:bg-surface-2"
+                    @click="limpiarFiltros"
+                >{{ t('refaccionesUi.limpiar') }}</button>
             </div>
-        </template>
+        </form>
 
-        <div class="py-8 min-h-screen transition-colors">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+        <div class="mt-4 min-w-0 space-y-4">
+            <p v-if="filas.length" class="text-ds-caption text-ink-muted tabular-nums">
+                {{ t('refaccionesUi.cuenta', { n: parts.total }) }}
+            </p>
 
-                <!-- ── Barra de búsqueda y filtros ── -->
-                <div class="flex flex-col sm:flex-row gap-3">
+            <EmptyState
+                v-if="filas.length === 0"
+                :title="hayFiltro ? t('refaccionesUi.sinCoincidencias') : t('refaccionesUi.sinRegistros')"
+                :description="hayFiltro ? '' : t('refaccionesUi.sinRegistrosDescripcion')"
+            />
 
-                    <!-- Buscador -->
-                    <div class="relative flex-1">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-                        <input
-                            v-model="search"
-                            type="text"
-                            :placeholder="$t('inventario.buscar')"
-                            class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-white"
-                        />
-                    </div>
-
-                    <!-- Filtro por categoría -->
-                    <select
-                        v-model="categoryId"
-                        class="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E] bg-white min-w-[200px]">
-                        <option value="">{{ $t('inventario.todasCategorias') }}</option>
-                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                            {{ cat.name }}
-                        </option>
-                    </select>
-                </div>
-
-                <!-- ── Tabla ── -->
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-
-                    <!-- Header tabla -->
-                    <div class="bg-[#10213E] px-6 py-3 flex justify-between items-center">
-                        <p class="text-white text-xs font-bold uppercase tracking-widest">
-                            {{ parts.length }} {{ $t('inventario.articulos') }}
-                            <span v-if="search || categoryId" class="text-blue-300 ml-2">
-                                — {{ $t('inventario.filtrado') }}
-                            </span>
-                        </p>
-                        <p v-if="lowStockCount" class="text-red-300 text-xs font-bold">
-                            ⚠️ {{ lowStockCount }} {{ $t('inventario.stockBajo') }}
-                        </p>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <div class="overflow-x-auto"><table class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
-                                <tr>
-                                    <th class="px-5 py-3">{{ $t('inventario.nombre') }}</th>
-                                    <th class="px-5 py-3">{{ $t('inventario.categoria') }}</th>
-                                    <th class="px-5 py-3">{{ $t('inventario.sku') }}</th>
-                                    <th class="px-5 py-3 text-right">{{ $t('inventario.costo') }}</th>
-                                    <th class="px-5 py-3 text-right">{{ $t('inventario.venta') }}</th>
-                                    <th class="px-5 py-3 text-center">{{ $t('inventario.stock') }}</th>
-                                    <th class="px-5 py-3 text-center">{{ $t('inventario.acciones') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr v-for="p in parts" :key="p.id"
-                                    class="hover:bg-gray-50 transition-colors"
-                                    :class="p.is_low_stock ? 'bg-red-50' : ''">
-
-                                    <!-- Nombre + badge stock bajo -->
-                                    <td class="px-5 py-4 font-bold text-[#10213E]">
-                                        {{ p.name }}
-                                        <span v-if="p.is_low_stock"
-                                            class="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-black uppercase">
-                                            {{ $t('inventario.badgeStockBajo') }}
-                                        </span>
-                                    </td>
-
-                                    <!-- Categoría -->
-                                    <td class="px-5 py-4">
-                                        <span v-if="p.category"
-                                            class="inline-block bg-blue-100 text-blue-700 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                                            {{ p.category.name }}
-                                        </span>
-                                        <a v-else :href="route('parts.edit', p.id)"
-                                            class="text-gray-400 text-xs italic hover:text-[#EE2857] hover:underline transition"
-                                            :title="$t('inventario.clicParaAsignar')">
-                                            {{ $t('inventario.sinCategoria') }} →
-                                        </a>
-                                    </td>
-
-                                    <td class="px-5 py-4 font-mono text-gray-500 text-xs">{{ p.sku }}</td>
-                                    <td class="px-5 py-4 text-right text-gray-600">${{ Number(p.cost_price).toFixed(2) }}</td>
-                                    <td class="px-5 py-4 text-right font-bold text-green-700">${{ Number(p.sale_price).toFixed(2) }}</td>
-
-                                    <!-- Stock -->
-                                    <td class="px-5 py-4 text-center">
-                                        <span class="font-black text-lg"
-                                            :class="p.is_low_stock ? 'text-red-600' : 'text-gray-700'">
-                                            {{ p.stock }}
-                                        </span>
-                                        <span class="text-gray-400 text-xs"> / min {{ p.low_stock_threshold }}</span>
-                                    </td>
-
-                                    <!-- Acciones -->
-                                    <td class="px-5 py-4 text-center">
-                                        <div class="flex justify-center gap-2">
-                                            <a :href="route('parts.edit', p.id)"
-                                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                                                ✏️ {{ $t('acciones.editar') }}
-                                            </a>
-                                            <button @click="destroy(p.id)"
-                                                class="bg-red-50 hover:bg-red-100 text-[#EE2857] font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                                                ✕
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- Sin resultados -->
-                                <tr v-if="parts.length === 0">
-                                    <td colspan="7" class="px-6 py-12 text-center text-gray-400 italic">
-                                        <span v-if="search || categoryId">
-                                            🔍 {{ $t('inventario.sinResultados') }} "{{ search || $t('inventario.filtroActivo') }}"
-                                        </span>
-                                        <span v-else>{{ $t('inventario.sinRegistros') }}</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table></div>
-                    </div>
-                </div>
+            <!-- Escritorio: tabla -->
+            <div v-else class="hidden min-w-0 overflow-x-auto rounded-xl border border-line bg-surface lg:block">
+                <table class="w-full min-w-[920px] text-left text-ds-body">
+                    <caption class="sr-only">{{ t('refaccionesUi.titulo') }}</caption>
+                    <thead class="bg-surface-2 text-ds-label uppercase text-ink-muted">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('refaccionesUi.colSku') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('refaccionesUi.colRefaccion') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('refaccionesUi.colCategoria') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('refaccionesUi.colStock') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('refaccionesUi.colMinimo') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('refaccionesUi.colCosto') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('refaccionesUi.colVenta') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('refaccionesUi.colAcciones') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        <tr v-for="p in filas" :key="p.id" class="align-top">
+                            <td class="whitespace-nowrap px-4 py-3 font-mono text-ds-caption uppercase text-ink-secondary">{{ p.sku }}</td>
+                            <td class="px-4 py-3 font-semibold text-navy">{{ p.name }}</td>
+                            <td class="px-4 py-3 text-ink-secondary">
+                                <span v-if="p.category">{{ p.category.name }}</span>
+                                <span v-else class="text-ink-muted">{{ t('refaccionesUi.sinCategoria') }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-col items-start gap-1">
+                                    <span class="font-semibold tabular-nums text-ink">{{ p.stock }}</span>
+                                    <BaseBadge :variant="varianteStock[estadoStock(p)]">{{ etiquetaStock(p) }}</BaseBadge>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-right tabular-nums text-ink-secondary">{{ p.low_stock_threshold }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums text-ink-secondary">{{ precio(p.cost_price) }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums font-semibold text-ink">{{ precio(p.sale_price) }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    <Link
+                                        :href="route('parts.edit', p.id)"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                                    >{{ t('refaccionesUi.editar') }}</Link>
+                                    <button
+                                        type="button"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-danger-text hover:bg-danger-soft"
+                                        @click="pedirBorrado(p.id)"
+                                    >{{ t('refaccionesUi.eliminar') }}</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+
+            <!-- Tablet y móvil: tarjetas -->
+            <ul v-if="filas.length" class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden">
+                <li v-for="p in filas" :key="p.id" class="min-w-0 rounded-xl border border-line bg-surface p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="break-words font-semibold text-navy">{{ p.name }}</p>
+                            <p class="mt-1 font-mono text-ds-caption uppercase text-ink-muted">{{ p.sku }}</p>
+                        </div>
+                        <BaseBadge :variant="varianteStock[estadoStock(p)]">{{ etiquetaStock(p) }}</BaseBadge>
+                    </div>
+                    <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3 text-ds-caption">
+                        <div><dt class="text-ink-muted">{{ t('refaccionesUi.colCategoria') }}</dt><dd class="text-ink">{{ p.category?.name ?? t('refaccionesUi.sinCategoria') }}</dd></div>
+                        <div><dt class="text-ink-muted">{{ t('refaccionesUi.colStock') }}</dt><dd class="tabular-nums text-ink">{{ p.stock }} / {{ p.low_stock_threshold }}</dd></div>
+                        <div><dt class="text-ink-muted">{{ t('refaccionesUi.colCosto') }}</dt><dd class="tabular-nums text-ink">{{ precio(p.cost_price) }}</dd></div>
+                        <div><dt class="text-ink-muted">{{ t('refaccionesUi.colVenta') }}</dt><dd class="tabular-nums font-semibold text-ink">{{ precio(p.sale_price) }}</dd></div>
+                    </dl>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <Link
+                            :href="route('parts.edit', p.id)"
+                            class="ds-focus inline-flex h-control-compact items-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                        >{{ t('refaccionesUi.editar') }}</Link>
+                        <button
+                            type="button"
+                            class="ds-focus inline-flex h-control-compact items-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-danger-text hover:bg-danger-soft"
+                            @click="pedirBorrado(p.id)"
+                        >{{ t('refaccionesUi.eliminar') }}</button>
+                    </div>
+                </li>
+            </ul>
+
+            <nav
+                v-if="filas.length"
+                class="flex flex-col gap-3 text-ds-caption text-ink-muted sm:flex-row sm:items-center sm:justify-between"
+                :aria-label="t('refaccionesUi.paginacion')"
+            >
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        :disabled="!parts.prev_page_url"
+                        class="ds-focus h-control-compact rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="irAPagina(parts.prev_page_url)"
+                    >{{ t('refaccionesUi.anterior') }}</button>
+                    <button
+                        type="button"
+                        :disabled="!parts.next_page_url"
+                        class="ds-focus h-control-compact rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                        @click="irAPagina(parts.next_page_url)"
+                    >{{ t('refaccionesUi.siguiente') }}</button>
+                </div>
+                <span aria-live="polite">{{ t('refaccionesUi.pagina', { actual: parts.current_page, total: parts.last_page }) }}</span>
+            </nav>
         </div>
 
         <ConfirmModal
             :show="confirmDel.show"
-            :title="$t('inventario.eliminarTitulo')"
-            :message="$t('inventario.eliminarMsg')"
-            :confirm-text="$t('acciones.eliminar')"
-            @confirm="doDel"
+            :title="t('refaccionesUi.eliminarTitulo')"
+            :message="t('refaccionesUi.eliminarMensaje')"
+            :confirm-text="t('refaccionesUi.eliminarConfirmar')"
+            @confirm="confirmarBorrado"
             @cancel="confirmDel.show = false"
         />
-    </AuthenticatedLayout>
+    </AppShellLayout>
 </template>
