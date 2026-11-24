@@ -103,11 +103,9 @@ class DashboardController extends Controller
                             ($order->recepcion->client->last_name  ?? '')
                         ),
                         'vehiculo' => trim(
-                            (is_string($order->recepcion->vehicle->brand ?? null)
-                                ? ($order->recepcion->vehicle->brand ?? '')
-                                : ($order->recepcion->vehicle->brand->name ?? '')) . ' ' .
-                            ($order->recepcion->vehicle->vehicleModel->name ?? '') . ' ' .
-                            ($order->recepcion->vehicle->year ?? '')
+                            ($order->recepcion?->vehicle?->displayBrand() ?? '') . ' ' .
+                            ($order->recepcion?->vehicle?->displayModel() ?? '') . ' ' .
+                            ($order->recepcion?->vehicle?->year ?? '')
                         ),
                         'saldo' => $saldo,
                     ];
@@ -145,7 +143,13 @@ class DashboardController extends Controller
                 ->orWhere('recepcions.id', 'LIKE', "%{$search}%")))
             ->latest()
             ->paginate(5)            // ← limitado a 5 por página
-            ->withQueryString();
+            ->withQueryString()
+            // Marca y modelo para mostrar (catálogo o texto histórico), sin escribir en la base
+            ->through(function ($recepcion) {
+                $recepcion->vehicle?->withDisplay();
+
+                return $recepcion;
+            });
 
         // El mecánico no recibe datos de contacto ni fiscales del cliente (igual que en la orden)
         if (! $isAdmin) {
@@ -177,10 +181,8 @@ class DashboardController extends Controller
                     'id'           => $order->id,
                     'folio'        => $order->folio ?? 'Q-' . str_pad($order->id, 4, '0', STR_PAD_LEFT),
                     'cliente'      => trim(($order->recepcion->client->first_name ?? '') . ' ' . ($order->recepcion->client->last_name ?? '')),
-                    'vehiculo'     => trim((is_string($order->recepcion->vehicle->brand ?? null)
-                        ? ($order->recepcion->vehicle->brand ?? '')
-                        : ($order->recepcion->vehicle->brand->name ?? '')) . ' ' .
-                        ($order->recepcion->vehicle->vehicleModel->name ?? '')),
+                    'vehiculo'     => trim(($order->recepcion?->vehicle?->displayBrand() ?? '') . ' ' .
+                        ($order->recepcion?->vehicle?->displayModel() ?? '')),
                     'año'          => $order->recepcion->vehicle->year ?? '—',
                     'mecanico'     => $order->mechanic?->name,
                     'status_slug'  => $order->status->slug ?? null,

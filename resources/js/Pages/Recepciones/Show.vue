@@ -163,7 +163,7 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                         <dt class="text-ds-label text-ink-muted">{{ t('recepcion_form.kilometraje') }}</dt>
-                        <dd class="text-ds-body text-ink">{{ recepcion.miles ? Number(recepcion.miles).toLocaleString('en-US') + ' mi' : '—' }}</dd>
+                        <dd class="text-ds-body text-ink">{{ recepcion.miles ? Number(recepcion.miles).toLocaleString('es-MX') + ' km' : '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-ds-label text-ink-muted">{{ t('recepcion_form.gasolina') }}</dt>

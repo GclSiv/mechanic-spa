@@ -17,7 +17,8 @@ const { t } = useI18n();
 const folio = computed(() => props.orden.folio ?? 'Q-' + String(props.orden.id).padStart(4, '0'));
 const vehiculo = computed(() => {
     const v = props.orden.recepcion?.vehicle;
-    return [v?.brand?.name, v?.vehicleModel?.name, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ') || t('expediente.sinDato');
+    // Marca y modelo ya resueltos en el servidor (catálogo o texto histórico).
+    return [v?.display_brand, v?.display_model, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ') || t('expediente.sinDato');
 });
 const placa = computed(() => props.orden.recepcion?.vehicle?.plate ?? t('expediente.sinDato'));
 const cliente = computed(() => {

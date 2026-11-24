@@ -82,6 +82,8 @@ const claseEstado = (estado) => estado?.color_class ?? 'bg-surface-2 text-ink-se
         <div class="mt-6 min-w-0 space-y-6">
             <ContentTabs v-model="activa" :tabs="tabs" :label="t('clientesUi.tabsExpediente')" />
 
+            <div :id="`panel-${activa}`" role="tabpanel" :aria-labelledby="`tab-${activa}`" class="min-w-0 space-y-6">
+
             <!-- Resumen financiero: montos ya calculados por el backend (EstadosFinancierosOrdenesAction) -->
             <div v-if="activa === 'resumen'" class="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-5">
                 <div v-for="tj in tarjetasFinancieras" :key="tj.clave" class="min-w-0 rounded-xl border border-line bg-surface p-4">
@@ -279,6 +281,7 @@ const claseEstado = (estado) => estado?.color_class ?? 'bg-surface-2 text-ink-se
                         </button>
                     </nav>
                 </template>
+            </div>
             </div>
         </div>
     </AppShellLayout>

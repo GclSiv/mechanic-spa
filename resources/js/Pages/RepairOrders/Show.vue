@@ -262,11 +262,11 @@ function removeItem(itemId) {
                             <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-ds-body">
                                 <div>
                                     <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.marca') }}</dt>
-                                    <dd class="text-ink">{{ recepcion?.vehicle?.brand?.name ?? '—' }}</dd>
+                                    <dd class="text-ink">{{ recepcion?.vehicle?.display_brand ?? '—' }}</dd>
                                 </div>
                                 <div>
                                     <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.modelo') }}</dt>
-                                    <dd class="text-ink">{{ recepcion?.vehicle?.vehicleModel?.name ?? '—' }}</dd>
+                                    <dd class="text-ink">{{ recepcion?.vehicle?.display_model ?? '—' }}</dd>
                                 </div>
                                 <div>
                                     <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.anio') }}</dt>
@@ -459,7 +459,7 @@ function removeItem(itemId) {
                             </div>
                             <div>
                                 <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.kilometraje') }}</dt>
-                                <dd class="text-ink">{{ recepcion?.miles ?? $t('expediente.sinDato') }}</dd>
+                                <dd class="text-ink">{{ recepcion?.miles ? `${recepcion.miles} km` : $t('expediente.sinDato') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.combustible') }}</dt>

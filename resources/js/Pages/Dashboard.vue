@@ -186,7 +186,7 @@ const formatCurrency = (val) =>
                                     <p class="text-ds-caption text-ink-muted">{{ rec.client?.phone ?? '—' }}</p>
                                 </td>
                                 <td class="px-4 py-3 text-ink-secondary xl:px-5">
-                                    {{ rec.vehicle?.brand?.name ?? 'S/M' }} {{ rec.vehicle?.vehicleModel?.name ?? '' }}
+                                    {{ rec.vehicle?.display_brand ?? 'S/M' }} {{ rec.vehicle?.display_model ?? '' }}
                                     <span class="text-ds-caption text-ink-muted">({{ rec.vehicle?.year ?? '—' }})</span>
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 font-mono text-ds-label uppercase text-ink-secondary xl:px-5">{{ rec.vehicle?.plate ?? '—' }}</td>
@@ -232,20 +232,18 @@ const formatCurrency = (val) =>
                     <nav v-if="recentRecepcions.last_page > 1" class="flex flex-wrap items-center gap-2 text-ds-caption text-ink-muted" aria-label="Paginación">
                         <span>{{ $t('dashboard.mostrando') }} {{ recentRecepcions.from }}–{{ recentRecepcions.to }} {{ $t('dashboard.de') }} {{ recentRecepcions.total }} {{ $t('dashboard.recepciones') }}</span>
                         <div class="flex gap-1">
-                            <template v-for="link in recentRecepcions.links" :key="link.label">
+                            <template v-for="(link, idx) in recentRecepcions.links" :key="idx">
                                 <Link
                                     v-if="link.url"
                                     :href="link.url"
-                                    v-html="link.label"
                                     :aria-current="link.active ? 'page' : undefined"
                                     class="ds-focus inline-flex h-control-compact min-w-[2.25rem] items-center justify-center rounded-lg border px-3 text-ds-control"
                                     :class="link.active ? 'border-navy bg-navy font-semibold text-white' : 'border-line bg-surface text-ink-secondary hover:bg-surface-2'"
-                                />
+                                >{{ idx === 0 ? $t('dashboard.paginaAnterior') : idx === recentRecepcions.links.length - 1 ? $t('dashboard.paginaSiguiente') : link.label }}</Link>
                                 <span
                                     v-else
-                                    v-html="link.label"
                                     class="inline-flex h-control-compact min-w-[2.25rem] items-center justify-center rounded-lg border border-line px-3 text-ds-control text-ink-muted"
-                                />
+                                >{{ idx === 0 ? $t('dashboard.paginaAnterior') : idx === recentRecepcions.links.length - 1 ? $t('dashboard.paginaSiguiente') : link.label }}</span>
                             </template>
                         </div>
                     </nav>

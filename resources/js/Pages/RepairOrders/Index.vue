@@ -64,7 +64,8 @@ function cambiarEstado(order, valor) {
 
 const vehiculo = (o) => {
     const v = o.recepcion?.vehicle;
-    return [v?.brand?.name, v?.vehicleModel?.name, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ') || 'S/M';
+    // Marca y modelo ya resueltos en el servidor (catálogo o texto histórico).
+    return [v?.display_brand, v?.display_model, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ') || 'S/M';
 };
 const cliente = (o) => [o.recepcion?.client?.first_name, o.recepcion?.client?.last_name].filter(Boolean).join(' ') || '—';
 const fechaCorta = (iso) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—');

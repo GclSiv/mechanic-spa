@@ -110,6 +110,9 @@ class RepairOrderController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // Marca y modelo para mostrar (catálogo o texto histórico), antes de agrupar por columna.
+        $orders->each(fn (RepairOrder $order) => $order->recepcion?->vehicle?->withDisplay());
+
         if ($isAdmin) {
             // Solo la condición "autorización pendiente" (sin montos): un lote desde la fuente financiera, sin N+1 ni duplicar A2.
             $estados = app(EstadosFinancierosOrdenesAction::class)->execute($orders);
@@ -182,6 +185,9 @@ class RepairOrderController extends Controller
         if ($recepcion && !isset($recepcion->photos)) {
             $recepcion->photos = [];
         }
+
+        // Marca y modelo para mostrar (catálogo o texto histórico), sin escribir en la base
+        $order->recepcion?->vehicle?->withDisplay();
 
         return Inertia::render('RepairOrders/Show', [
             'orden'               => $order,

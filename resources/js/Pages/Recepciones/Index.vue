@@ -120,8 +120,8 @@ function doDel() {
                                     <span class="text-ds-caption font-semibold text-navy underline-offset-2 hover:underline">{{ t('recepcionUi.abrirOrden') }}</span>
                                 </Link>
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex flex-wrap justify-end gap-2">
+                            <td class="min-w-[15rem] px-4 py-3">
+                                <div class="flex flex-wrap justify-end gap-1.5 xl:gap-2">
                                     <Link
                                         :href="route('recepcion.show', rec.id)"
                                         class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
