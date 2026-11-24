@@ -95,7 +95,10 @@ const grupos = computed(() => {
             aria-label="Navegación principal"
         >
             <div class="flex items-center gap-3 px-5 pb-4 pt-6">
-                <img v-if="logoUrl" :src="logoUrl" :alt="nombreTaller" class="h-9 w-auto max-w-[160px] object-contain" />
+                <!-- El logo del taller es de tinta oscura: se presenta sobre una superficie clara para leerse en el sidebar navy. La imagen no se altera. -->
+                <div v-if="logoUrl" class="w-full rounded-xl bg-white px-3 py-3">
+                    <img :src="logoUrl" :alt="nombreTaller" class="mx-auto block h-auto max-h-24 w-full object-contain" />
+                </div>
                 <template v-else>
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal text-ds-label font-bold text-navy" aria-hidden="true">{{ inicial }}</span>
                     <div class="min-w-0">
