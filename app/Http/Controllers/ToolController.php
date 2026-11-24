@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Tool;
+use App\Models\ToolMedia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -46,7 +48,7 @@ class ToolController extends Controller
         }
 
         return Inertia::render('Tools/Index', [
-            'tools'      => $query->paginate(20)->withQueryString(),
+            'tools'      => $query->paginate(25)->withQueryString(),
             'filters'    => $request->only(['search', 'status', 'category_id', 'location_id', 'mostrar_bajas']),
             'categories' => $this->categorias(),
             'locations'  => Location::orderBy('name')->get(['id', 'name', 'active']),
@@ -61,16 +63,32 @@ class ToolController extends Controller
 
     public function store(Request $request)
     {
-        Tool::create($this->validar($request));
+        $datos = $this->validar($request);
+        $evidencia = Arr::pull($datos, 'evidencia');
+
+        $herramienta = Tool::create($datos);
+
+        if ($evidencia) {
+            ToolMedia::guardar($herramienta, $evidencia, $request->user()?->id);
+        }
 
         return redirect()->route('tools.index')->with('success', 'Herramienta registrada.');
     }
 
     public function show(Tool $tool)
     {
-        $tool->load(['category:id,name', 'location:id,name']);
+        $tool->load(['category:id,name', 'location:id,name', 'media']);
+        $evidencia = $tool->media->map(fn (ToolMedia $m) => [
+                'id'            => $m->id,
+                'media_type'    => $m->media_type,
+                'original_name' => $m->original_name,
+                'size'          => $m->size,
+                'url'           => route('tools.media.show', [$tool, $m]),
+                'created_at'    => $m->created_at?->toDateString(),
+            ])->values();
+        $tool->unsetRelation('media');
 
-        return Inertia::render('Tools/Show', ['tool' => $tool]);
+        return Inertia::render('Tools/Show', ['tool' => $tool, 'evidencia' => $evidencia]);
     }
 
     public function edit(Tool $tool)
@@ -80,9 +98,17 @@ class ToolController extends Controller
         return Inertia::render('Tools/Edit', array_merge(['tool' => $tool], $this->catalogos()));
     }
 
+    /** Editar nunca borra evidencia: solo puede agregar un archivo nuevo. */
     public function update(Request $request, Tool $tool)
     {
-        $tool->update($this->validar($request, $tool));
+        $datos = $this->validar($request, $tool);
+        $evidencia = Arr::pull($datos, 'evidencia');
+
+        $tool->update($datos);
+
+        if ($evidencia) {
+            ToolMedia::guardar($tool, $evidencia, $request->user()?->id);
+        }
 
         return redirect()->route('tools.index')->with('success', 'Herramienta actualizada.');
     }
@@ -115,8 +141,12 @@ class ToolController extends Controller
             'status'        => ['required', Rule::in(Tool::ESTADOS)],
             'condition'     => ['nullable', Rule::in(Tool::CONDICIONES)],
             'notes'         => ['nullable', 'string', 'max:2000'],
+            'evidencia'     => array_merge(['nullable'], ToolMedia::reglaEvidencia()),
         ], [
             'internal_code.regex' => 'El código interno solo puede tener letras mayúsculas, números y guiones (ej. HER-0001).',
+            'evidencia.mimetypes' => 'Formato no permitido. Usa JPEG, PNG, WEBP, MP4 o WebM.',
+            'evidencia.max'       => 'El archivo supera el tamaño máximo permitido.',
+            'evidencia.uploaded'  => 'El archivo no se pudo subir. Puede superar el límite del servidor.',
         ]);
     }
 

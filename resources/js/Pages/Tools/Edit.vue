@@ -1,6 +1,12 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Edición de herramienta (solo admin/owner). Editar no borra evidencia; solo puede agregar.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
 import ToolForm from '@/Components/Tools/ToolForm.vue';
+import { Head } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 defineProps({
     tool:        Object,
@@ -12,14 +18,13 @@ defineProps({
 </script>
 
 <template>
-    <AuthenticatedLayout title="Editar herramienta">
-        <template #header>
-            <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">✏️ Editar herramienta</h2>
-        </template>
-        <div class="py-12 min-h-screen">
-            <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                <ToolForm :tool="tool" :categories="categories" :locations="locations" :estados="estados" :condiciones="condiciones" />
-            </div>
+    <Head :title="t('herramientasUi.formEditarTitulo')" />
+
+    <AppShellLayout>
+        <PageHeader :title="t('herramientasUi.formEditarTitulo')" :description="tool.name" />
+
+        <div class="mt-6 min-w-0 max-w-3xl">
+            <ToolForm :tool="tool" :categories="categories" :locations="locations" :estados="estados" :condiciones="condiciones" />
         </div>
-    </AuthenticatedLayout>
+    </AppShellLayout>
 </template>

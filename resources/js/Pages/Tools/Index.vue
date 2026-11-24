@@ -1,135 +1,221 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Herramientas (solo admin/owner). Búsqueda, filtros y paginación viven en el servidor: la vista solo navega y presenta.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import EmptyState from '@/Components/UI/EmptyState.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
-import { ETIQUETAS_ESTADO, CLASES_ESTADO } from '@/Components/Tools/etiquetas.js';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { CLAVE_ESTADO, VARIANTE_ESTADO } from '@/Components/Tools/presentacion.js';
+
+const { t } = useI18n();
 
 const props = defineProps({
-    tools:      Object,
-    categories: Array,
-    locations:  Array,
-    estados:    Array,
-    filters:    Object,
+    tools: { type: Object, required: true },
+    categories: { type: Array, default: () => [] },
+    locations: { type: Array, default: () => [] },
+    estados: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({}) },
 });
 
-const search     = ref(props.filters?.search ?? '');
-const status     = ref(props.filters?.status ?? '');
-const categoryId = ref(props.filters?.category_id ?? '');
-const locationId = ref(props.filters?.location_id ?? '');
+const filas = computed(() => props.tools?.data ?? []);
+const hayFiltro = computed(() =>
+    !!props.filters?.search || !!props.filters?.status || !!props.filters?.category_id
+    || !!props.filters?.location_id || !!props.filters?.mostrar_bajas);
+
+const buscar = ref(props.filters?.search ?? '');
+const estado = ref(props.filters?.status ?? '');
+const categoria = ref(String(props.filters?.category_id ?? ''));
+const ubicacion = ref(String(props.filters?.location_id ?? ''));
 const mostrarBajas = ref(!!props.filters?.mostrar_bajas);
 
-let temporizador = null;
+// Filtros enviados al servidor. La paginación conserva la misma consulta en la URL.
 function aplicarFiltros() {
-    clearTimeout(temporizador);
-    temporizador = setTimeout(() => {
-        router.get(route('tools.index'), {
-            search:       search.value || undefined,
-            status:       status.value || undefined,
-            category_id:  categoryId.value || undefined,
-            location_id:  locationId.value || undefined,
-            mostrar_bajas: mostrarBajas.value ? 1 : undefined,
-        }, { preserveState: true, preserveScroll: true, replace: true });
-    }, 350);
+    const datos = {};
+    const texto = buscar.value.trim();
+    if (texto) datos.search = texto;
+    if (estado.value) datos.status = estado.value;
+    if (categoria.value) datos.category_id = categoria.value;
+    if (ubicacion.value) datos.location_id = ubicacion.value;
+    if (mostrarBajas.value) datos.mostrar_bajas = 1;
+    router.get(route('tools.index'), datos, { preserveState: true, preserveScroll: true, replace: true });
 }
-watch([search, status, categoryId, locationId, mostrarBajas], aplicarFiltros);
 
+function limpiarFiltros() {
+    buscar.value = '';
+    estado.value = '';
+    categoria.value = '';
+    ubicacion.value = '';
+    mostrarBajas.value = false;
+    aplicarFiltros();
+}
+
+const irAPagina = (url) => {
+    if (!url) return;
+    router.get(url, {}, { preserveState: true, preserveScroll: true });
+};
+
+const etiquetaEstado = (valor) => t(`herramientasUi.${CLAVE_ESTADO[valor] ?? 'estado_disponible'}`);
+
+// Baja lógica: confirmación del DS. El registro y su evidencia se conservan.
 const confirmBaja = ref({ show: false, id: null });
 function pedirBaja(id) { confirmBaja.value = { show: true, id }; }
-function darDeBaja() {
+function confirmarBaja() {
     router.delete(route('tools.destroy', confirmBaja.value.id), { preserveScroll: true });
     confirmBaja.value = { show: false, id: null };
 }
 </script>
 
 <template>
-    <AuthenticatedLayout title="Herramientas">
-        <template #header>
-            <div class="flex justify-between items-center gap-4">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider shrink-0">🔧 Herramientas</h2>
-                <div class="flex items-center gap-3">
-                    <a :href="route('parts.index')" class="text-sm text-gray-500 hover:text-[#10213E] font-bold border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-50">📦 Refacciones</a>
-                    <a :href="route('tools.create')" class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg shadow-md text-sm uppercase">+ Nueva</a>
-                </div>
+    <Head :title="t('herramientasUi.titulo')" />
+
+    <AppShellLayout>
+        <PageHeader :title="t('herramientasUi.titulo')" :description="t('herramientasUi.descripcion')">
+            <Link
+                :href="route('tools.create')"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('herramientasUi.nueva') }}</Link>
+        </PageHeader>
+
+        <form class="mt-6 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5" role="search" @submit.prevent="aplicarFiltros">
+            <label for="herramientas-buscar" class="sr-only">{{ t('herramientasUi.buscar') }}</label>
+            <input
+                id="herramientas-buscar"
+                v-model="buscar"
+                type="search"
+                :placeholder="t('herramientasUi.buscarPlaceholder')"
+                class="ds-focus h-control min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink md:col-span-2"
+            />
+            <label for="herramientas-estado" class="sr-only">{{ t('herramientasUi.colEstado') }}</label>
+            <select id="herramientas-estado" v-model="estado" class="ds-focus h-control min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink" @change="aplicarFiltros">
+                <option value="">{{ t('herramientasUi.todosEstados') }}</option>
+                <option v-for="e in estados" :key="e" :value="e">{{ t(`herramientasUi.${CLAVE_ESTADO[e]}`) }}</option>
+            </select>
+            <label for="herramientas-categoria" class="sr-only">{{ t('herramientasUi.colCategoria') }}</label>
+            <select id="herramientas-categoria" v-model="categoria" class="ds-focus h-control min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink" @change="aplicarFiltros">
+                <option value="">{{ t('herramientasUi.todasCategorias') }}</option>
+                <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
+            </select>
+            <label for="herramientas-ubicacion" class="sr-only">{{ t('herramientasUi.colUbicacion') }}</label>
+            <select id="herramientas-ubicacion" v-model="ubicacion" class="ds-focus h-control min-w-0 rounded-lg border border-line bg-surface px-3 text-ds-body text-ink" @change="aplicarFiltros">
+                <option value="">{{ t('herramientasUi.todasUbicaciones') }}</option>
+                <option v-for="l in locations" :key="l.id" :value="String(l.id)">{{ l.name }}</option>
+            </select>
+            <div class="flex flex-wrap items-center gap-3 md:col-span-2 xl:col-span-5">
+                <label class="flex items-center gap-2 text-ds-body text-ink-secondary">
+                    <input v-model="mostrarBajas" type="checkbox" class="ds-focus h-4 w-4 rounded border-line text-navy" @change="aplicarFiltros" />
+                    {{ t('herramientasUi.mostrarBajas') }}
+                </label>
+                <button type="submit" class="ds-focus h-control rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2">
+                    {{ t('herramientasUi.buscar') }}
+                </button>
+                <button
+                    v-if="hayFiltro || buscar"
+                    type="button"
+                    class="ds-focus h-control rounded-lg px-3 text-ds-control font-semibold text-ink-secondary hover:bg-surface-2"
+                    @click="limpiarFiltros"
+                >{{ t('herramientasUi.limpiar') }}</button>
             </div>
-        </template>
+        </form>
 
-        <div class="py-8 min-h-screen">
-            <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                <div class="bg-white rounded-xl shadow-sm p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
-                    <input v-model="search" type="text" placeholder="Buscar nombre, marca, serie o código…"
-                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm md:col-span-2 focus:outline-none focus:ring-2 focus:ring-[#10213E]" />
-                    <select v-model="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                        <option value="">Todos los estados</option>
-                        <option v-for="e in estados" :key="e" :value="e">{{ ETIQUETAS_ESTADO[e] ?? e }}</option>
-                    </select>
-                    <select v-model="categoryId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                        <option value="">Todas las categorías</option>
-                        <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-                    </select>
-                    <select v-model="locationId" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                        <option value="">Todas las ubicaciones</option>
-                        <option v-for="l in locations" :key="l.id" :value="l.id">{{ l.name }}</option>
-                    </select>
-                    <label class="md:col-span-5 flex items-center gap-2 text-sm text-gray-600">
-                        <input v-model="mostrarBajas" type="checkbox" class="rounded border-gray-300 text-[#10213E] focus:ring-[#10213E]" />
-                        Mostrar herramientas dadas de baja
-                    </label>
-                </div>
+        <div class="mt-4 min-w-0 space-y-4">
+            <p v-if="filas.length" class="text-ds-caption text-ink-muted tabular-nums">
+                {{ t('herramientasUi.cuenta', { n: tools.total }) }}
+            </p>
 
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div v-if="tools.data.length === 0" class="p-10 text-center text-gray-400 text-sm">
-                        No hay herramientas que coincidan con los filtros.
+            <EmptyState
+                v-if="filas.length === 0"
+                :title="hayFiltro ? t('herramientasUi.sinCoincidencias') : t('herramientasUi.sinRegistros')"
+                :description="hayFiltro ? '' : t('herramientasUi.sinRegistrosDescripcion')"
+            />
+
+            <!-- Escritorio: tabla -->
+            <div v-else class="hidden min-w-0 overflow-x-auto rounded-xl border border-line bg-surface lg:block">
+                <table class="w-full min-w-[860px] text-left text-ds-body">
+                    <caption class="sr-only">{{ t('herramientasUi.titulo') }}</caption>
+                    <thead class="bg-surface-2 text-ds-label uppercase text-ink-muted">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('herramientasUi.colCodigo') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('herramientasUi.colHerramienta') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('herramientasUi.colCategoria') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('herramientasUi.colUbicacion') }}</th>
+                            <th scope="col" class="px-4 py-3 font-semibold">{{ t('herramientasUi.colEstado') }}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold">{{ t('herramientasUi.colAcciones') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        <tr v-for="h in filas" :key="h.id" class="align-top" :class="{ 'opacity-70': !h.active }">
+                            <td class="whitespace-nowrap px-4 py-3 font-mono text-ds-caption uppercase text-ink-secondary">{{ h.internal_code }}</td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-navy">{{ h.name }}</div>
+                                <div class="text-ds-caption text-ink-muted">{{ [h.brand, h.model].filter(Boolean).join(' ') || t('herramientasUi.sinDato') }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-ink-secondary">{{ h.category?.name ?? t('herramientasUi.sinCategoria') }}</td>
+                            <td class="px-4 py-3 text-ink-secondary">{{ h.location?.name ?? t('herramientasUi.sinUbicacion') }}</td>
+                            <td class="px-4 py-3">
+                                <BaseBadge :variant="VARIANTE_ESTADO[h.status] ?? 'neutral'">{{ etiquetaEstado(h.status) }}</BaseBadge>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex justify-end gap-3 whitespace-nowrap text-ds-control font-semibold">
+                                    <Link :href="route('tools.show', h.id)" class="ds-focus rounded text-navy hover:underline">{{ t('herramientasUi.ver') }}</Link>
+                                    <Link :href="route('tools.edit', h.id)" class="ds-focus rounded text-navy hover:underline">{{ t('herramientasUi.editar') }}</Link>
+                                    <button v-if="h.active" type="button" class="ds-focus rounded text-danger-text hover:underline" @click="pedirBaja(h.id)">{{ t('herramientasUi.darBaja') }}</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Móvil y tablet: tarjetas -->
+            <ul v-if="filas.length" class="grid gap-3 lg:hidden">
+                <li v-for="h in filas" :key="h.id" class="min-w-0 rounded-xl border border-line bg-surface p-4" :class="{ 'opacity-70': !h.active }">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="font-mono text-ds-caption uppercase text-ink-muted">{{ h.internal_code }}</p>
+                            <h2 class="truncate text-ds-section-title font-semibold text-navy">{{ h.name }}</h2>
+                            <p class="text-ds-caption text-ink-muted">{{ [h.brand, h.model].filter(Boolean).join(' ') || t('herramientasUi.sinDato') }}</p>
+                        </div>
+                        <BaseBadge :variant="VARIANTE_ESTADO[h.status] ?? 'neutral'">{{ etiquetaEstado(h.status) }}</BaseBadge>
                     </div>
-                    <table v-else class="min-w-full text-sm">
-                        <thead class="bg-[#10213E] text-white text-xs uppercase tracking-wider">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Código</th>
-                                <th class="px-4 py-3 text-left">Herramienta</th>
-                                <th class="px-4 py-3 text-left">Categoría</th>
-                                <th class="px-4 py-3 text-left">Ubicación</th>
-                                <th class="px-4 py-3 text-left">Estado</th>
-                                <th class="px-4 py-3 text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="t in tools.data" :key="t.id" :class="{ 'opacity-60': !t.active }">
-                                <td class="px-4 py-3 font-mono text-xs">{{ t.internal_code }}</td>
-                                <td class="px-4 py-3">
-                                    <div class="font-bold text-gray-900">{{ t.name }}</div>
-                                    <div class="text-xs text-gray-500">{{ [t.brand, t.model].filter(Boolean).join(' ') || '—' }}</div>
-                                </td>
-                                <td class="px-4 py-3 text-gray-600">{{ t.category?.name ?? '—' }}</td>
-                                <td class="px-4 py-3 text-gray-600">{{ t.location?.name ?? '—' }}</td>
-                                <td class="px-4 py-3">
-                                    <span :class="['text-xs font-bold px-2.5 py-1 rounded-full', CLASES_ESTADO[t.status]]">
-                                        {{ ETIQUETAS_ESTADO[t.status] ?? t.status }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-right whitespace-nowrap space-x-3">
-                                    <a :href="route('tools.show', t.id)" class="text-[#10213E] font-bold text-xs hover:underline">Ver</a>
-                                    <a :href="route('tools.edit', t.id)" class="text-[#10213E] font-bold text-xs hover:underline">Editar</a>
-                                    <button v-if="t.active" @click="pedirBaja(t.id)" class="text-red-600 font-bold text-xs hover:underline">Dar de baja</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <p class="mt-2 text-ds-caption text-ink-secondary">
+                        {{ h.category?.name ?? t('herramientasUi.sinCategoria') }} · {{ h.location?.name ?? t('herramientasUi.sinUbicacion') }}
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-4 text-ds-control font-semibold">
+                        <Link :href="route('tools.show', h.id)" class="ds-focus rounded text-navy hover:underline">{{ t('herramientasUi.ver') }}</Link>
+                        <Link :href="route('tools.edit', h.id)" class="ds-focus rounded text-navy hover:underline">{{ t('herramientasUi.editar') }}</Link>
+                        <button v-if="h.active" type="button" class="ds-focus rounded text-danger-text hover:underline" @click="pedirBaja(h.id)">{{ t('herramientasUi.darBaja') }}</button>
+                    </div>
+                </li>
+            </ul>
 
-                <nav v-if="tools.links.length > 3" class="flex flex-wrap gap-2 justify-center">
-                    <a v-for="link in tools.links" :key="link.label" :href="link.url ?? undefined" v-html="link.label"
-                        :class="['px-3 py-1.5 rounded-lg text-sm border', link.active ? 'bg-[#10213E] text-white border-[#10213E]' : 'bg-white text-gray-600 border-gray-200', !link.url ? 'opacity-40 pointer-events-none' : 'hover:bg-gray-50']" />
-                </nav>
-            </div>
+            <nav v-if="tools.prev_page_url || tools.next_page_url" class="flex items-center justify-between gap-3 pt-2" aria-label="Paginación">
+                <button
+                    type="button"
+                    :disabled="!tools.prev_page_url"
+                    class="ds-focus h-control rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    @click="irAPagina(tools.prev_page_url)"
+                >{{ t('dashboard.paginaAnterior') }}</button>
+                <span class="text-ds-caption text-ink-muted tabular-nums">{{ tools.current_page }} / {{ tools.last_page }}</span>
+                <button
+                    type="button"
+                    :disabled="!tools.next_page_url"
+                    class="ds-focus h-control rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    @click="irAPagina(tools.next_page_url)"
+                >{{ t('dashboard.paginaSiguiente') }}</button>
+            </nav>
         </div>
 
         <ConfirmModal
             :show="confirmBaja.show"
-            title="Dar de baja"
-            message="La herramienta se conservará en el historial con estado Baja."
-            confirmText="Sí, dar de baja"
-            @confirm="darDeBaja"
+            :title="t('herramientasUi.bajaTitulo')"
+            :message="t('herramientasUi.bajaMensaje')"
+            :confirm-text="t('herramientasUi.bajaConfirmar')"
+            :cancel-text="t('herramientasUi.cancelar')"
+            @confirm="confirmarBaja"
             @cancel="confirmBaja = { show: false, id: null }"
         />
-    </AuthenticatedLayout>
+    </AppShellLayout>
 </template>

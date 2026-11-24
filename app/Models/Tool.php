@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Herramienta o equipo del taller. No es una refacción: no tiene stock, precio de venta
@@ -67,6 +68,11 @@ class Tool extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ToolMedia::class)->orderByDesc('id');
     }
 
     public function scopeActivas(Builder $query): Builder

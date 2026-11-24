@@ -110,6 +110,15 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('tools', \App\Http\Controllers\ToolController::class)
         ->names('tools')
         ->middleware('role:admin');
+    Route::post('tools/{tool}/evidencia', [\App\Http\Controllers\ToolMediaController::class, 'store'])
+        ->name('tools.media.store')
+        ->middleware('role:admin');
+    Route::get('tools/{tool}/evidencia/{media}', [\App\Http\Controllers\ToolMediaController::class, 'show'])
+        ->name('tools.media.show')
+        ->middleware('role:admin');
+    Route::delete('tools/{tool}/evidencia/{media}', [\App\Http\Controllers\ToolMediaController::class, 'destroy'])
+        ->name('tools.media.destroy')
+        ->middleware('role:admin');
 
     Route::resource('parts', \App\Http\Controllers\PartController::class)
         ->except(['show'])

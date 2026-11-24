@@ -1,51 +1,207 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { ETIQUETAS_ESTADO, ETIQUETAS_CONDICION, CLASES_ESTADO, dinero } from '@/Components/Tools/etiquetas.js';
+// Ficha de herramienta (solo admin/owner). Presenta datos y evidencia; el backend valida y autoriza cada archivo.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { CLAVE_ESTADO, CLAVE_CONDICION, VARIANTE_ESTADO } from '@/Components/Tools/presentacion.js';
+import { dinero } from '@/Components/Tools/etiquetas.js';
 
-const props = defineProps({ tool: Object });
+const { t } = useI18n();
 
-const filas = [
-    ['Código interno', () => props.tool.internal_code],
-    ['Categoría', () => props.tool.category?.name ?? '—'],
-    ['Ubicación', () => props.tool.location?.name ?? '—'],
-    ['Marca', () => props.tool.brand ?? '—'],
-    ['Modelo', () => props.tool.model ?? '—'],
-    ['Número de serie', () => props.tool.serial_number ?? '—'],
-    ['Fecha de compra', () => props.tool.purchase_date ? String(props.tool.purchase_date).slice(0, 10) : '—'],
-    ['Costo de compra', () => dinero(props.tool.purchase_cost)],
-    ['Condición', () => ETIQUETAS_CONDICION[props.tool.condition] ?? '—'],
-];
+const props = defineProps({
+    tool: { type: Object, required: true },
+    evidencia: { type: Array, default: () => [] },
+});
+
+const esBaja = computed(() => props.tool.status === 'baja');
+const fechaCompra = computed(() => props.tool.purchase_date ? String(props.tool.purchase_date).slice(0, 10) : t('herramientasUi.sinDato'));
+const ACEPTADOS = 'image/jpeg,image/png,image/webp,video/mp4,video/webm';
+
+const formEvidencia = useForm({ evidencia: null });
+function agregarEvidencia() {
+    formEvidencia.post(route('tools.media.store', props.tool.id), {
+        preserveScroll: true,
+        onSuccess: () => formEvidencia.reset(),
+    });
+}
+
+const confirmEvidencia = ref({ show: false, id: null });
+function pedirEliminarEvidencia(id) { confirmEvidencia.value = { show: true, id }; }
+function eliminarEvidencia() {
+    router.delete(route('tools.media.destroy', [props.tool.id, confirmEvidencia.value.id]), { preserveScroll: true });
+    confirmEvidencia.value = { show: false, id: null };
+}
+
+const tamano = (bytes) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 </script>
 
 <template>
-    <AuthenticatedLayout :title="tool.name">
-        <template #header>
-            <div class="flex justify-between items-center gap-4">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">🔧 {{ tool.name }}</h2>
-                <div class="flex gap-3">
-                    <a :href="route('tools.edit', tool.id)" class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg text-sm uppercase">Editar</a>
-                    <a :href="route('tools.index')" class="text-gray-500 hover:text-[#10213E] font-bold text-sm border border-gray-200 rounded-lg px-3 py-2">Volver</a>
-                </div>
-            </div>
-        </template>
-        <div class="py-12 min-h-screen">
-            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <span :class="['text-xs font-bold px-2.5 py-1 rounded-full', CLASES_ESTADO[tool.status]]">
-                        {{ ETIQUETAS_ESTADO[tool.status] ?? tool.status }}
-                    </span>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mt-6">
-                        <div v-for="[etiqueta, valor] in filas" :key="etiqueta">
-                            <dt class="text-xs font-bold text-gray-500 uppercase">{{ etiqueta }}</dt>
-                            <dd class="text-sm text-gray-900 mt-1">{{ valor() }}</dd>
-                        </div>
-                    </dl>
-                    <div v-if="tool.notes" class="mt-6 border-t border-gray-100 pt-4">
-                        <dt class="text-xs font-bold text-gray-500 uppercase">Notas</dt>
-                        <dd class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ tool.notes }}</dd>
+    <Head :title="tool.name" />
+
+    <AppShellLayout>
+        <PageHeader :title="tool.name" :description="tool.internal_code">
+            <Link
+                :href="route('tools.edit', tool.id)"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('herramientasUi.editar') }}</Link>
+            <Link
+                :href="route('tools.index')"
+                class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-ink-secondary hover:bg-surface-2"
+            >{{ t('herramientasUi.volver') }}</Link>
+        </PageHeader>
+
+        <p v-if="esBaja" class="mt-6 rounded-lg border border-line bg-surface-2 px-4 py-3 text-ds-body text-ink-secondary" role="status">
+            {{ t('herramientasUi.bajaAviso') }}
+        </p>
+
+        <div class="mt-6 grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+            <section class="min-w-0 space-y-4 rounded-xl border border-line bg-surface p-5" aria-labelledby="ficha-identificacion">
+                <h2 id="ficha-identificacion" class="text-ds-section-title font-semibold text-navy">{{ t('herramientasUi.seccionIdentificacion') }}</h2>
+                <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoNombre') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">{{ tool.name }}</dd>
                     </div>
-                </div>
-            </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoCodigo') }}</dt>
+                        <dd class="mt-1 font-mono text-ds-body uppercase text-ink">{{ tool.internal_code }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoMarca') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">{{ tool.brand || t('herramientasUi.sinDato') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoModelo') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">{{ tool.model || t('herramientasUi.sinDato') }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoSerie') }}</dt>
+                        <dd class="mt-1 font-mono text-ds-body text-ink">{{ tool.serial_number || t('herramientasUi.sinDato') }}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="min-w-0 space-y-4 rounded-xl border border-line bg-surface p-5" aria-labelledby="ficha-ubicacion">
+                <h2 id="ficha-ubicacion" class="text-ds-section-title font-semibold text-navy">{{ t('herramientasUi.seccionUbicacion') }}</h2>
+                <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoCategoria') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">{{ tool.category?.name ?? t('herramientasUi.sinCategoria') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoUbicacion') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">{{ tool.location?.name ?? t('herramientasUi.sinUbicacion') }}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="min-w-0 space-y-4 rounded-xl border border-line bg-surface p-5" aria-labelledby="ficha-estado">
+                <h2 id="ficha-estado" class="text-ds-section-title font-semibold text-navy">{{ t('herramientasUi.seccionEstado') }}</h2>
+                <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoEstado') }}</dt>
+                        <dd class="mt-1">
+                            <BaseBadge :variant="VARIANTE_ESTADO[tool.status] ?? 'neutral'">{{ t(`herramientasUi.${CLAVE_ESTADO[tool.status] ?? 'estado_disponible'}`) }}</BaseBadge>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoCondicion') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink">
+                            {{ tool.condition ? t(`herramientasUi.${CLAVE_CONDICION[tool.condition]}`) : t('herramientasUi.sinEspecificar') }}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="min-w-0 space-y-4 rounded-xl border border-line bg-surface p-5" aria-labelledby="ficha-administrativos">
+                <h2 id="ficha-administrativos" class="text-ds-section-title font-semibold text-navy">{{ t('herramientasUi.seccionAdministrativos') }}</h2>
+                <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoFechaCompra') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink tabular-nums">{{ fechaCompra }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoCosto') }}</dt>
+                        <dd class="mt-1 text-ds-body text-ink tabular-nums">{{ dinero(tool.purchase_cost) }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-ds-label font-semibold uppercase text-ink-muted">{{ t('herramientasUi.campoNotas') }}</dt>
+                        <dd class="mt-1 whitespace-pre-line text-ds-body text-ink">{{ tool.notes || t('herramientasUi.sinDato') }}</dd>
+                    </div>
+                </dl>
+            </section>
         </div>
-    </AuthenticatedLayout>
+
+        <section class="mt-6 min-w-0 space-y-5 rounded-xl border border-line bg-surface p-5" aria-labelledby="ficha-evidencia">
+            <h2 id="ficha-evidencia" class="text-ds-section-title font-semibold text-navy">{{ t('herramientasUi.seccionEvidencia') }}</h2>
+
+            <p v-if="evidencia.length === 0" class="text-ds-body text-ink-muted">{{ t('herramientasUi.evidenciaVacia') }}</p>
+
+            <ul v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <li v-for="e in evidencia" :key="e.id" class="min-w-0 overflow-hidden rounded-lg border border-line bg-surface-2">
+                    <img
+                        v-if="e.media_type === 'image'"
+                        :src="e.url"
+                        :alt="e.original_name"
+                        loading="lazy"
+                        class="aspect-video w-full bg-surface object-contain"
+                    />
+                    <video
+                        v-else
+                        :src="e.url"
+                        controls
+                        preload="metadata"
+                        playsinline
+                        class="aspect-video w-full bg-black"
+                    >{{ t('herramientasUi.videoNoSoportado') }}</video>
+                    <div class="flex items-center justify-between gap-3 p-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-ds-caption font-semibold text-ink">{{ e.original_name }}</p>
+                            <p class="text-ds-caption text-ink-muted tabular-nums">
+                                {{ e.media_type === 'image' ? t('herramientasUi.evidenciaFoto') : t('herramientasUi.evidenciaVideo') }} · {{ tamano(e.size) }}
+                            </p>
+                        </div>
+                        <button type="button" class="ds-focus shrink-0 rounded text-ds-control font-semibold text-danger-text hover:underline" @click="pedirEliminarEvidencia(e.id)">
+                            {{ t('herramientasUi.evidenciaEliminar') }}
+                        </button>
+                    </div>
+                </li>
+            </ul>
+
+            <form class="space-y-3 border-t border-line pt-5" novalidate @submit.prevent="agregarEvidencia">
+                <label for="evidencia-archivo" class="block text-ds-label font-semibold text-ink-secondary">{{ t('herramientasUi.evidenciaAgregar') }}</label>
+                <p class="text-ds-caption text-ink-muted">{{ t('herramientasUi.evidenciaAyuda') }}</p>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <input
+                        id="evidencia-archivo"
+                        type="file"
+                        :accept="ACEPTADOS"
+                        class="ds-focus min-w-0 flex-1 text-ds-body text-ink file:mr-3 file:rounded-lg file:border file:border-line file:bg-surface file:px-3 file:py-2 file:font-semibold file:text-navy"
+                        :aria-invalid="!!formEvidencia.errors.evidencia"
+                        @change="formEvidencia.evidencia = $event.target.files[0] ?? null"
+                    />
+                    <button
+                        type="submit"
+                        :disabled="!formEvidencia.evidencia || formEvidencia.processing"
+                        class="ds-focus h-control shrink-0 rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >{{ t('herramientasUi.evidenciaAgregar') }}</button>
+                </div>
+                <p v-if="formEvidencia.errors.evidencia" class="text-ds-caption text-danger-text" role="alert">{{ formEvidencia.errors.evidencia }}</p>
+            </form>
+        </section>
+
+        <ConfirmModal
+            :show="confirmEvidencia.show"
+            :title="t('herramientasUi.evidenciaEliminarTitulo')"
+            :message="t('herramientasUi.evidenciaEliminarMensaje')"
+            :confirm-text="t('herramientasUi.evidenciaEliminarConfirmar')"
+            :cancel-text="t('herramientasUi.cancelar')"
+            @confirm="eliminarEvidencia"
+            @cancel="confirmEvidencia = { show: false, id: null }"
+        />
+    </AppShellLayout>
 </template>
