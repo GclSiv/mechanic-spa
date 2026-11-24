@@ -39,7 +39,7 @@ class Vehicle extends Model
     {
         $raw = (string) $this->getRawOriginal('brand');
 
-        return $this->brand?->name ?? ($raw !== '' ? $raw : null);
+        return $this->relacionCargada('brand')?->name ?? ($raw !== '' ? $raw : null);
     }
 
     /** Modelo para mostrar, con la misma regla que la marca. */
@@ -47,7 +47,18 @@ class Vehicle extends Model
     {
         $raw = (string) $this->getRawOriginal('model');
 
-        return $this->vehicleModel?->name ?? ($raw !== '' ? $raw : null);
+        return $this->relacionCargada('vehicleModel')?->name ?? ($raw !== '' ? $raw : null);
+    }
+
+    /**
+     * Lee la relación aunque exista una columna de texto con el mismo nombre (brand, model).
+     * Sin esto, $this->brand devuelve el texto histórico y el catálogo nunca se muestra.
+     */
+    private function relacionCargada(string $relacion): mixed
+    {
+        return $this->relationLoaded($relacion)
+            ? $this->getRelation($relacion)
+            : $this->$relacion()->first();
     }
 
     /**

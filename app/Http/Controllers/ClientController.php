@@ -83,15 +83,54 @@ public function store(Request $request)
     // 3. Regresamos con un mensaje de éxito
     return redirect()->back()->with('success', '¡Recepción de vehículo registrada exitosamente!');
 }
-public function index()
-{
-    // Traemos todos los clientes ordenados por el más reciente
-    $clients = \App\Models\Client::with(['vehicles.brand', 'vehicles.vehicleModel'])->orderBy('id', 'desc')->get();
+    /**
+     * Directorio de clientes (UI-7A): paginación de servidor y búsqueda por query string `search`.
+     * Solo lectura; no muestra finanzas. Marca/modelo se resuelven con Vehicle::withDisplay (sin escribir FK).
+     */
+    public function index(Request $request)
+    {
+        $buscar = mb_substr(trim((string) $request->query('search', '')), 0, 100);
 
-    return Inertia::render('Clients/Index', [
-        'clients' => $clients
-    ]);
-}
+        $clients = Client::query()
+            ->with(['vehicles.brand', 'vehicles.vehicleModel', 'fiscalProfiles'])
+            ->when($buscar !== '', fn ($q) => $this->aplicarBusquedaClientes($q, $buscar))
+            ->orderBy('id', 'desc')
+            ->paginate(25)
+            ->withQueryString()
+            ->through(function (Client $client) {
+                $client->vehicles->each->withDisplay();
+
+                return $client;
+            });
+
+        return Inertia::render('Clients/Index', [
+            'clients' => $clients,
+            'filters' => ['search' => $buscar],
+        ]);
+    }
+
+    /**
+     * Cada palabra debe coincidir con al menos un campo (AND entre palabras, OR entre campos).
+     * Se quitan % y _ para que el usuario no inyecte comodines LIKE.
+     */
+    private function aplicarBusquedaClientes($query, string $texto): void
+    {
+        $palabras = preg_split('/\s+/', str_replace(['%', '_'], '', $texto), -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($palabras as $palabra) {
+            $like = '%' . $palabra . '%';
+
+            $query->where(function ($w) use ($like) {
+                $w->where('first_name', 'like', $like)
+                    ->orWhere('last_name', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('rfc', 'like', $like)
+                    ->orWhereHas('fiscalProfiles', fn ($f) => $f->where('rfc', 'like', $like))
+                    ->orWhereHas('vehicles', fn ($v) => $v->where('plate', 'like', $like));
+            });
+        }
+    }
     /**
      * Expediente del cliente (B1.1): encabezado, resumen y vehículos.
      * Solo admin/owner (ClientPolicy). El resumen financiero (B1.2.2) se calcula en lote con EstadosFinancierosOrdenesAction;
@@ -168,8 +207,8 @@ public function index()
             'servicios' => $servicios,
             'vehiculos' => $vehiculos->map(fn ($v) => [
                 'id'          => $v->id,
-                'marca'       => $v->brand?->name ?? $v->getRawOriginal('brand'),
-                'modelo'      => $v->vehicleModel?->name ?? $v->getRawOriginal('model'),
+                'marca'       => $v->displayBrand(),
+                'modelo'      => $v->displayModel(),
                 'year'        => $v->year,
                 'plate'       => $v->plate,
                 'vin'         => $v->vin,
