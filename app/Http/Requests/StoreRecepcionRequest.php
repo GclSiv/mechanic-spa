@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreRecepcionRequest extends FormRequest
 {
@@ -13,6 +14,8 @@ class StoreRecepcionRequest extends FormRequest
 
     public function rules(): array
     {
+        $sinVehiculo = ! $this->filled('vehicle_id');
+
         return [
             // Cliente
             'client_id'        => 'nullable|exists:clients,id',
@@ -25,10 +28,12 @@ class StoreRecepcionRequest extends FormRequest
             'country'          => 'nullable|in:MX,US',
 
             // Vehículo
-            'vehicle_id'       => 'nullable|exists:vehicles,id',
-            'brand_id'         => 'required_without:vehicle_id|exists:brands,id',
-            'vehicle_model_id' => 'required_without:vehicle_id|exists:vehicle_models,id',
-            'year'             => 'required_without:vehicle_id|numeric|min:1900|max:2099',
+            // El vehículo debe pertenecer al cliente indicado: Vue filtra, pero aquí se valida de verdad.
+            'vehicle_id'       => ['nullable', Rule::exists('vehicles', 'id')->where(fn ($q) => $q->where('client_id', $this->input('client_id')))],
+            // Con vehículo existente estos campos no aplican: pueden llegar nulos o vacíos (el formulario los oculta).
+            'brand_id'         => [$sinVehiculo ? 'required' : 'nullable', 'exists:brands,id'],
+            'vehicle_model_id' => [$sinVehiculo ? 'required' : 'nullable', 'exists:vehicle_models,id'],
+            'year'             => [$sinVehiculo ? 'required' : 'nullable', 'numeric', 'min:1900', 'max:2099'],
             'plate'            => 'nullable|string|max:20',
             // VIN: 17 caracteres, sin I, O ni Q (norma ISO 3779)
             'vin'              => ['nullable', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/i'],
@@ -61,6 +66,16 @@ class StoreRecepcionRequest extends FormRequest
         return [
             'vin.size'  => 'El VIN debe tener exactamente 17 caracteres.',
             'vin.regex' => 'El VIN solo puede contener letras (sin I, O ni Q) y números.',
+            'vehicle_id.exists' => 'El vehículo seleccionado no pertenece al cliente elegido.',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($v) {
+            if ($this->filled('vehicle_id') && ! $this->filled('client_id')) {
+                $v->errors()->add('vehicle_id', 'Un vehículo registrado solo puede usarse junto con su cliente.');
+            }
+        });
     }
 }

@@ -16,6 +16,8 @@ use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Http\Requests\StoreRecepcionRequest;
+use App\Http\Requests\UpdateRecepcionRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -289,7 +291,12 @@ class RecepcionController extends Controller
         $recepciones = Recepcion::with(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'repairOrder.status'])
             ->orderBy('id', 'desc')
             ->paginate(25)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (Recepcion $recepcion) {
+                $recepcion->vehicle?->withDisplay();
+
+                return $recepcion;
+            });
 
         return Inertia::render('Recepciones/Index', [
             'recepciones' => $recepciones,
@@ -310,6 +317,8 @@ class RecepcionController extends Controller
         }
 
         // Si no, mostrar detalle básico de la recepción
+        $recepcion->vehicle?->withDisplay();
+
         return Inertia::render('Recepciones/Show', [
             'recepcion' => $recepcion,
         ]);
@@ -323,9 +332,17 @@ class RecepcionController extends Controller
         $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
         $brands = Brand::with('vehicleModels')->get();
 
+        // La relación `brand` sobrescribe la columna de texto al serializar; el texto histórico se lee crudo.
+        $vehiculo = $recepcion->vehicle;
+        $legacy = $vehiculo ? [
+            'brand' => $vehiculo->getRawOriginal('brand'),
+            'model' => $vehiculo->getRawOriginal('model'),
+        ] : null;
+
         return Inertia::render('Recepciones/Edit', [
-            'recepcion' => $recepcion,
-            'brands'    => $brands,
+            'recepcion'     => $recepcion,
+            'brands'        => $brands,
+            'legacyVehicle' => $legacy,
         ]);
     }
 
@@ -347,34 +364,59 @@ class RecepcionController extends Controller
     }
 
     /**
-     * Actualiza una recepción existente (Conecta con el Edit.vue que hicimos)
+     * Actualiza una recepción desde Editar. Solo escribe lo validado por UpdateRecepcionRequest.
+     * No cambia cliente ni vehículo asignados, orden, estado, fotos ni daños.
      */
-    public function update(Request $request, $id)
+    public function update(UpdateRecepcionRequest $request, $id)
     {
         $recepcion = Recepcion::with(['client', 'vehicle'])->findOrFail($id);
+        $datos = $request->validated();
 
-        // 1. Actualizar Cliente
-        if ($recepcion->client) {
-            $recepcion->client->update($request->only(['first_name', 'last_name', 'phone', 'address', 'rfc', 'country']));
-        }
+        DB::transaction(function () use ($recepcion, $datos) {
+            // 1. Cliente: solo campos presentes. El RFC sincroniza el perfil fiscal como en Store.
+            if ($recepcion->client) {
+                $cliente = Arr::only($datos, ['first_name', 'last_name', 'phone', 'address', 'rfc', 'country']);
+                $rfc = null;
+                if (array_key_exists('rfc', $cliente)) {
+                    $rfc = strtoupper(trim((string) $cliente['rfc']));
+                    $cliente['rfc'] = $rfc !== '' ? $rfc : null;
+                }
+                $recepcion->client->update($cliente);
 
-        // 2. Actualizar Vehículo
-        if ($recepcion->vehicle) {
-            $recepcion->vehicle->update([
-                'brand_id' => $request->brand_id,
-                'model_id' => $request->vehicle_model_id,
-                'year' => $request->year,
-                'plate' => $request->plate,
-                'vin' => $request->vin,
-                'engine' => $request->engine,
-            ]);
-        }
+                if ($rfc && ! in_array($rfc, self::RFC_GENERICOS, true)) {
+                    ClientFiscalProfile::firstOrCreate(
+                        ['client_id' => $recepcion->client->id, 'rfc' => $rfc],
+                        ['razon_social' => trim(($recepcion->client->first_name ?? '') . ' ' . ($recepcion->client->last_name ?? ''))]
+                    );
+                }
+            }
 
-        // 3. Actualizar Recepción (Datos Transaccionales)
-        $recepcion->update($request->only(['miles', 'fuel_level', 'symptoms', 'witnesses', 'inventory', 'damages']));
+            // 2. Vehículo: marca/modelo solo cambian si el usuario los eligió; el texto histórico se conserva si no.
+            if ($recepcion->vehicle) {
+                $vehiculo = $recepcion->vehicle;
+                $cambios = Arr::only($datos, ['year', 'plate', 'vin', 'engine']);
+
+                if (! empty($datos['brand_id']) && (int) $datos['brand_id'] !== (int) $vehiculo->brand_id) {
+                    $cambios['brand_id'] = $datos['brand_id'];
+                    $cambios['brand'] = Brand::find($datos['brand_id'])?->name ?? $vehiculo->brand;
+                }
+                if (! empty($datos['vehicle_model_id']) && (int) $datos['vehicle_model_id'] !== (int) $vehiculo->model_id) {
+                    $cambios['model_id'] = $datos['vehicle_model_id'];
+                    $cambios['model'] = VehicleModel::find($datos['vehicle_model_id'])?->name ?? $vehiculo->model;
+                }
+
+                if (! empty($cambios)) {
+                    $vehiculo->update($cambios);
+                }
+            }
+
+            // 3. Recepción: datos de ingreso (daños y fotos no se editan aquí).
+            $recepcion->update(Arr::only($datos, ['miles', 'fuel_level', 'symptoms', 'witnesses', 'inventory']));
+        });
 
         return redirect()->route('recepcion.index')->with('success', 'Recepción actualizada correctamente');
     }
+
     /**
      * Genera el PDF de la nota de recepción.
      */

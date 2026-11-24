@@ -13,10 +13,9 @@ const props = defineProps({ recepcion: Object });
 const page = usePage();
 const { t } = useI18n();
 
-// Marca y modelo: relación catálogo si existe; si no, el texto guardado en el vehículo.
-const marcaVehiculo = computed(() => props.recepcion.vehicle?.brand?.name
-    ?? (typeof props.recepcion.vehicle?.brand === 'string' ? props.recepcion.vehicle.brand : null));
-const modeloVehiculo = computed(() => props.recepcion.vehicle?.vehicle_model?.name ?? props.recepcion.vehicle?.model ?? null);
+// Marca y modelo ya resueltos en el servidor: catálogo si existe, o texto histórico del vehículo.
+const marcaVehiculo = computed(() => props.recepcion.vehicle?.display_brand ?? null);
+const modeloVehiculo = computed(() => props.recepcion.vehicle?.display_model ?? null);
 
 const idFormateado = computed(() => String(props.recepcion.id).padStart(4, '0'));
 

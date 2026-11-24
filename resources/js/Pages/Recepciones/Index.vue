@@ -39,8 +39,9 @@ function vinculo(rec) {
 
 const vehiculo = (rec) => {
     const v = rec.vehicle;
-    const marca = v?.brand?.name ?? (typeof v?.brand === 'string' ? v.brand : null) ?? t('recepcionUi.sinMarca');
-    const modelo = v?.vehicle_model?.name ?? v?.model ?? '';
+    // Marca y modelo ya resueltos en el servidor (catálogo o texto histórico).
+    const marca = v?.display_brand ?? t('recepcionUi.sinMarca');
+    const modelo = v?.display_model ?? '';
     return [marca, modelo, v?.year ? `(${v.year})` : null].filter(Boolean).join(' ');
 };
 

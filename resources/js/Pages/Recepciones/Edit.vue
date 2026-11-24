@@ -1,48 +1,46 @@
 <script setup>
-import { ref, computed } from 'vue';
+// Editar recepción: corrige los datos de ingreso. No cambia la orden de reparación, su estado,
+// ni los daños o fotos (esta vista no los envía). Los datos llegan pre-llenados desde el servidor.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import ReceptionClientFields from '@/Components/Recepciones/ReceptionClientFields.vue';
+import ReceptionVehicleFields from '@/Components/Recepciones/ReceptionVehicleFields.vue';
+import ReceptionIntakeFields from '@/Components/Recepciones/ReceptionIntakeFields.vue';
+import ReceptionConditionFields from '@/Components/Recepciones/ReceptionConditionFields.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-
-// 1. Recibimos los datos con sus relaciones cargadas desde el controlador
-const { t } = useI18n();
-function getLang() { return localStorage.getItem('jk_locale') ?? 'es'; }
 
 const props = defineProps({
     brands: Array,
     recepcion: Object,
+    legacyVehicle: Object, // { brand, model } en texto, si el vehículo no tiene FK
 });
+const { t } = useI18n();
 
-// 2. Control de la vista
-const currentStep = ref(1);
-
-// 3. Extracción segura: Leemos de las relaciones (client y vehicle)
 const client = props.recepcion.client || {};
 const vehicle = props.recepcion.vehicle || {};
 
-// 4. PRE-LLENADO: El formulario arranca con la memoria de la BD normalizada
 const form = useForm({
-    // Mandamos los IDs para que el backend sepa a quién actualizar
     client_id: client.id,
     vehicle_id: vehicle.id,
 
-    // Datos del Cliente
+    // Cliente
     first_name: client.first_name || '',
-    last_name: client.last_name || '', // Agregado: Requerido en la BD
+    last_name: client.last_name || '',
     country: client.country || 'MX',
     phone: client.phone || '',
     address: client.address || '',
     rfc: client.rfc || '',
 
-    // Datos del Vehículo
+    // Vehículo
     brand_id: vehicle.brand_id || '',
-    vehicle_model_id: vehicle.model_id || '', // Corregido: La llave foránea es model_id
-    year: vehicle.year || '',
+    vehicle_model_id: vehicle.model_id || '',
+    year: vehicle.year ? String(vehicle.year) : '',
     plate: vehicle.plate || '',
-    vin: vehicle.vin || '', // Corregido: vin_serial -> vin
-    engine: vehicle.engine || '', // Agregado: Nuevo campo de motor
+    vin: vehicle.vin || '',
+    engine: vehicle.engine || '',
 
-    // Datos de la Recepción (Transaccionales puros)
+    // Recepción
     miles: props.recepcion.miles || '',
     fuel_level: props.recepcion.fuel_level || '1/4',
     symptoms: props.recepcion.symptoms || '',
@@ -50,175 +48,62 @@ const form = useForm({
     inventory: props.recepcion.inventory || [],
 });
 
-// Lógica de Marcas y Modelos Dinámicos
-const availableModels = computed(() => {
-    const brand = props.brands.find(b => b.id === form.brand_id);
-    return brand ? brand.vehicle_models : [];
-});
-
-// Niveles de gasolina para el diseño visual
-const fuelLevels = ['E', '1/4', '1/2', '3/4', 'F'];
-
-// Enviar los datos actualizados (usando PUT)
 const submit = () => {
-    form.put(route("recepcion.update", props.recepcion.id), {
+    form.put(route('recepcion.update', props.recepcion.id), {
         preserveState: true,
         preserveScroll: true,
-        onError: (errors) => {
-            // Errores de validación manejados por Inertia form.errors
-            alert("Por favor, revisa los campos marcados en rojo.");
-        }
     });
 };
 </script>
 
 <template>
-    <Head title="Editar Recepción" />
-    <AuthenticatedLayout>
-        <template #header>
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold leading-tight text-gray-800 uppercase tracking-tighter">
-                    EDITAR RECEPCIÓN <span class="text-jk-red">#{{ recepcion.id }}</span>
-                </h2>
-                <Link :href="route('dashboard')" class="text-sm text-gray-500 hover:text-jk-blue transition-colors">
-                    &larr; Volver al Panel
-                </Link>
+    <Head :title="t('recepcionUi.editarTitulo')" />
+
+    <AppShellLayout>
+        <PageHeader :title="`${t('recepcionUi.editarTitulo')} #${recepcion.id}`" :description="t('recepcionUi.editarAyuda')">
+            <Link
+                :href="route('recepcion.show', recepcion.id)"
+                class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+            >{{ t('recepcionUi.volverDetalle') }}</Link>
+        </PageHeader>
+
+        <form class="mt-6 min-w-0 space-y-6" novalidate @submit.prevent="submit">
+            <div
+                v-if="form.hasErrors"
+                role="alert"
+                class="rounded-xl border border-danger bg-danger-soft px-4 py-3 text-ds-control font-semibold text-danger-text"
+            >{{ t('recepcionUi.revisaCampos') }}</div>
+
+            <section aria-labelledby="sec-cliente" class="min-w-0 space-y-5 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <h2 id="sec-cliente" class="text-ds-section-title text-navy">{{ t('recepcionUi.secCliente') }}</h2>
+                <ReceptionClientFields :form="form" />
+            </section>
+
+            <section aria-labelledby="sec-vehiculo" class="min-w-0 space-y-5 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <h2 id="sec-vehiculo" class="text-ds-section-title text-navy">{{ t('recepcionUi.secVehiculo') }}</h2>
+                <ReceptionVehicleFields :form="form" :brands="brands" :legacy="legacyVehicle" />
+            </section>
+
+            <section aria-label="Ingreso" class="min-w-0 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <ReceptionIntakeFields :form="form" />
+            </section>
+
+            <section aria-labelledby="sec-condicion" class="min-w-0 space-y-6 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <h2 id="sec-condicion" class="text-ds-section-title text-navy">{{ t('recepcion_form.condiciones') }}</h2>
+                <ReceptionConditionFields :form="form" />
+            </section>
+
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Link
+                    :href="route('recepcion.show', recepcion.id)"
+                    class="ds-focus inline-flex h-control items-center justify-center rounded-lg border border-line bg-surface px-5 text-ds-control font-semibold text-ink-secondary hover:bg-surface-2"
+                >{{ t('recepcionUi.cancelar') }}</Link>
+                <button
+                    type="submit"
+                    :disabled="form.processing"
+                    class="ds-focus h-control rounded-lg bg-navy px-6 text-ds-control font-semibold text-white hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >{{ form.processing ? t('recepcion_form.guardando') : t('recepcionUi.guardarCambios') }}</button>
             </div>
-        </template>
-        <div class="py-12 bg-gray-50 min-h-screen">
-            <div class="mx-auto max-w-4xl sm:px-6 lg:px-8">
-                <div class="flex justify-center mb-8">
-                    <div class="flex items-center space-x-4">
-                        <button type="button" @click="currentStep = 1" :class="currentStep === 1 ? 'bg-jk-blue text-white' : 'bg-green-500 text-white'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
-                            <span v-if="currentStep === 1">1</span>
-                            <span v-else>✓</span>
-                        </button>
-                        <span :class="currentStep === 1 ? 'text-jk-blue font-bold' : 'text-gray-500'">Datos del Cliente</span>
-                        
-                        <div class="w-8 h-0.5 bg-gray-300"></div>
-                        
-                        <button type="button" @click="currentStep = 2" :class="currentStep === 2 ? 'bg-jk-blue text-white' : 'bg-gray-200 text-gray-600'" class="w-8 h-8 rounded-full font-bold flex items-center justify-center transition-all">
-                            2
-                        </button>
-                        <span :class="currentStep === 2 ? 'text-jk-blue font-bold' : 'text-gray-400'">Datos del Vehículo</span>
-                    </div>
-                </div>
-
-                <form @submit.prevent="submit" class="bg-white shadow-xl sm:rounded-2xl overflow-hidden border-t-8 border-jk-blue">
-                    <div class="p-8">
-                        <!-- PASO 1 -->
-                        <div v-show="currentStep === 1" class="space-y-6 animate-fade-in">
-                            <h3 class="text-lg font-black text-jk-blue uppercase border-b-2 border-gray-100 pb-2 mb-6">Datos del Cliente</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre(s) *</label>
-                                    <input v-model="form.first_name" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Apellidos *</label>
-                                    <input v-model="form.last_name" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
-                                    <input v-model="form.phone" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">RFC</label>
-                                    <input v-model="form.rfc" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" />
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Dirección</label>
-                                    <input v-model="form.address" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
-                                </div>
-                            </div>
-                            <div class="mt-8 flex justify-end">
-                                <button type="button" @click="currentStep = 2" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-xl transition-all">
-                                    CONTINUAR &rarr;
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- PASO 2 -->
-                        <div v-show="currentStep === 2" class="space-y-6 animate-fade-in">
-                            <h3 class="text-lg font-black text-jk-red uppercase border-b-2 border-gray-100 pb-2 mb-6">Datos del Vehículo</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Marca *</label>
-                                    <select v-model="form.brand_id" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required>
-                                        <option value="" disabled>Seleccione marca...</option>
-                                        <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Modelo *</label>
-                                    <select v-model="form.vehicle_model_id" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" :disabled="!form.brand_id" required>
-                                        <option value="" disabled>Seleccione modelo...</option>
-                                        <option v-for="model in availableModels" :key="model.id" :value="model.id">{{ model.name }}</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Año *</label>
-                                    <input v-model="form.year" type="text" maxlength="4" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" required />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Placa</label>
-                                    <input v-model="form.plate" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Motor</label>
-                                    <input v-model="form.engine" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" placeholder="Ej. 2.0L" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">VIN / Serie</label>
-                                    <input v-model="form.vin" type="text" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20 uppercase" maxlength="17" />
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-1">Kilometraje</label>
-                                    <input v-model="form.miles" type="number" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-3">Gasolina al Ingreso *</label>
-                                    <div class="flex gap-2">
-                                        <button v-for="level in fuelLevels" :key="level" type="button" @click="form.fuel_level = level"
-                                            :class="form.fuel_level === level ? 'bg-jk-blue text-white ring-2 ring-offset-2 ring-jk-blue' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                            class="flex-1 py-3 rounded-xl font-bold transition-all text-sm">
-                                            {{ level }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pt-4">
-                                <label class="block text-sm font-bold text-gray-700 mb-1">Falla Reportada / Observaciones</label>
-                                <textarea v-model="form.symptoms" rows="3" class="w-full rounded-lg border-gray-300 focus:border-jk-blue focus:ring focus:ring-jk-blue/20" placeholder="Ej. El cliente reporta ruido al frenar..."></textarea>
-                            </div>
-
-                            <div class="mt-8 flex justify-between pt-6 border-t border-gray-100">
-                                <button type="button" @click="currentStep = 1" class="text-gray-500 hover:text-jk-blue font-bold py-3 px-6 transition-colors">
-                                    &larr; REGRESAR
-                                </button>
-                                <button type="submit" :disabled="form.processing" class="bg-green-600 hover:bg-green-700 text-white font-black py-3 px-8 rounded-xl transition-all shadow-lg flex items-center gap-2">
-                                    <span v-if="form.processing">GUARDANDO...</span>
-                                    <span v-else>💾 GUARDAR CAMBIOS</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </AuthenticatedLayout>
+        </form>
+    </AppShellLayout>
 </template>
-
-<style scoped>
-.animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-</style>
