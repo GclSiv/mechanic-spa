@@ -14,9 +14,9 @@ const form = useForm({
     category_id:         props.part.category_id ?? '',
     name:                props.part.name,
     sku:                 props.part.sku,
+    barcode:             props.part.barcode ?? '',
     cost_price:          props.part.cost_price,
     sale_price:          props.part.sale_price,
-    stock:               props.part.stock,
     low_stock_threshold: props.part.low_stock_threshold,
 });
 
@@ -36,6 +36,8 @@ function submit() { form.put(route('parts.update', props.part.id)); }
                 :submit-label="t('refaccionesUi.formActualizar')"
                 :submitting-label="t('refaccionesUi.formGuardando')"
                 :cancel-href="route('parts.index')"
+                :stock-actual="part.stock"
+                :kardex-href="route('parts.kardex', part.id)"
                 @submit="submit"
             />
         </div>

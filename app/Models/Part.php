@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Part extends Model
 {
@@ -14,6 +15,7 @@ class Part extends Model
         'category_id',
         'name',
         'sku',
+        'barcode',
         'cost_price',
         'sale_price',
         'stock',
@@ -30,5 +32,10 @@ class Part extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class)->orderByDesc('id');
     }
 }

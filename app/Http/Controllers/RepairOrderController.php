@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class RepairOrderController extends Controller
 {
-    public function addItem(Request $request, RepairOrder $order, EstadoFinancieroAction $estado)
+    public function addItem(Request $request, RepairOrder $order, EstadoFinancieroAction $estado, \App\Actions\Parts\RegistrarMovimientoStockAction $stock)
     {
         abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden registrar conceptos.');
 
@@ -42,26 +42,12 @@ class RepairOrderController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request, $order, $estado) {
+            DB::transaction(function () use ($request, $order, $estado, $stock) {
                 $esRefaccion = $request->type === 'part';
 
-                // Descuento atómico: la comprobación stock >= cantidad y el decremento
-                // van en un solo UPDATE. Si no afecta exactamente una fila, no hay stock y se revierte todo.
-                if ($esRefaccion) {
-                    $descontado = \App\Models\Part::whereKey($request->part_id)
-                        ->where('stock', '>=', $request->quantity)
-                        ->decrement('stock', $request->quantity);
-
-                    if ($descontado !== 1) {
-                        $disponible = \App\Models\Part::find($request->part_id)?->stock ?? 0;
-
-                        throw ValidationException::withMessages([
-                            'quantity' => "Stock insuficiente. Disponible: {$disponible}",
-                        ]);
-                    }
-                }
-
-                $order->items()->create([
+                // El concepto se crea primero para tener su id; el consumo de stock es un movimiento
+                // del kardex en la misma transacción: si no hay stock, la acción lanza y todo se revierte.
+                $item = $order->items()->create([
                     'type'        => $request->type,
                     'description' => $esRefaccion
                         ? \App\Models\Part::find($request->part_id)->name
@@ -71,6 +57,17 @@ class RepairOrderController extends Controller
                     'unit_price'  => $request->unit_price,
                     'subtotal'    => \App\Support\Cantidad::importe($request->quantity, $request->unit_price),
                 ]);
+
+                if ($esRefaccion) {
+                    $stock->ejecutar(
+                        partId: (int) $request->part_id,
+                        tipo: \App\Models\StockMovement::TIPO_CONSUMO,
+                        cantidad: -(int) $request->quantity,
+                        userId: $request->user()->id,
+                        motivo: "Orden #{$order->id}",
+                        itemId: $item->id,
+                    );
+                }
 
                 $estado->sincronizar($order);
             });
@@ -223,7 +220,7 @@ class RepairOrderController extends Controller
         $order->recepcion?->client?->makeHidden(['rfc', 'phone', 'email', 'address', 'country']);
     }
 
-    public function removeItem(RepairOrder $order, RepairOrderItem $item, EstadoFinancieroAction $estado)
+    public function removeItem(RepairOrder $order, RepairOrderItem $item, EstadoFinancieroAction $estado, \App\Actions\Parts\RegistrarMovimientoStockAction $stock)
     {
         abort_unless(auth()->user()->isAdmin() || $item->type === 'part', 403, 'Solo puedes eliminar refacciones.');
         abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar conceptos.');
@@ -240,11 +237,18 @@ class RepairOrderController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($item, $order, $estado) {
+            DB::transaction(function () use ($item, $order, $estado, $stock) {
                 // Devolver stock si era una refacción vinculada
                 if ($item->part_id) {
-                    \App\Models\Part::where('id', $item->part_id)
-                        ->increment('stock', (int) $item->quantity); // refacciones: cantidad entera
+                    // Reversa auditable: el movimiento queda en el kardex antes de borrar el concepto.
+                    $stock->ejecutar(
+                        partId: (int) $item->part_id,
+                        tipo: \App\Models\StockMovement::TIPO_REVERSA,
+                        cantidad: (int) $item->quantity,
+                        userId: auth()->id(),
+                        motivo: "Concepto eliminado de orden #{$order->id}",
+                        itemId: $item->id,
+                    );
                 }
                 $item->delete();
                 $estado->sincronizar($order);

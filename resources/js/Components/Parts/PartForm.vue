@@ -11,6 +11,9 @@ defineProps({
     submitLabel: { type: String, required: true },
     submittingLabel: { type: String, required: true },
     cancelHref: { type: String, required: true },
+    // En edición el stock no se escribe aquí: se muestra y se cambia desde el Kardex.
+    stockActual: { type: Number, default: null },
+    kardexHref: { type: String, default: null },
 });
 
 defineEmits(['submit']);
@@ -38,6 +41,12 @@ const errorTexto = 'mt-1 text-ds-caption text-danger-text';
                     <p v-else class="mt-1 text-ds-caption text-ink-muted">{{ t('refaccionesUi.formSkuAyuda') }}</p>
                 </div>
                 <div>
+                    <label for="pf-barcode" :class="label">{{ t('refaccionesUi.formBarcode') }}</label>
+                    <input id="pf-barcode" v-model="form.barcode" type="text" autocomplete="off" class="font-mono" :aria-invalid="!!form.errors.barcode" :class="inputClase('barcode', form)" />
+                    <p v-if="form.errors.barcode" :class="errorTexto" role="alert">{{ form.errors.barcode }}</p>
+                    <p v-else class="mt-1 text-ds-caption text-ink-muted">{{ t('refaccionesUi.formBarcodeAyuda') }}</p>
+                </div>
+                <div>
                     <label for="pf-categoria" :class="label">{{ t('refaccionesUi.formCategoria') }}</label>
                     <select id="pf-categoria" v-model="form.category_id" :aria-invalid="!!form.errors.category_id" :class="inputClase('category_id', form)">
                         <option value="">{{ t('refaccionesUi.sinCategoria') }}</option>
@@ -51,10 +60,20 @@ const errorTexto = 'mt-1 text-ds-caption text-danger-text';
         <section class="space-y-4 rounded-xl border border-line bg-surface p-5" aria-labelledby="pf-inventario">
             <h2 id="pf-inventario" class="text-ds-section-title font-semibold text-navy">{{ t('refaccionesUi.formInventario') }}</h2>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
+                <div v-if="stockActual === null">
                     <label for="pf-stock" :class="label">{{ t('refaccionesUi.formStock') }}</label>
                     <input id="pf-stock" v-model="form.stock" type="number" min="0" step="1" inputmode="numeric" :aria-invalid="!!form.errors.stock" :class="inputClase('stock', form)" />
                     <p v-if="form.errors.stock" :class="errorTexto" role="alert">{{ form.errors.stock }}</p>
+                    <p v-else class="mt-1 text-ds-caption text-ink-muted">{{ t('refaccionesUi.formStockInicialAyuda') }}</p>
+                </div>
+                <div v-else class="md:col-span-2 flex flex-col gap-2 rounded-lg border border-line bg-surface-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-ds-body text-ink-secondary">
+                        {{ t('refaccionesUi.formStockSoloKardex') }}
+                        <span class="ml-1 font-semibold tabular-nums text-ink">{{ stockActual }}</span>
+                    </p>
+                    <Link v-if="kardexHref" :href="kardexHref" class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface">
+                        {{ t('refaccionesUi.kardexVer') }}
+                    </Link>
                 </div>
                 <div>
                     <label for="pf-minimo" :class="label">{{ t('refaccionesUi.formStockMinimo') }}</label>

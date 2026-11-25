@@ -39,6 +39,14 @@ function limpiarFiltros() {
     aplicarFiltros();
 }
 
+// Escaneo: el servidor busca por código de barras y, si no hay, por SKU, y lleva al Kardex.
+const codigoEscaneo = ref('');
+function escanear() {
+    const codigo = codigoEscaneo.value.trim();
+    if (!codigo) return;
+    router.get(route('parts.scan'), { codigo }, { preserveScroll: true });
+}
+
 const irAPagina = (url) => {
     if (!url) return;
     router.get(url, {}, { preserveState: true, preserveScroll: true });
@@ -74,7 +82,22 @@ function confirmarBorrado() {
             >{{ t('refaccionesUi.nueva') }}</Link>
         </PageHeader>
 
-        <form class="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center" role="search" @submit.prevent="aplicarFiltros">
+        <form class="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center" role="search" @submit.prevent="escanear">
+            <label for="refacciones-escaner" class="sr-only">{{ t('refaccionesUi.escanearEtiqueta') }}</label>
+            <input
+                id="refacciones-escaner"
+                v-model="codigoEscaneo"
+                type="text"
+                autocomplete="off"
+                :placeholder="t('refaccionesUi.escanearPlaceholder')"
+                class="ds-focus h-control w-full min-w-0 rounded-lg border border-line bg-surface px-3 font-mono text-ds-body text-ink sm:max-w-xs"
+            />
+            <button type="submit" class="ds-focus h-control rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90">
+                {{ t('refaccionesUi.escanear') }}
+            </button>
+        </form>
+
+        <form class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center" role="search" @submit.prevent="aplicarFiltros">
             <label for="refacciones-buscar" class="sr-only">{{ t('refaccionesUi.buscar') }}</label>
             <input
                 id="refacciones-buscar"
@@ -153,6 +176,10 @@ function confirmarBorrado() {
                             <td class="px-4 py-3">
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <Link
+                                        :href="route('parts.kardex', p.id)"
+                                        class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                                    >{{ t('refaccionesUi.kardexVer') }}</Link>
+                                    <Link
                                         :href="route('parts.edit', p.id)"
                                         class="ds-focus inline-flex h-control-compact items-center whitespace-nowrap rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
                                     >{{ t('refaccionesUi.editar') }}</Link>
@@ -185,6 +212,10 @@ function confirmarBorrado() {
                         <div><dt class="text-ink-muted">{{ t('refaccionesUi.colVenta') }}</dt><dd class="tabular-nums font-semibold text-ink">{{ precio(p.sale_price) }}</dd></div>
                     </dl>
                     <div class="mt-3 flex flex-wrap gap-2">
+                        <Link
+                            :href="route('parts.kardex', p.id)"
+                            class="ds-focus inline-flex h-control-compact items-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                        >{{ t('refaccionesUi.kardexVer') }}</Link>
                         <Link
                             :href="route('parts.edit', p.id)"
                             class="ds-focus inline-flex h-control-compact items-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"

@@ -124,6 +124,15 @@ Route::middleware(['auth'])->group(function () {
         ->except(['show'])
         ->names('parts')
         ->middleware('role:admin');
+    Route::get('parts/escanear', [\App\Http\Controllers\PartController::class, 'scan'])
+        ->name('parts.scan')
+        ->middleware('role:admin');
+    Route::get('parts/{part}/kardex', [\App\Http\Controllers\PartController::class, 'kardex'])
+        ->name('parts.kardex')
+        ->middleware('role:admin');
+    Route::post('parts/{part}/movimientos', [\App\Http\Controllers\PartController::class, 'movimiento'])
+        ->name('parts.movimientos.store')
+        ->middleware('role:admin');
 
     // ========================================================
     // MÓDULO 7: PAGOS Y COBRANZA

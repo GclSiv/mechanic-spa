@@ -239,10 +239,10 @@ class PartsUi8Test extends TestCase
         $parte = $this->refaccion(['name' => 'Original']);
 
         $this->actingAs($this->admin())->put(route('parts.update', $parte), $this->datosValidos([
-            'name' => 'Editada', 'sku' => $parte->sku, 'stock' => 9,
+            'name' => 'Editada', 'sku' => $parte->sku,
         ]))->assertRedirect(route('parts.index'));
 
-        $this->assertDatabaseHas('parts', ['id' => $parte->id, 'name' => 'Editada', 'stock' => 9]);
+        $this->assertDatabaseHas('parts', ['id' => $parte->id, 'name' => 'Editada']);
     }
 
     public function test_edit_permite_conservar_el_propio_sku_y_rechaza_el_de_otra_refaccion(): void
@@ -261,13 +261,14 @@ class PartsUi8Test extends TestCase
         $this->assertDatabaseHas('parts', ['id' => $otra->id, 'sku' => 'AJENO-1']);
     }
 
-    public function test_edit_rechaza_stock_negativo(): void
+    /** UI-8B: el stock ya no se edita directo; un intento de cambiarlo desde Edit se ignora. */
+    public function test_edit_ignora_cualquier_intento_de_cambiar_stock(): void
     {
         $parte = $this->refaccion(['stock' => 4]);
 
         $this->actingAs($this->admin())->put(route('parts.update', $parte), $this->datosValidos([
             'sku' => $parte->sku, 'stock' => -2,
-        ]))->assertSessionHasErrors('stock');
+        ]))->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('parts', ['id' => $parte->id, 'stock' => 4]);
     }

@@ -11,7 +11,7 @@ const { t } = useI18n();
 defineProps({ categories: Array });
 
 const form = useForm({
-    category_id: '', name: '', sku: '', cost_price: '', sale_price: '', stock: 0, low_stock_threshold: 2,
+    category_id: '', name: '', sku: '', barcode: '', cost_price: '', sale_price: '', stock: 0, low_stock_threshold: 2,
 });
 
 function submit() { form.post(route('parts.store')); }
