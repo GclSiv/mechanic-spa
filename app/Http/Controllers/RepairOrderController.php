@@ -34,6 +34,10 @@ class RepairOrderController extends Controller
             'type'        => 'required|in:part,labor',
             'description' => 'required_if:type,labor|nullable|string',
             'part_id'     => 'required_if:type,part|nullable|exists:parts,id',
+            // Mano de obra nueva: mecánico ejecutor obligatorio (la columna en DB sigue nullable por históricos).
+            'mechanic_id' => 'required_if:type,labor|nullable|integer|exists:mechanics,id',
+            // Servicio opcional: solo activos. Un servicio inactivo nunca se elige en conceptos nuevos.
+            'service_id'  => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('services', 'id')->where('is_active', true)],
             // Refacción: piezas enteras positivas. Mano de obra: magnitud positiva con máximo dos decimales (p. ej. 1.50).
             'quantity'    => $esRefaccion
                 ? 'required|integer|min:1|max:100000'
@@ -47,7 +51,13 @@ class RepairOrderController extends Controller
 
                 // El concepto se crea primero para tener su id; el consumo de stock es un movimiento
                 // del kardex en la misma transacción: si no hay stock, la acción lanza y todo se revierte.
-                $item = $order->items()->create([
+                // Comisión fija por concepto: el snapshot copia el monto del servicio en este momento.
+                // Texto libre o sin servicio = $0. La comisión nunca se multiplica por cantidad/horas y nunca usa commission_rate.
+                $servicio = (! $esRefaccion && $request->filled('service_id'))
+                    ? \App\Models\Service::activos()->find($request->service_id)
+                    : null;
+
+                $item = $order->items()->make([
                     'type'        => $request->type,
                     'description' => $esRefaccion
                         ? \App\Models\Part::find($request->part_id)->name
@@ -56,7 +66,15 @@ class RepairOrderController extends Controller
                     'quantity'    => $request->quantity,
                     'unit_price'  => $request->unit_price,
                     'subtotal'    => \App\Support\Cantidad::importe($request->quantity, $request->unit_price),
+                    'service_id'                 => $esRefaccion ? null : $servicio?->id,
+                    'mechanic_id' => $esRefaccion ? null : $request->mechanic_id,
                 ]);
+
+                // Campos derivados: asignación interna y explícita (no fillable). Valores calculados aquí, nunca de $request.
+                $item->forceFill([
+                    'commission_model'           => $esRefaccion ? RepairOrderItem::MODELO_LEGACY : RepairOrderItem::MODELO_FIXED,
+                    'commission_amount_snapshot' => $esRefaccion ? null : ($servicio?->commission_amount ?? 0),
+                ])->save();
 
                 if ($esRefaccion) {
                     $stock->ejecutar(
@@ -139,7 +157,7 @@ class RepairOrderController extends Controller
         $isAdmin = auth()->user()->isAdmin();
 
         $order->load([
-            'items', 'status', 'mechanic', 'quotes.items',
+            'items', 'items.mechanic:id,name', 'status', 'mechanic', 'quotes.items',
             'followUps.mechanic',
             'payments',
             'avancePhotos',
@@ -194,6 +212,7 @@ class RepairOrderController extends Controller
             'settings'            => \App\Models\Setting::current()->brandingData(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => $isAdmin ? Mechanic::orderBy('name')->get(['id', 'name']) : [],
+            'services'            => $isAdmin ? \App\Models\Service::activos()->orderBy('name')->get(['id', 'name']) : [],
             'parts'               => \App\Models\Part::where('stock', '>', 0)->orderBy('name')
                 ->get($isAdmin
                     ? ['id', 'name', 'sale_price', 'stock', 'low_stock_threshold']
@@ -215,6 +234,7 @@ class RepairOrderController extends Controller
 
         if ($order->relationLoaded('items')) {
             $order->items->each->makeHidden(['unit_price', 'subtotal']);
+            $order->items->each->unsetRelation('mechanic');
         }
 
         $order->recepcion?->client?->makeHidden(['rfc', 'phone', 'email', 'address', 'country']);

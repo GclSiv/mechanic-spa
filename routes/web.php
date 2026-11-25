@@ -100,6 +100,13 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:admin');
 
     // ========================================================
+    // CATÁLOGO DE SERVICIOS con comisión fija (solo admin/owner)
+    // ========================================================
+    Route::resource('services', \App\Http\Controllers\ServiceController::class)
+        ->except(['show'])
+        ->middleware('role:admin');
+
+    // ========================================================
     // MÓDULO DE EXPORTACIÓN (solo admin)
     // ========================================================
     Route::get('/exportar/ordenes', [\App\Http\Controllers\ExportController::class, 'ordenesCSV'])

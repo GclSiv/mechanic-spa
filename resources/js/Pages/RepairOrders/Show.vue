@@ -23,6 +23,7 @@ const props = defineProps({
     settings: Object,
     statuses: Array,
     mechanics: Array,
+    services: Array,
     parts: Array,
     isAdmin: Boolean,
 });
@@ -140,9 +141,18 @@ const form = useForm({
     description: '',
     type: 'part',
     part_id: null,
+    // Mano de obra: mecánico ejecutor obligatorio y servicio opcional (la comisión la decide el servidor).
+    mechanic_id: null,
+    service_id: null,
     quantity: 1,
     unit_price: 0,
 });
+
+// Autocompletado de apoyo: si no hay descripción, usa el nombre del servicio. No cambia precio ni comisión.
+function aplicarServicio() {
+    const servicio = (props.services ?? []).find(s => s.id === Number(form.service_id));
+    if (servicio && !form.description) form.description = servicio.name;
+}
 
 // Refacciones: entero sin decimales. Mano de obra: dos decimales (p. ej. 1.50). Solo presentación; el servidor valida.
 function cantidadTexto(item) {
@@ -385,6 +395,7 @@ function removeItem(itemId) {
                                         <p class="text-ds-caption text-ink-muted">
                                             {{ item.type === 'part' ? $t('cotizacion.refaccion') : $t('cotizacion.manoDeObra') }}
                                             · {{ $t('expediente.trabCantidad') }} {{ cantidadTexto(item) }}
+                                            <span v-if="item.type === 'labor' && item.mechanic"> · {{ item.mechanic.name }}</span>
                                         </p>
                                         <p v-if="item.autorizado" class="mt-1 text-ds-caption font-semibold text-ink-muted">{{ $t('expediente.trabAutorizado') }}</p>
                                     </div>
@@ -519,7 +530,7 @@ function removeItem(itemId) {
 
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.tipoLabel') }}</label>
-                        <select v-model="form.type" @change="form.part_id = null; form.unit_price = 0; form.quantity = 1; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                        <select v-model="form.type" @change="form.part_id = null; form.mechanic_id = null; form.service_id = null; form.unit_price = 0; form.quantity = 1; form.description = ''; partSearch = ''; showPartList = false" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#10213E]">
                             <option value="part">{{ $t('cotizacion.refaccion') }}</option>
                             <option v-if="isAdmin" value="labor">{{ $t('cotizacion.manoDeObra') }}</option>
                         </select>
@@ -559,6 +570,24 @@ function removeItem(itemId) {
                     </div>
 
                     <!-- Mano de obra: texto libre -->
+                    <div v-if="form.type === 'labor' && isAdmin" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('serviciosUi.ejecutorLabel') }}</label>
+                            <select v-model="form.mechanic_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                <option :value="null" disabled>{{ $t('serviciosUi.ejecutorSeleccione') }}</option>
+                                <option v-for="m in mechanics" :key="m.id" :value="m.id">{{ m.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('serviciosUi.servicioLabel') }}</label>
+                            <select v-model="form.service_id" @change="aplicarServicio" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10213E]">
+                                <option :value="null">{{ $t('serviciosUi.sinServicio') }}</option>
+                                <option v-for="s in services" :key="s.id" :value="s.id">{{ s.name }}</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-400">{{ $t('serviciosUi.servicioAyuda') }}</p>
+                        </div>
+                    </div>
+
                     <div v-if="form.type === 'labor' && isAdmin">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{ $t('cotizacion.descripcionLabel') }}</label>
                         <input v-model="form.description" type="text" :placeholder="$t('cotizacion.descripcionPh')"

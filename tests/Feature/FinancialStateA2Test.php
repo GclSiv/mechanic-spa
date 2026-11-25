@@ -510,7 +510,7 @@ class FinancialStateA2Test extends TestCase
         // Agregar trabajo no autorizado lo vuelve pendiente
         $this->actingAs($admin)
             ->post(route('repair-orders.items.store', $order), [
-                'type' => 'labor', 'description' => 'Extra', 'quantity' => 1, 'unit_price' => 100,
+                'type' => 'labor', 'description' => 'Extra', 'quantity' => 1, 'unit_price' => 100, 'mechanic_id' => $this->ejecutor(),
             ])
             ->assertSessionHasNoErrors();
 
@@ -530,5 +530,15 @@ class FinancialStateA2Test extends TestCase
         $this->pagar($admin, $order, 1)->assertSessionHasErrors('amount');
 
         $this->assertSame(0.0, $this->estado($order)['saldo_autorizado']);
+    }
+
+    /** Mecánico ejecutor para conceptos de mano de obra nuevos (la aplicación exige mechanic_id). */
+    private function ejecutor(): int
+    {
+        return \App\Models\Mechanic::create([
+            'name' => 'Ejecutor de prueba',
+            'gender_id' => \App\Models\Gender::firstOrCreate(['name' => 'Masculino'])->id,
+            'mechanic_type_id' => \App\Models\MechanicType::firstOrCreate(['name' => 'General'])->id,
+        ])->id;
     }
 }

@@ -142,8 +142,19 @@ class PartStockAtomicTest extends TestCase
             'description' => 'Diagnóstico',
             'quantity'    => 1.5,
             'unit_price'  => 300,
+            'mechanic_id' => $this->ejecutor(),
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('repair_order_items', ['repair_order_id' => $order->id, 'type' => 'labor']);
+    }
+
+    /** Mecánico ejecutor para conceptos de mano de obra nuevos (la aplicación exige mechanic_id). */
+    private function ejecutor(): int
+    {
+        return \App\Models\Mechanic::create([
+            'name' => 'Ejecutor de prueba',
+            'gender_id' => \App\Models\Gender::firstOrCreate(['name' => 'Masculino'])->id,
+            'mechanic_type_id' => \App\Models\MechanicType::firstOrCreate(['name' => 'General'])->id,
+        ])->id;
     }
 }

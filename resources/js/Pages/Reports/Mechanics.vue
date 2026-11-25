@@ -71,6 +71,7 @@ const money = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currenc
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                         <p class="text-xs text-gray-500 uppercase font-bold">Comisiones a pagar</p>
                         <p class="text-2xl font-black text-emerald-700 mt-1">{{ money(totals.commission) }}</p>
+                        <p class="text-xs text-gray-400 mt-1">Fija {{ money(totals.commission_fixed) }} · Histórica {{ money(totals.commission_legacy) }}</p>
                     </div>
                 </div>
 
@@ -82,8 +83,10 @@ const money = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currenc
                                 <th class="px-4 py-3 text-left">Mecánico</th>
                                 <th class="px-4 py-3 text-right">Órdenes</th>
                                 <th class="px-4 py-3 text-right">Mano de obra</th>
-                                <th class="px-4 py-3 text-right">% comisión</th>
-                                <th class="px-4 py-3 text-right">Comisión</th>
+                                <th class="px-4 py-3 text-right">% histórico</th>
+                                <th class="px-4 py-3 text-right">Comisión histórica</th>
+                                <th class="px-4 py-3 text-right">Comisión fija</th>
+                                <th class="px-4 py-3 text-right">Comisión total</th>
                                 <th class="px-4 py-3 text-right">Días promedio</th>
                             </tr>
                         </thead>
@@ -93,18 +96,20 @@ const money = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currenc
                                 <td class="px-4 py-3 text-right">{{ row.orders }}</td>
                                 <td class="px-4 py-3 text-right">{{ money(row.labor_total) }}</td>
                                 <td class="px-4 py-3 text-right">{{ row.commission_rate }}%</td>
+                                <td class="px-4 py-3 text-right">{{ money(row.commission_legacy) }}</td>
+                                <td class="px-4 py-3 text-right">{{ money(row.commission_fixed) }}</td>
                                 <td class="px-4 py-3 text-right font-semibold">{{ money(row.commission) }}</td>
                                 <td class="px-4 py-3 text-right">{{ row.avg_days ?? '—' }}</td>
                             </tr>
                             <tr v-if="rows.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-400">No hay mecánicos registrados.</td>
+                                <td colspan="8" class="px-4 py-8 text-center text-gray-400">No hay mecánicos registrados.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <p class="text-xs text-gray-400">
-                    La comisión se calcula sobre la mano de obra sin IVA de las órdenes en estado Reparado o Entregado cuya última actualización cae en el mes seleccionado. Los días promedio van de la fecha de entrada a la fecha de entrega.
+                    Las comisiones fijas se contabilizan en el período en que se registró el trabajo (fecha del concepto), no en la última actualización de la orden. Es un monto por servicio, tomado del concepto al crearlo (una vez, sin multiplicar por horas), y se atribuye al mecánico que ejecutó el trabajo. El porcentaje histórico mantiene el criterio anterior: órdenes en estado Reparado o Entregado cuya última actualización cae en el mes, sobre conceptos anteriores a la transición. Los días promedio van de la fecha de entrada a la fecha de entrega.
                 </p>
             </div>
         </div>

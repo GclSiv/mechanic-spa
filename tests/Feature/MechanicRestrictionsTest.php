@@ -505,6 +505,7 @@ class MechanicRestrictionsTest extends TestCase
                 'description' => 'Cambio de balatas',
                 'quantity'    => 1,
                 'unit_price'  => 500,
+                'mechanic_id' => $this->ejecutor(),
             ])
             ->assertRedirect();
 
@@ -524,5 +525,15 @@ class MechanicRestrictionsTest extends TestCase
         $order = RepairOrder::factory()->create();
 
         $this->get(route('tracking.show', $order->tracking_token))->assertOk();
+    }
+
+    /** Mecánico ejecutor para conceptos de mano de obra nuevos (la aplicación exige mechanic_id). */
+    private function ejecutor(): int
+    {
+        return \App\Models\Mechanic::create([
+            'name' => 'Ejecutor de prueba',
+            'gender_id' => \App\Models\Gender::firstOrCreate(['name' => 'Masculino'])->id,
+            'mechanic_type_id' => \App\Models\MechanicType::firstOrCreate(['name' => 'General'])->id,
+        ])->id;
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Gender;
 use App\Models\Mechanic;
 use App\Models\MechanicType;
 use App\Models\RepairOrderStatus;
+use App\Models\Service;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +34,18 @@ class CatalogSeeder extends Seeder
         // Especialidades (catálogo mechanic_types). Las existentes se conservan tal cual.
         foreach (['General Mechanic', 'Electromechanic', 'Motocicletas', 'Mecánico Gasolina'] as $name) {
             MechanicType::firstOrCreate(['name' => $name]);
+        }
+
+        // Servicios iniciales. Comisión solo al crear: una ejecución posterior NO sobrescribe lo que el administrador cambió.
+        foreach ([
+            ['name' => 'Afinación 4 cilindros',             'commission_amount' => 50],
+            ['name' => 'Afinación 6 cilindros',             'commission_amount' => 100],
+            ['name' => 'Afinación 8 cilindros sin múltiple', 'commission_amount' => 100],
+        ] as $servicio) {
+            Service::firstOrCreate(
+                ['name' => $servicio['name']],
+                ['commission_amount' => $servicio['commission_amount'], 'is_active' => true]
+            );
         }
 
         $statuses = [

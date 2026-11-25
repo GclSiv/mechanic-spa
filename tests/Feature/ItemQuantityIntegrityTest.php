@@ -45,7 +45,7 @@ class ItemQuantityIntegrityTest extends TestCase
 
     private function manoDeObra($cantidad, $precio = 300): array
     {
-        return ['type' => 'labor', 'description' => 'Cambio de balatas', 'quantity' => $cantidad, 'unit_price' => $precio];
+        return ['type' => 'labor', 'description' => 'Cambio de balatas', 'quantity' => $cantidad, 'unit_price' => $precio, 'mechanic_id' => $this->ejecutor()];
     }
 
     private function ultimoItem(): RepairOrderItem
@@ -222,5 +222,15 @@ class ItemQuantityIntegrityTest extends TestCase
         $this->assertStringContainsString('>1.50<', $html);
         $this->assertStringContainsString('>2<', $html);
         $this->assertStringNotContainsString('2.00', $html);
+    }
+
+    /** Mecánico ejecutor para conceptos de mano de obra nuevos (la aplicación exige mechanic_id). */
+    private function ejecutor(): int
+    {
+        return \App\Models\Mechanic::create([
+            'name' => 'Ejecutor de prueba',
+            'gender_id' => \App\Models\Gender::firstOrCreate(['name' => 'Masculino'])->id,
+            'mechanic_type_id' => \App\Models\MechanicType::firstOrCreate(['name' => 'General'])->id,
+        ])->id;
     }
 }

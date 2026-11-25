@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Mechanic;
+use App\Models\RepairOrderItem;
 use App\Models\Gender;
 use App\Models\MechanicType;
 use App\Models\User;
@@ -145,6 +146,13 @@ class MechanicController extends Controller
 
     public function destroy(Mechanic $mechanic)
     {
+        // Historial de comisiones: un mecánico con conceptos de mano de obra asignados no se elimina.
+        if (\App\Models\RepairOrderItem::where('mechanic_id', $mechanic->id)->exists()) {
+            return back()->withErrors([
+                'mechanic' => 'No se puede eliminar: tiene conceptos de mano de obra registrados a su nombre.',
+            ]);
+        }
+
         DB::transaction(function () use ($mechanic) {
             // Desvincular follow_ups (poner mechanic_id en null para no perder historial)
             \App\Models\FollowUp::where('mechanic_id', $mechanic->id)

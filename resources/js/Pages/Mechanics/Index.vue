@@ -15,7 +15,9 @@ const props = defineProps({
     mechanics: { type: Array, default: () => [] },
 });
 
-const flash = computed(() => usePage().props.flash ?? {});
+const page = usePage();
+const flash = computed(() => page.props.flash ?? {});
+const errores = computed(() => page.props.errors ?? {});
 
 const confirmDel = ref({ show: false, id: null });
 function pedirBaja(id) { confirmDel.value = { show: true, id }; }
@@ -41,6 +43,9 @@ const enlaceBtnPeligro = 'ds-focus inline-flex h-control items-center justify-ce
 
         <p v-if="flash.success" role="status" class="mt-6 rounded-lg border border-line bg-surface-2 px-4 py-3 text-ds-body text-ink">
             {{ flash.success }}
+        </p>
+        <p v-if="errores.mechanic" role="alert" class="mt-6 rounded-lg border border-danger bg-surface px-4 py-3 text-ds-body text-danger-text">
+            {{ errores.mechanic }}
         </p>
 
         <EmptyState v-if="props.mechanics.length === 0" class="mt-6" :title="t('personal.sinRegistros')" />
