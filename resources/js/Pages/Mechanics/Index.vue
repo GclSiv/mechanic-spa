@@ -1,108 +1,116 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Personal (solo admin/owner). La vista solo navega y representa: no calcula comisiones
+// y nunca recibe contraseñas ni hashes. La especialidad llega como relación `mechanicType`.
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import EmptyState from '@/Components/UI/EmptyState.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-defineProps({
-    mechanics: Array,
+const props = defineProps({
+    mechanics: { type: Array, default: () => [] },
 });
 
-const flash = computed(() => usePage().props.flash);
+const flash = computed(() => usePage().props.flash ?? {});
 
 const confirmDel = ref({ show: false, id: null });
-function destroy(id) { confirmDel.value = { show: true, id }; }
-function doDel() {
+function pedirBaja(id) { confirmDel.value = { show: true, id }; }
+function confirmarBaja() {
     router.delete(route('mechanics.destroy', confirmDel.value.id), { preserveScroll: true });
     confirmDel.value = { show: false, id: null };
 }
+
+const enlaceBtn = 'ds-focus inline-flex h-control items-center justify-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-ink-secondary hover:bg-surface-2';
+const enlaceBtnPeligro = 'ds-focus inline-flex h-control items-center justify-center rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-danger-text hover:bg-surface-2';
 </script>
 
 <template>
-    <AuthenticatedLayout :title="$t('personal.titulo')">
-        <template #header>
-            <div class="flex justify-between items-center">
-                <h2 class="font-black text-xl text-[#10213E] uppercase tracking-wider">
-                    🔧 {{ $t('personal.titulo') }}
-                </h2>
-                <a :href="route('mechanics.create')"
-                    class="bg-[#10213E] hover:bg-blue-900 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all text-sm uppercase tracking-wider">
-                    {{ $t('personal.nuevo') }}
-                </a>
-            </div>
-        
-        <ConfirmModal :show="confirmDel.show" :title="$t('personal.eliminarTitulo')"
-            :message="$t('personal.eliminarMsg')"
-            :confirm-text="$t('acciones.eliminar')" @confirm="doDel" @cancel="confirmDel.show = false" />
-</template>
+    <Head :title="t('personal.titulo')" />
 
-        <div class="py-12 min-h-screen transition-colors">
-            <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+    <AppShellLayout>
+        <PageHeader :title="t('personal.titulo')" :description="t('personal.total', { n: props.mechanics.length })">
+            <Link
+                :href="route('mechanics.create')"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('personal.nuevo') }}</Link>
+        </PageHeader>
 
-                <!-- Flash -->
-                <div v-if="flash?.success"
-                    class="mb-4 bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg text-sm font-medium">
-                    ✅ {{ flash.success }}
-                </div>
+        <p v-if="flash.success" role="status" class="mt-6 rounded-lg border border-line bg-surface-2 px-4 py-3 text-ds-body text-ink">
+            {{ flash.success }}
+        </p>
 
-                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div class="bg-[#10213E] px-6 py-4">
-                        <p class="text-white text-xs font-bold uppercase tracking-widest">
-                            {{ $t('personal.total', { n: mechanics.length }) }}
-                        </p>
-                    </div>
+        <EmptyState v-if="props.mechanics.length === 0" class="mt-6" :title="t('personal.sinRegistros')" />
 
-                    <div class="overflow-x-auto"><table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider font-bold border-b">
-                            <tr>
-                                <th class="px-6 py-3">#</th>
-                                <th class="px-6 py-3">{{ $t('personal.nombre') }}</th>
-                                <th class="px-6 py-3">{{ $t('personal.email') }}</th>
-                                <th class="px-6 py-3">{{ $t('personal.especialidad') }}</th>
-                                <th class="px-6 py-3">{{ $t('personal.genero') }}</th>
-                                <th class="px-6 py-3">{{ $t('personal.telefono') }}</th>
-                                <th class="px-6 py-3 text-center">{{ $t('personal.acciones') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="m in mechanics" :key="m.id"
-                                class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-gray-400 font-mono">{{ m.id }}</td>
-                                <td class="px-6 py-4 font-bold text-[#10213E]">{{ m.name }}</td>
-                                <td class="px-6 py-4 text-gray-600 text-xs">
-                                    <span v-if="m.email">{{ m.email }}</span>
-                                    <span v-else class="text-amber-500 font-medium">{{ $t('personal.sinCuenta') }}</span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                                        {{ m.mechanic_type?.name ?? '—' }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-gray-600">{{ m.gender?.name ?? '—' }}</td>
-                                <td class="px-6 py-4 text-gray-600">{{ m.phone ?? '—' }}</td>
-                                <td class="px-6 py-4 text-center flex justify-center gap-2">
-                                    <a :href="route('mechanics.edit', m.id)"
-                                        class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                                        ✏️ Editar
-                                    </a>
-                                    <button @click="destroy(m.id)"
-                                        class="bg-red-50 hover:bg-red-100 text-[#EE2857] font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                                        ✕ Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr v-if="mechanics.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-400 italic">
-                                    {{ $t('personal.sinRegistros') }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table></div>
-                </div>
-            </div>
+        <!-- Escritorio y tablet ancha: tabla -->
+        <div v-else class="mt-6 hidden overflow-x-auto rounded-xl border border-line bg-surface md:block">
+            <table class="w-full min-w-[640px] text-left text-ds-body">
+                <thead class="border-b border-line bg-surface-2 text-ds-label font-semibold text-ink-secondary">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">{{ t('personal.nombre') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ t('personal.email') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ t('personal.especialidad') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ t('personal.genero') }}</th>
+                        <th scope="col" class="px-4 py-3">{{ t('personal.telefono') }}</th>
+                        <th scope="col" class="px-4 py-3 text-right">{{ t('personal.acciones') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line">
+                    <tr v-for="m in props.mechanics" :key="m.id" class="hover:bg-surface-2">
+                        <td class="px-4 py-3 font-semibold text-navy">{{ m.name }}</td>
+                        <td class="px-4 py-3 text-ink-secondary">
+                            <span v-if="m.email">{{ m.email }}</span>
+                            <span v-else class="text-ink-muted">{{ t('personal.sinCuenta') }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-ink">{{ m.mechanic_type?.name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-ink">{{ m.gender?.name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-ink-secondary">{{ m.phone ?? '—' }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex justify-end gap-2">
+                                <Link :href="route('mechanics.edit', m.id)" :class="enlaceBtn">{{ t('acciones.editar') }}</Link>
+                                <button type="button" :class="enlaceBtnPeligro" @click="pedirBaja(m.id)">{{ t('acciones.eliminar') }}</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-    </AuthenticatedLayout>
+
+        <!-- Móvil: tarjetas -->
+        <ul v-if="props.mechanics.length > 0" class="mt-6 grid gap-3 md:hidden">
+            <li v-for="m in props.mechanics" :key="m.id" class="rounded-xl border border-line bg-surface p-4">
+                <p class="text-ds-section-title font-semibold text-navy">{{ m.name }}</p>
+                <p class="mt-1 text-ds-caption text-ink-muted">
+                    <span v-if="m.email">{{ m.email }}</span>
+                    <span v-else>{{ t('personal.sinCuenta') }}</span>
+                </p>
+                <dl class="mt-3 grid grid-cols-2 gap-2 text-ds-caption">
+                    <div>
+                        <dt class="text-ink-muted">{{ t('personal.especialidad') }}</dt>
+                        <dd class="text-ink">{{ m.mechanic_type?.name ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-ink-muted">{{ t('personal.genero') }}</dt>
+                        <dd class="text-ink">{{ m.gender?.name ?? '—' }}</dd>
+                    </div>
+                </dl>
+                <div class="mt-4 flex gap-2">
+                    <Link :href="route('mechanics.edit', m.id)" :class="enlaceBtn">{{ t('acciones.editar') }}</Link>
+                    <button type="button" :class="enlaceBtnPeligro" @click="pedirBaja(m.id)">{{ t('acciones.eliminar') }}</button>
+                </div>
+            </li>
+        </ul>
+
+        <ConfirmModal
+            :show="confirmDel.show"
+            :title="t('personal.eliminarTitulo')"
+            :message="t('personal.eliminarMsg')"
+            :confirm-text="t('acciones.eliminar')"
+            @confirm="confirmarBaja"
+            @cancel="confirmDel.show = false"
+        />
+    </AppShellLayout>
 </template>

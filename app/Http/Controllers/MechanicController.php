@@ -97,14 +97,19 @@ class MechanicController extends Controller
 
         DB::transaction(function () use ($request, $mechanic, &$cuentaNueva) {
             // Actualizar perfil del mecánico
-            $mechanic->update([
+            // commission_rate es histórico (legacy): solo se toca si llega explícitamente en la petición.
+            // Editar el perfil no debe reiniciar el porcentaje que usan los conceptos anteriores a la transición.
+            $datosPerfil = [
                 'name'             => $request->name,
                 'email'            => $request->email,
                 'gender_id'        => $request->gender_id,
                 'mechanic_type_id' => $request->mechanic_type_id,
                 'phone'            => $request->phone,
-                'commission_rate'  => $request->commission_rate ?? 0,
-            ]);
+            ];
+            if ($request->has('commission_rate')) {
+                $datosPerfil['commission_rate'] = $request->commission_rate ?? $mechanic->commission_rate;
+            }
+            $mechanic->update($datosPerfil);
 
             if ($mechanic->user_id) {
                 // Sincronizar cuenta existente
