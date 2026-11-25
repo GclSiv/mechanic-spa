@@ -1,110 +1,225 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+// Expediente técnico de un vehículo (solo admin/owner). Datos resueltos por VehicleHistoryController;
+// esta vista solo los presenta. Montos y saldos vienen del backend; no se calculan aquí.
+import { computed } from 'vue';
+import AppShellLayout from '@/Layouts/AppShellLayout.vue';
+import PageHeader from '@/Components/UI/PageHeader.vue';
+import EmptyState from '@/Components/UI/EmptyState.vue';
+import BaseBadge from '@/Components/UI/BaseBadge.vue';
+import Stat from '@/Components/UI/Stat.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     vehicle: Object,
+    resumen: Object,
     visitas: Array,
 });
 
-const money = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n) || 0);
-const km = (n) => (n === null || n === undefined ? '—' : new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2 }).format(Number(n)));
+const { t, te, locale } = useI18n();
+
+const localeFecha = computed(() => (locale.value === 'en' ? 'en-US' : 'es-MX'));
+
+function fmtFecha(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime())
+        ? '—'
+        : d.toLocaleDateString(localeFecha.value, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtMoneda(n) {
+    return new Intl.NumberFormat(localeFecha.value, { style: 'currency', currency: 'MXN' }).format(Number(n) || 0);
+}
+
+function fmtKm(n) {
+    return n === null || n === undefined ? t('vehiculosUi.sinDato') : `${new Intl.NumberFormat(localeFecha.value).format(n)} km`;
+}
+
+function fmtCantidad(n) {
+    return Number(n || 0).toFixed(2);
+}
+
+const tituloVehiculo = computed(() => [props.vehicle.marca, props.vehicle.modelo, props.vehicle.year].filter(Boolean).join(' ') || '—');
+
+function varianteOrden(orden) {
+    if (!orden) return 'neutral';
+    if (orden.rechazada) return 'danger';
+    if (orden.terminada) return 'success';
+    return 'info';
+}
+
+// Nombre de estado desde el catálogo i18n (estadoUi); si no existe, el nombre guardado en el backend.
+function nombreEstado(slug, nombre) {
+    return slug && te(`estadoUi.${slug}`) ? t(`estadoUi.${slug}`) : (nombre || '—');
+}
+
+function estadoVisita(visita) {
+    return visita.orden ? nombreEstado(visita.orden.slug, visita.orden.estado) : t('vehiculosUi.sinOrden');
+}
 </script>
 
 <template>
-    <Head :title="'Historial · ' + vehicle.brand + ' ' + (vehicle.model ?? '')" />
+    <Head :title="t('vehiculosUi.historialTitulo') + ' · ' + tituloVehiculo" />
 
-    <AuthenticatedLayout>
-        <template #header>
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                    <h2 class="text-xl font-bold text-[#10213E] leading-tight">🕘 Historial de servicios</h2>
-                    <p class="text-sm text-gray-500 mt-0.5">
-                        {{ vehicle.brand }} {{ vehicle.model }} {{ vehicle.year }} · Placas {{ vehicle.plate || '—' }}
-                    </p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <a v-if="vehicle.client_id" :href="route('recepcion.create', { client_id: vehicle.client_id, vehicle_id: vehicle.id })"
-                        class="text-sm font-bold bg-[#EE2857] text-white px-3 py-2 rounded-lg hover:bg-red-700">➕ Nueva visita</a>
-                    <Link :href="route('clients.index')" class="text-sm font-bold text-[#10213E] hover:underline">← Volver a clientes</Link>
-                </div>
+    <AppShellLayout>
+        <PageHeader
+            :title="tituloVehiculo"
+            :description="[
+                t('vehiculosUi.placa') + ' ' + (vehicle.plate || '—'),
+                t('vehiculosUi.vin') + ' ' + (vehicle.vin || t('vehiculosUi.sinVin')),
+                vehicle.propietario ? t('vehiculosUi.propietario') + ': ' + vehicle.propietario.nombre : null,
+            ].filter(Boolean).join(' · ')"
+        >
+            <Link
+                v-if="vehicle.propietario"
+                :href="route('clients.show', vehicle.propietario.id)"
+                class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+            >{{ t('vehiculosUi.verCliente') }}</Link>
+            <Link
+                :href="vehicle.nueva_recepcion_url"
+                class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+            >{{ t('vehiculosUi.nuevaRecepcion') }}</Link>
+        </PageHeader>
+
+        <section class="mt-6" :aria-label="t('vehiculosUi.resumen')">
+            <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                <Stat :label="t('vehiculosUi.visitasTotales')" :value="resumen.visitas_totales" />
+                <Stat :label="t('vehiculosUi.ultimaVisita')" :value="fmtFecha(resumen.ultima_visita)" />
+                <Stat :label="t('vehiculosUi.ultimoKilometraje')" :value="fmtKm(resumen.ultimo_kilometraje)" />
+                <Stat
+                    :label="t('vehiculosUi.estadoUltimaOrden')"
+                    :value="resumen.estado_ultima_orden ? nombreEstado(resumen.estado_ultima_orden_slug, resumen.estado_ultima_orden) : t('vehiculosUi.sinOrden')"
+                />
             </div>
-        </template>
+        </section>
 
-        <div class="py-8">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+        <section class="mt-8" :aria-label="t('vehiculosUi.timeline')">
+            <h2 class="text-ds-section-title text-navy">{{ t('vehiculosUi.timeline') }}</h2>
 
-                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-sm text-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div><span class="block text-xs font-bold text-gray-400 uppercase">Cliente</span>{{ vehicle.client || '—' }}</div>
-                    <div><span class="block text-xs font-bold text-gray-400 uppercase">VIN</span>{{ vehicle.vin || '—' }}</div>
-                    <div><span class="block text-xs font-bold text-gray-400 uppercase">Visitas</span>{{ visitas.length }}</div>
-                </div>
+            <EmptyState
+                v-if="visitas.length === 0"
+                class="mt-4"
+                :title="t('vehiculosUi.vacioTitulo')"
+                :description="t('vehiculosUi.vacioDescripcion')"
+            >
+                <Link
+                    :href="vehicle.nueva_recepcion_url"
+                    class="ds-focus inline-flex h-control items-center rounded-lg bg-navy px-4 text-ds-control font-semibold text-white hover:bg-navy/90"
+                >{{ t('vehiculosUi.nuevaRecepcion') }}</Link>
+            </EmptyState>
 
-                <div v-if="visitas.length === 0" class="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-400 italic">
-                    Este vehículo aún no tiene servicios terminados.
-                </div>
-
-                <div v-for="v in visitas" :key="v.folio" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="bg-[#10213E] text-white px-5 py-3 flex flex-wrap justify-between gap-2 text-sm">
-                        <span class="font-bold">{{ vehicle.brand }} {{ vehicle.model }} · {{ v.fecha }}</span>
-                        <span class="font-bold">Comprobante {{ v.folio }}</span>
-                        <span class="text-xs font-bold px-2 py-1 rounded-full"
-                              :class="v.terminado ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800'">
-                            {{ v.terminado ? v.estado : 'En proceso · ' + v.estado }}
-                        </span>
-                        <div class="flex gap-3 text-xs font-bold">
-                            <a v-if="v.ultimo_pago_id" :href="route('payments.ticket', { order: v.id, payment: v.ultimo_pago_id })" target="_blank"
-                                class="underline hover:text-gray-200">🧾 Ticket</a>
-                            <a v-if="v.saldo > 0" :href="route('repair-orders.show', v.id) + '#pagos'"
-                                class="underline hover:text-gray-200">💳 Registrar pago</a>
+            <ol v-else class="mt-4 space-y-4">
+                <li
+                    v-for="visita in visitas"
+                    :key="visita.id"
+                    class="rounded-xl border border-line bg-surface p-5"
+                >
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-ds-section-title text-navy">
+                                {{ t('vehiculosUi.recepcionNumero', { n: visita.numero }) }}
+                                <span class="text-ds-body font-normal text-ink-muted">· {{ fmtFecha(visita.fecha) }}</span>
+                            </p>
+                            <p v-if="visita.orden?.folio" class="text-ds-caption text-ink-muted">
+                                {{ t('vehiculosUi.orden') }} {{ visita.orden.folio }}
+                            </p>
                         </div>
-                        <span v-if="v.saldo > 0" class="w-full sm:w-auto bg-red-600 text-white text-xs font-black uppercase px-2.5 py-1 rounded-full">
-                            Saldo pendiente {{ money(v.saldo) }}
-                        </span>
-                        <span v-else class="bg-green-600 text-white text-xs font-black uppercase px-2.5 py-1 rounded-full">Pagado</span>
+                        <BaseBadge :variant="varianteOrden(visita.orden)">{{ estadoVisita(visita) }}</BaseBadge>
                     </div>
 
-                    <div class="p-5 space-y-4">
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">Odómetro</span>{{ km(v.odometro) }} km</div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">Fecha</span>{{ v.fecha || '—' }}</div>
-                            <div><span class="block text-xs font-bold text-gray-400 uppercase">Total</span><span class="font-black text-[#10213E]">{{ money(v.total) }}</span></div>
+                    <dl class="mt-4 grid grid-cols-1 gap-3 text-ds-body sm:grid-cols-2">
+                        <div>
+                            <dt class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.kilometraje') }}</dt>
+                            <dd class="text-ink">{{ fmtKm(visita.kilometraje) }}</dd>
                         </div>
+                        <div>
+                            <dt class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.problema') }}</dt>
+                            <dd class="text-ink">{{ visita.problema || t('vehiculosUi.sinProblema') }}</dd>
+                        </div>
+                        <template v-if="visita.orden">
+                            <div>
+                                <dt class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.mecanico') }}</dt>
+                                <dd class="text-ink">{{ visita.orden.mecanico || '—' }}</dd>
+                            </div>
+                            <div v-if="!visita.orden.rechazada">
+                                <dt class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.ejecutores') }}</dt>
+                                <dd class="text-ink">
+                                    {{ visita.orden.ejecutores.length ? visita.orden.ejecutores.join(', ') : t('vehiculosUi.sinEjecutor') }}
+                                </dd>
+                            </div>
+                        </template>
+                    </dl>
 
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm">
-                                <thead class="text-xs uppercase text-gray-400 border-b">
-                                    <tr>
-                                        <th class="py-2 text-right pr-3">Cant.</th>
-                                        <th class="py-2 text-left">Concepto</th>
-                                        <th class="py-2 text-right">Importe</th>
-                                        <th class="py-2 text-right">Impuestos</th>
-                                        <th class="py-2 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <tr v-for="(c, i) in v.conceptos" :key="i">
-                                        <td class="py-2 text-right pr-3">{{ c.cantidad.toFixed(2) }}</td>
-                                        <td class="py-2">{{ c.codigo ? c.codigo + ' - ' : '' }}{{ c.descripcion }}</td>
-                                        <td class="py-2 text-right">{{ money(c.importe) }}</td>
-                                        <td class="py-2 text-right">{{ money(c.impuesto) }}</td>
-                                        <td class="py-2 text-right font-semibold">{{ money(c.total) }}</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot class="border-t text-sm">
-                                    <tr>
-                                        <td colspan="2" class="py-2 text-right font-bold text-gray-500 uppercase text-xs">Totales</td>
-                                        <td class="py-2 text-right">{{ money(v.importe) }}</td>
-                                        <td class="py-2 text-right">{{ money(v.impuestos) }}</td>
-                                        <td class="py-2 text-right font-black text-[#10213E]">{{ money(v.total) }}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
+                    <div v-if="visita.orden && visita.orden.rechazada" class="mt-4 rounded-lg bg-danger-soft px-4 py-3 text-ds-body text-danger-text">
+                        {{ t('vehiculosUi.rechazadaAviso') }}
                     </div>
-                </div>
 
-            </div>
-        </div>
-    </AuthenticatedLayout>
+                    <template v-else-if="visita.orden">
+                        <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                            <div>
+                                <h3 class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.trabajos') }}</h3>
+                                <ul v-if="visita.orden.trabajos.length" class="mt-2 space-y-1 text-ds-body text-ink">
+                                    <li v-for="(tr, i) in visita.orden.trabajos" :key="'t' + i" class="flex flex-wrap justify-between gap-2">
+                                        <span>{{ tr.descripcion }}</span>
+                                        <span class="text-ink-muted">
+                                            {{ fmtCantidad(tr.cantidad) }}<span v-if="tr.ejecutor"> · {{ tr.ejecutor }}</span>
+                                        </span>
+                                    </li>
+                                </ul>
+                                <p v-else class="mt-2 text-ds-body text-ink-muted">{{ t('vehiculosUi.sinTrabajos') }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.refacciones') }}</h3>
+                                <ul v-if="visita.orden.refacciones.length" class="mt-2 space-y-1 text-ds-body text-ink">
+                                    <li v-for="(rf, i) in visita.orden.refacciones" :key="'r' + i" class="flex flex-wrap justify-between gap-2">
+                                        <span>{{ rf.codigo ? rf.codigo + ' · ' : '' }}{{ rf.descripcion }}</span>
+                                        <span class="text-ink-muted">{{ fmtCantidad(rf.cantidad) }}</span>
+                                    </li>
+                                </ul>
+                                <p v-else class="mt-2 text-ds-body text-ink-muted">{{ t('vehiculosUi.sinRefacciones') }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <h3 class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.bitacora') }}</h3>
+                            <ul v-if="visita.orden.notas.length" class="mt-2 space-y-2 text-ds-body text-ink">
+                                <li v-for="(n, i) in visita.orden.notas" :key="'n' + i" class="rounded-lg bg-surface-2 px-3 py-2">
+                                    <span class="text-ds-caption text-ink-muted">{{ fmtFecha(n.fecha) }}<span v-if="n.autor"> · {{ n.autor }}</span></span>
+                                    <p>{{ n.texto }}</p>
+                                </li>
+                            </ul>
+                            <p v-else class="mt-2 text-ds-body text-ink-muted">{{ t('vehiculosUi.sinNotas') }}</p>
+                        </div>
+
+                        <div v-if="visita.orden.finanzas" class="mt-5 grid grid-cols-2 gap-3 rounded-lg border border-line p-4 text-ds-body sm:grid-cols-4">
+                            <div>
+                                <p class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.total') }}</p>
+                                <p class="font-semibold text-navy">{{ fmtMoneda(visita.orden.finanzas.total) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.pagado') }}</p>
+                                <p class="text-ink">{{ fmtMoneda(visita.orden.finanzas.pagado) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-ds-label uppercase text-ink-muted">{{ t('vehiculosUi.saldo') }}</p>
+                                <p class="text-ink">{{ fmtMoneda(visita.orden.finanzas.saldo) }}</p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="mt-5 flex flex-wrap gap-4 border-t border-line pt-4 text-ds-body font-semibold">
+                        <Link :href="route('recepcion.show', visita.id)" class="ds-focus text-navy underline-offset-2 hover:underline">
+                            {{ t('vehiculosUi.verRecepcion') }}
+                        </Link>
+                        <Link
+                            v-if="visita.orden"
+                            :href="route('repair-orders.show', visita.orden.id)"
+                            class="ds-focus text-navy underline-offset-2 hover:underline"
+                        >{{ t('vehiculosUi.verOrden') }}</Link>
+                    </div>
+                </li>
+            </ol>
+        </section>
+    </AppShellLayout>
 </template>
