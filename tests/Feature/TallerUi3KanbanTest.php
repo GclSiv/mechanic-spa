@@ -127,14 +127,27 @@ class TallerUi3KanbanTest extends TestCase
             );
     }
 
-    public function test_admin_editable_statuses_include_closing_states(): void
+    public function test_admin_editable_statuses_are_operativos_only(): void
     {
         $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
         $this->actingAs($admin)
             ->get(route('repair-orders.index'))
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('estadosEditables', RepairOrderStatus::query()->orderBy('id')->pluck('slug')->values()->all())
+                ->where('estadosEditables', ['recibido', 'diagnostico', 'espera-piezas', 'en-reparacion', 'reparado'])
+            );
+    }
+
+    public function test_admin_editable_statuses_exclude_closing_states(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('repair-orders.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('estadosEditables', fn ($estados) => collect($estados)
+                    ->intersect(RepairOrderStatus::CERRADOS)
+                    ->isEmpty())
             );
     }
 
