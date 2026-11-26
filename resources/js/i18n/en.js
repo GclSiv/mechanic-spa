@@ -539,6 +539,8 @@ export default {
         oil:            'OIL',
         battery:        'BATTERY',
         temp:           'TEMP',
+        brake:          'BRAKE',
+        tpms:           'TPMS',
     },
     reportes: {
         titulo:          'Financial Reports',

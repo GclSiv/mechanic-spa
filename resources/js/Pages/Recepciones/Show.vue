@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { etiquetaZona } from '@/Components/DamageDiagrams/diagramas.js';
 
-const props = defineProps({ recepcion: Object });
+const props = defineProps({ recepcion: Object, nombresTestigos: { type: Object, default: () => ({}) } });
 
 const page = usePage();
 const { t, te } = useI18n();
@@ -180,7 +180,7 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                     <h3 class="mb-2 text-ds-label text-ink-muted">{{ t('recepcion_form.testigos') }}</h3>
                     <ul class="flex flex-wrap gap-2">
                         <li v-for="w in recepcion.witnesses" :key="w">
-                            <BaseBadge variant="info">{{ t('inspeccion.' + w) }}</BaseBadge>
+                            <BaseBadge variant="info">{{ te('inspeccion.' + w) ? t('inspeccion.' + w) : (nombresTestigos?.[w] ?? w) }}</BaseBadge>
                         </li>
                     </ul>
                 </div>

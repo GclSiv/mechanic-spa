@@ -54,7 +54,8 @@ class StoreRecepcionRequest extends FormRequest
             'miles'            => 'nullable|numeric|min:0',
             'symptoms'         => 'nullable|string|max:2000',
             'witnesses'        => 'nullable|array',
-            'witnesses.*'      => 'in:engine,abs,oil,battery,temp',
+            // Catálogo warning_lights: una recepción nueva solo acepta testigos activos.
+            'witnesses.*'      => ['string', Rule::exists('warning_lights', 'code')->where('active', true)],
             'inventory'        => 'nullable|array',
             'inventory.*'      => 'in:llanta,gato,estereo,tapetes,herramienta',
 

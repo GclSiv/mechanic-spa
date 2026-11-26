@@ -11,6 +11,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleModel;
 use App\Models\VehicleSubtype;
 use App\Models\VehicleType;
+use App\Models\WarningLight;
 use App\Models\FuelType;
 use App\Models\Transmission;
 use App\Models\Recepcion;
@@ -55,6 +56,7 @@ class RecepcionController extends Controller
         ];
 
         return Inertia::render('Recepciones/Create', [
+            'warningLights' => WarningLight::where('active', true)->orderBy('sort')->get(['code', 'name', 'icon', 'custom_icon_path']),
             'brands' => $brands,
             'clients' => $clients,
             'preselect' => $preselect,
@@ -334,6 +336,8 @@ class RecepcionController extends Controller
 
         return Inertia::render('Recepciones/Show', [
             'recepcion' => $recepcion,
+            // Nombre de catálogo de cada testigo (también desactivados): respaldo cuando no hay clave de i18n
+            'nombresTestigos' => WarningLight::pluck('name', 'code'),
         ]);
     }
 
@@ -363,8 +367,14 @@ class RecepcionController extends Controller
             'model' => $vehiculo->getRawOriginal('model'),
         ] : null;
 
+        // Activos, más los desactivados que la recepción ya tiene guardados: nunca se pierden al editar.
+        $testigos = WarningLight::where(fn ($q) => $q->where('active', true)
+                ->orWhereIn('code', $recepcion->witnesses ?? []))
+            ->orderBy('sort')->get(['code', 'name', 'icon', 'custom_icon_path', 'active']);
+
         return Inertia::render('Recepciones/Edit', [
             'recepcion'     => $recepcion,
+            'warningLights' => $testigos,
             'brands'        => $brands,
             'legacyVehicle' => $legacy,
             // Diagrama con el que se muestran los daños: snapshot guardado, nunca el tipo actual si difieren.
@@ -470,9 +480,15 @@ class RecepcionController extends Controller
         $settings = \App\Models\Setting::current(); 
 
         // 3. Generar PDF apuntando a la carpeta "pdf" y pasando AMBAS variables
+        // Testigos del PDF: activos, más los desactivados que la recepción tiene guardados (histórico).
+        $testigos = WarningLight::where(fn ($q) => $q->where('active', true)
+                ->orWhereIn('code', $recepcion->witnesses ?? []))
+            ->orderBy('sort')->get(['code', 'name', 'icon', 'custom_icon_path', 'active']);
+
         $pdf = Pdf::loadView('pdf.recepcion', [
             'recepcion' => $recepcion,
             'settings'  => $settings,
+            'testigos'  => $testigos,
         ]);
 
         $pdf->setPaper('letter', 'portrait');

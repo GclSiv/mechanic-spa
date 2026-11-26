@@ -49,7 +49,14 @@ class UpdateRecepcionRequest extends FormRequest
             'miles'            => 'nullable|numeric|min:0',
             'symptoms'         => 'nullable|string|max:2000',
             'witnesses'        => 'nullable|array',
-            'witnesses.*'      => 'in:engine,abs,oil,battery,temp',
+            // Activos del catálogo, o un código que la recepción ya tenía guardado (histórico desactivado).
+            'witnesses.*'      => ['string', function ($attributo, $valor, $fallo) {
+                $yaGuardado = in_array($valor, (array) ($this->route('recepcion')?->witnesses ?? []), true);
+                $activo = \App\Models\WarningLight::where('code', $valor)->where('active', true)->exists();
+                if (! $activo && ! $yaGuardado) {
+                    $fallo('El testigo seleccionado no es válido.');
+                }
+            }],
             'inventory'        => 'nullable|array',
             'inventory.*'      => 'in:llanta,gato,estereo,tapetes,herramienta',
         ];

@@ -13,6 +13,8 @@ import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     brands: Array,
+    // Testigos del catálogo: activos, más los desactivados que esta recepción ya tiene
+    warningLights: { type: Array, default: () => [] },
     vehicleTypes: { type: Array, default: () => [] },
     vehicleSubtypes: { type: Array, default: () => [] },
     fuelTypes: { type: Array, default: () => [] },
@@ -109,7 +111,7 @@ const submit = () => {
 
             <section aria-labelledby="sec-condicion" class="min-w-0 space-y-6 rounded-xl border border-line bg-surface p-5 sm:p-6">
                 <h2 id="sec-condicion" class="text-ds-section-title text-navy">{{ t('recepcion_form.condiciones') }}</h2>
-                <ReceptionConditionFields :form="form" />
+                <ReceptionConditionFields :form="form" :lights="warningLights" />
             </section>
 
             <!-- Daños registrados: solo lectura, con el diagrama guardado al registrarlos -->

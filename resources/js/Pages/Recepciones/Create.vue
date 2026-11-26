@@ -16,6 +16,8 @@ import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     brands: Array,
+    // Testigos activos del catálogo warning_lights
+    warningLights: { type: Array, default: () => [] },
     vehicleTypes: { type: Array, default: () => [] },
     vehicleSubtypes: { type: Array, default: () => [] },
     fuelTypes: { type: Array, default: () => [] },
@@ -492,7 +494,7 @@ const submit = () => {
             <!-- ═══ CONDICIÓN Y ACCESORIOS ═══ -->
             <section aria-labelledby="sec-condicion" class="min-w-0 space-y-6 rounded-xl border border-line bg-surface p-5 sm:p-6">
                 <h2 id="sec-condicion" class="text-ds-section-title text-navy">{{ t('recepcion_form.condiciones') }}</h2>
-                <ReceptionConditionFields :form="form" />
+                <ReceptionConditionFields :form="form" :lights="warningLights" />
 
                 <div>
                     <h3 class="text-ds-label font-semibold text-ink-secondary">{{ t('recepcionUi.secDanos') }}</h3>

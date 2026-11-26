@@ -58,7 +58,9 @@ VEHICLE CONDITION
 .condition-outer { width: 100%; border-collapse: collapse; border: 1px solid #d5d8de; margin-bottom: 10px; }
 .witnesses-cell { width: 65%; border-right: 1px solid #d5d8de; padding: 10px 8px 8px; vertical-align: top; text-align: center; }
 .witnesses-subtitle { font-size: 7px; font-weight: 800; color: #10213E; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
-.icon-box { display: inline-block; width: 18%; text-align: center; vertical-align: top; margin: 0 1%; }
+.icon-box { text-align: center; }
+.witness-grid { width: 100%; border-collapse: collapse; }
+.witness-td { width: 25%; text-align: center; vertical-align: top; padding: 4px 2px; }
 .icon-img { width: 28px; height: 28px; display: block; margin: 0 auto 3px; }
 .icon-label-active { font-size: 6.5px; font-weight: 800; color: #EE2857; text-transform: uppercase; }
 .icon-label-inactive { font-size: 6.5px; font-weight: 700; color: #c0c4cc; text-transform: uppercase; }
@@ -186,16 +188,38 @@ THANK YOU FOOTER & PÁGINA 2
 <td class="witnesses-cell">
 <div class="witnesses-subtitle">Dashboard Warning Lights</div>
 @php
-$witnessKeys = is_array($recepcion->witnesses) ? $recepcion->witnesses : json_decode($recepcion->witnesses ?? '[]', true);
-$icons = ['engine' => 'MOTOR', 'abs' => 'ABS', 'oil' => 'OIL', 'battery' => 'BATTERY', 'temp' => 'TEMP'];
+$witnessKeys = is_array($recepcion->witnesses) ? $recepcion->witnesses : json_decode($recepcion->witnesses ?? '[]', true) ?? [];
+// Catálogo (activos + desactivados que la recepción tiene) y cualquier código histórico sin catálogo
+// Fuente del icono por testigo: personalizado válido > biblioteca > warning. La lista la pone el catálogo, no el PDF.
+$testigosPdf = collect($testigos ?? [])->map(fn ($l) => ['code' => $l->code, 'name' => $l->name, 'active' => $l->active, 'fuente' => $l->fuenteIcono()]);
+foreach ($witnessKeys as $codigoHistorico) {
+    if (! $testigosPdf->pluck('code')->contains($codigoHistorico)) {
+        $testigosPdf->push(['code' => $codigoHistorico, 'name' => $codigoHistorico, 'active' => false, 'fuente' => ['tipo' => 'biblioteca', 'clave' => \App\Support\IconosTestigo::ADVERTENCIA]]);
+    }
+}
+// Filas de hasta 4 testigos: crece con el catálogo sin posiciones fijas
+$filasPdf = $testigosPdf->chunk(4);
 @endphp
-@foreach($icons as $key => $label)
-@php $active = in_array($key, $witnessKeys ?? []); @endphp
+<table class="witness-grid" cellspacing="0" cellpadding="0">
+@foreach($filasPdf as $fila)
+<tr>
+@foreach($fila as $w)
+@php
+$activo = in_array($w['code'], $witnessKeys, true);
+$etiqueta = strtoupper($w['name']);
+$fuente = $w['fuente'];
+$icono = \App\Support\IconosTestigo::imagenPdf($fuente);
+@endphp
+<td class="witness-td">
 <div class="icon-box">
-<img src="{{ public_path('images/icons/' . $key . '.svg') }}" class="icon-img {{ !$active ? 'icon-inactive' : '' }}" alt="{{ $label }}">
-<div class="{{ $active ? 'icon-label-active' : 'icon-label-inactive' }}">{{ $label }}</div>
+<img src="{{ $icono }}" class="icon-img {{ !$activo ? 'icon-inactive' : '' }}" alt="{{ $etiqueta }}">
+<div class="{{ $activo ? 'icon-label-active' : 'icon-label-inactive' }}">{{ $etiqueta }}</div>
 </div>
+</td>
 @endforeach
+</tr>
+@endforeach
+</table>
 </td>
 <td class="fuel-cell">
 @php
