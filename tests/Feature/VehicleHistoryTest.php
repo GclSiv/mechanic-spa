@@ -60,12 +60,19 @@ class VehicleHistoryTest extends TestCase
 
     private function visita(Vehicle $vehiculo, array $datos = []): Recepcion
     {
-        return Recepcion::factory()->create(array_merge([
+        $datos = array_merge([
             'client_id' => $vehiculo->client_id,
             'vehicle_id' => $vehiculo->id,
             'miles' => '50000',
             'symptoms' => 'Ruido en frenos',
-        ], $datos));
+        ], $datos);
+
+        // Estas pruebas comparan kilometraje real: la lectura se declara en km explícitamente.
+        // Un miles sin unidad no es comparable (ver Recepcion::kilometrajeKm).
+        $datos['reading_type'] ??= $datos['miles'] !== null ? 'km' : null;
+        $datos['reading_value'] ??= $datos['miles'];
+
+        return Recepcion::factory()->create($datos);
     }
 
     private function orden(Recepcion $recepcion, string $slug, ?Mechanic $responsable = null): RepairOrder

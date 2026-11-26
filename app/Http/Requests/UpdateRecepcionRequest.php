@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidaClasificacionVehiculo;
+use App\Http\Requests\Concerns\ValidaRecepcionV2;
 use App\Models\ClientFiscalProfile;
 use App\Models\Recepcion;
 use App\Models\VehicleModel;
@@ -14,13 +15,18 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateRecepcionRequest extends FormRequest
 {
-    use ValidaClasificacionVehiculo;
+    use ValidaClasificacionVehiculo, ValidaRecepcionV2;
 
     private const RFC_GENERICOS = ['XAXX010101000', 'XEXX010101000'];
 
     public function authorize(): bool
     {
         return auth()->check();
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizarRecepcionV2();
     }
 
     public function rules(): array
@@ -39,14 +45,15 @@ class UpdateRecepcionRequest extends FormRequest
             'vehicle_model_id' => 'nullable|exists:vehicle_models,id',
             'year'             => 'nullable|numeric|min:1900|max:2099',
             'plate'            => 'nullable|string|max:20',
-            // Formato ISO solo si el VIN cambia: registros anteriores pueden tener VIN que no cumplen la norma.
+            // VIN legado: se deriva del identificador tipo VIN; el formato ISO se valida en ValidaRecepcionV2.
+            // Registros anteriores pueden tener un VIN que no cumple la norma: solo se revisa si el usuario lo envía.
             'vin'              => 'nullable|string|max:17',
             'engine'           => 'nullable|string|max:50',
             ...$this->reglasClasificacion(),
+            ...$this->reglasRecepcionV2(),
 
-            // Ingreso
+            // Ingreso. Kilometraje, medida de llanta y elementos recibidos son Recepción V2 (arriba).
             'fuel_level'       => 'nullable|string|max:20',
-            'miles'            => 'nullable|numeric|min:0',
             'symptoms'         => 'nullable|string|max:2000',
             'witnesses'        => 'nullable|array',
             // Activos del catálogo, o un código que la recepción ya tenía guardado (histórico desactivado).
@@ -57,8 +64,6 @@ class UpdateRecepcionRequest extends FormRequest
                     $fallo('El testigo seleccionado no es válido.');
                 }
             }],
-            'inventory'        => 'nullable|array',
-            'inventory.*'      => 'in:llanta,gato,estereo,tapetes,herramienta',
         ];
     }
 
@@ -68,6 +73,21 @@ class UpdateRecepcionRequest extends FormRequest
             'vin.size'  => 'El VIN debe tener exactamente 17 caracteres.',
             'vin.regex' => 'El VIN solo puede contener letras (sin I, O ni Q) y números.',
         ];
+    }
+
+    /** Identificador guardado del vehículo. Un VIN legado sin tipo propio cuenta como VIN. */
+    private function identificadorActual(Recepcion $recepcion): array
+    {
+        $vehiculo = $recepcion->vehicle;
+        $tipo = $vehiculo?->identifier_type;
+        $valor = $vehiculo?->identifier_value;
+
+        if ($tipo === null && $vehiculo?->vin) {
+            $tipo = 'vin';
+            $valor = $vehiculo->vin;
+        }
+
+        return ['tipo' => $tipo, 'valor' => $valor];
     }
 
     public function recepcion(): ?Recepcion
@@ -101,15 +121,8 @@ class UpdateRecepcionRequest extends FormRequest
             $tipoEfectivo = $this->has('vehicle_type_id') ? $this->input('vehicle_type_id') : $recepcion->vehicle?->vehicle_type_id;
             $this->validarSubtipoCompatible($v, $tipoEfectivo);
 
-            // VIN nuevo o modificado: 17 caracteres sin I, O ni Q (ISO 3779).
-            if ($this->filled('vin') && strtoupper(trim((string) $this->input('vin'))) !== strtoupper((string) $recepcion->vehicle?->vin)) {
-                $vin = strtoupper(trim((string) $this->input('vin')));
-                if (strlen($vin) !== 17) {
-                    $v->errors()->add('vin', 'El VIN debe tener exactamente 17 caracteres.');
-                } elseif (! preg_match('/^[A-HJ-NPR-Z0-9]{17}$/', $vin)) {
-                    $v->errors()->add('vin', 'El VIN solo puede contener letras (sin I, O ni Q) y números.');
-                }
-            }
+            // Identificador: tipo y valor según ValidaRecepcionV2 (VIN de 17 caracteres sin I, O ni Q, etc.).
+            $this->validarRecepcionV2($v, $this->identificadorActual($recepcion));
 
             // RFC: un RFC identifica a una sola empresa; mismo criterio que Store.
             $rfc = strtoupper(trim((string) $this->input('rfc')));

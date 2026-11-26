@@ -148,10 +148,10 @@ class ClientExpedienteTest extends TestCase
         $vehiculo = $this->vehiculo($cliente, 'KMS-100');
 
         Recepcion::factory()->create([
-            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '50000',
+            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '50000', 'reading_type' => 'km', 'reading_value' => '50000',
         ]);
         Recepcion::factory()->create([
-            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '52500',
+            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '52500', 'reading_type' => 'km', 'reading_value' => '52500',
         ]);
 
         $this->actingAs($this->admin())
@@ -170,12 +170,12 @@ class ClientExpedienteTest extends TestCase
 
         // Visita reciente, creada primero (ID menor)
         Recepcion::factory()->create([
-            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '52500',
+            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '52500', 'reading_type' => 'km', 'reading_value' => '52500',
         ]);
 
         // Recepción histórica cargada después (ID mayor) pero ocurrida hace 30 días
         $historica = Recepcion::factory()->create([
-            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '40000',
+            'client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id, 'miles' => '40000', 'reading_type' => 'km', 'reading_value' => '40000',
         ]);
         $historica->forceFill(['created_at' => now()->subDays(30)])->save();
 

@@ -163,8 +163,13 @@ public function store(Request $request)
                 ORDER BY r2.created_at DESC, r2.id DESC
                 LIMIT 1
             )')
-            ->get(['r.vehicle_id', 'r.miles'])
-            ->pluck('miles', 'vehicle_id');
+            ->get(['r.vehicle_id', 'r.miles', 'r.reading_type', 'r.reading_value'])
+            // Solo lecturas en km: millas y horas quedan fuera (sin conversión), como en Recepcion::kilometrajeKm.
+            ->mapWithKeys(function (Recepcion $r) {
+                $km = $r->kilometrajeKm();
+
+                return [$r->vehicle_id => $km !== null ? (string) $km : null];
+            });
 
         // Resumen financiero del cliente: suma de los estados por orden que calcula el lector en lote.
         // Cada cifra es SUMA por orden; nunca se netea entre órdenes ni se deriva el saldo del total.

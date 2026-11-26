@@ -37,7 +37,11 @@ class RepairOrderListController extends Controller
             $b = $filtros['buscar'];
             $query->where(function (Builder $q) use ($b) {
                 $q->where('folio', 'like', "%{$b}%")
-                  ->orWhereHas('recepcion.vehicle', fn ($v) => $v->where('plate', 'like', "%{$b}%")->orWhere('vin', 'like', "%{$b}%"))
+                  // Identificador: VIN legado (vin) y el identificador nuevo por valor (VIN completo, últimos 8/10, serie, otro).
+                  // Se busca por el valor, nunca por el tipo.
+                  ->orWhereHas('recepcion.vehicle', fn ($v) => $v->where('plate', 'like', "%{$b}%")
+                      ->orWhere('vin', 'like', "%{$b}%")
+                      ->orWhere('identifier_value', 'like', "%{$b}%"))
                   ->orWhereHas('recepcion.client', fn ($c) => $c->where('first_name', 'like', "%{$b}%")
                       ->orWhere('last_name', 'like', "%{$b}%")->orWhere('phone', 'like', "%{$b}%"));
             });

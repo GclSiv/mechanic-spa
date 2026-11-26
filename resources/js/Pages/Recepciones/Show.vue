@@ -8,6 +8,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { etiquetaZona } from '@/Components/DamageDiagrams/diagramas.js';
+import { formatLectura, identificadorDe } from '@/Components/Recepciones/recepcionV2.js';
 
 const props = defineProps({ recepcion: Object, nombresTestigos: { type: Object, default: () => ({}) } });
 
@@ -19,6 +20,12 @@ const marcaVehiculo = computed(() => props.recepcion.vehicle?.display_brand ?? n
 const modeloVehiculo = computed(() => props.recepcion.vehicle?.display_model ?? null);
 
 const idFormateado = computed(() => String(props.recepcion.id).padStart(4, '0'));
+
+// Identificador V2: el tipo define la etiqueta; un VIN legado sin tipo se muestra como VIN.
+const identificador = computed(() => identificadorDe(props.recepcion.vehicle));
+const etiquetaIdentificador = computed(() => (identificador.value.tipo && identificador.value.tipo !== 'none'
+    ? t('recepcionV2.ident_' + identificador.value.tipo)
+    : t('recepcionV2.identEtiqueta')));
 
 const fechaIngreso = computed(() => (props.recepcion.created_at
     ? new Date(props.recepcion.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -149,8 +156,8 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                         <dd class="font-mono text-ds-body uppercase text-ink">{{ recepcion.vehicle?.plate ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-ds-label text-ink-muted">VIN</dt>
-                        <dd class="break-all font-mono text-ds-body text-ink">{{ recepcion.vehicle?.vin ?? '—' }}</dd>
+                        <dt class="text-ds-label text-ink-muted">{{ etiquetaIdentificador }}</dt>
+                        <dd class="break-all font-mono text-ds-body text-ink">{{ identificador.valor ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-ds-label text-ink-muted">{{ t('recepcion_form.motor') }}</dt>
@@ -163,12 +170,16 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                 <h2 id="sec-ingreso" class="mb-4 text-ds-section-title text-navy">{{ t('recepcionUi.seccionIngreso') }}</h2>
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                        <dt class="text-ds-label text-ink-muted">{{ t('recepcion_form.kilometraje') }}</dt>
-                        <dd class="text-ds-body text-ink">{{ recepcion.miles ? Number(recepcion.miles).toLocaleString('es-MX') + ' km' : '—' }}</dd>
+                        <dt class="text-ds-label text-ink-muted">{{ t('recepcionV2.lecturaTitulo') }}</dt>
+                        <dd class="text-ds-body text-ink">{{ formatLectura(recepcion, t('recepcionV2.lecturaSinUnidad')) ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-ds-label text-ink-muted">{{ t('recepcion_form.gasolina') }}</dt>
                         <dd class="text-ds-body text-ink">{{ recepcion.fuel_level ?? '—' }}</dd>
+                    </div>
+                    <div v-if="recepcion.tire_size">
+                        <dt class="text-ds-label text-ink-muted">{{ t('recepcionV2.medidaLlanta') }}</dt>
+                        <dd class="text-ds-body text-ink">{{ recepcion.tire_size }}</dd>
                     </div>
                     <div>
                         <dt class="text-ds-label text-ink-muted">{{ t('inspeccion.fechaIngreso') }}</dt>
@@ -185,11 +196,11 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                     </ul>
                 </div>
 
-                <div v-if="recepcion.inventory?.length" class="mt-5">
-                    <h3 class="mb-2 text-ds-label text-ink-muted">{{ t('recepcion_form.inventarioIngreso') }}</h3>
-                    <ul class="flex flex-wrap gap-2">
-                        <li v-for="i in recepcion.inventory" :key="i">
-                            <BaseBadge variant="neutral">{{ t('recepcion_form.inv_' + i) }}</BaseBadge>
+                <div v-if="recepcion.items?.length" class="mt-5">
+                    <h3 class="mb-2 text-ds-label text-ink-muted">{{ t('recepcionV2.elemTitulo') }}</h3>
+                    <ul class="space-y-1 text-ds-body text-ink">
+                        <li v-for="it in recepcion.items" :key="it.id">
+                            {{ it.quantity }} × {{ it.name }}<span v-if="it.unit"> ({{ it.unit }})</span><span v-if="it.observation"> — {{ it.observation }}</span>
                         </li>
                     </ul>
                 </div>

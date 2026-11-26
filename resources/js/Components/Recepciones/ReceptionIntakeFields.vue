@@ -1,10 +1,15 @@
 <script setup>
-// Datos de ingreso (kilometraje y gasolina) y síntomas reportados. Son lo que dice el cliente al llegar,
-// no el diagnóstico del taller. Solo representa el formulario recibido por props.
+// Uso al ingreso: lectura (con su unidad), medida de llanta y gasolina. Y los síntomas que reporta el cliente.
+// Son datos de recepción, no diagnóstico del taller. Solo representa el formulario recibido por props.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { UNIDADES_LECTURA } from './recepcionV2.js';
 
-const props = defineProps({ form: { type: Object, required: true } });
+const props = defineProps({
+    form: { type: Object, required: true },
+    // Lectura histórica sin unidad conocida (solo Editar): se muestra como referencia, no se convierte.
+    legacyReading: { type: String, default: null },
+});
 const { t } = useI18n();
 
 // Si el registro trae un nivel anterior fuera de la lista (p. ej. "Medio"), se muestra como opción actual.
@@ -13,7 +18,9 @@ const fuelLevels = computed(() => {
     const actual = props.form.fuel_level;
     return actual && !base.includes(actual) ? [...base, actual] : base;
 });
-const odometerDisplay = computed(() => String(parseInt(props.form.miles) || 0).padStart(6, '0').split(''));
+
+// Dígitos del odómetro: solo cuando la lectura es en km. Millas y horas no se muestran como km.
+const odometerDisplay = computed(() => String(parseInt(props.form.reading_value) || 0).padStart(6, '0').split(''));
 
 const input = 'ds-focus h-control rounded-lg border border-line-strong bg-surface px-3 text-ds-control text-ink placeholder:text-ink-subtle';
 const label = 'mb-1 block text-ds-label font-semibold text-ink-secondary';
@@ -26,15 +33,27 @@ const errorText = 'mt-1 text-ds-caption text-danger-text';
             <h3 class="text-ds-section-title text-navy">{{ t('recepcionUi.secIngreso') }}</h3>
             <div class="mt-3 grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                    <label for="ri-miles" :class="label">{{ t('recepcion_form.kilometraje') }}</label>
+                    <span :class="label">{{ t('recepcionV2.lecturaTitulo') }}</span>
                     <div class="flex flex-wrap items-center gap-3">
-                        <div class="flex gap-1" aria-hidden="true">
+                        <div v-if="form.reading_type === 'km'" class="flex gap-1" aria-hidden="true">
                             <span v-for="(digit, i) in odometerDisplay" :key="i" class="flex h-10 w-7 items-center justify-center rounded-sm bg-navy font-mono text-ds-control font-bold text-white">{{ digit }}</span>
                         </div>
-                        <input id="ri-miles" v-model="form.miles" type="number" min="0" max="999999" placeholder="0" inputmode="numeric"
-                            :aria-invalid="!!form.errors.miles" :class="[input, 'w-32 font-mono', form.errors.miles ? 'border-danger' : '']" />
+                        <label for="ri-reading-type" class="sr-only">{{ t('recepcionV2.lecturaUnidad') }}</label>
+                        <select id="ri-reading-type" v-model="form.reading_type" :aria-invalid="!!form.errors.reading_type"
+                            :class="[input, 'w-28', form.errors.reading_type ? 'border-danger' : '']">
+                            <option value="">{{ t('recepcionV2.identSinEspecificar') }}</option>
+                            <option v-for="u in UNIDADES_LECTURA" :key="u" :value="u">{{ t('recepcionV2.unidad_' + u) }}</option>
+                        </select>
+                        <label for="ri-reading-value" class="sr-only">{{ t('recepcionV2.lecturaValor') }}</label>
+                        <input id="ri-reading-value" v-model="form.reading_value" type="number" min="0" max="9999999" step="any" placeholder="0" inputmode="decimal"
+                            :aria-invalid="!!(form.errors.reading_value || form.errors.reading_type)"
+                            :class="[input, 'w-40 font-mono', form.errors.reading_value ? 'border-danger' : '']" />
                     </div>
-                    <p v-if="form.errors.miles" :class="errorText" role="alert">{{ form.errors.miles }}</p>
+                    <p v-if="legacyReading" class="mt-2 text-ds-caption text-ink-muted">
+                        {{ t('recepcionV2.lecturaHistoricaAyuda') }} <span class="font-mono">{{ legacyReading }}</span>
+                    </p>
+                    <p v-if="form.errors.reading_value" :class="errorText" role="alert">{{ form.errors.reading_value }}</p>
+                    <p v-if="form.errors.reading_type" :class="errorText" role="alert">{{ form.errors.reading_type }}</p>
                 </div>
                 <div>
                     <span :class="label">{{ t('recepcion_form.gasolina') }}</span>
@@ -46,6 +65,12 @@ const errorText = 'mt-1 text-ds-caption text-danger-text';
                         </button>
                     </div>
                     <p v-if="form.errors.fuel_level" :class="errorText" role="alert">{{ form.errors.fuel_level }}</p>
+                </div>
+                <div>
+                    <label for="ri-tire-size" :class="label">{{ t('recepcionV2.medidaLlanta') }}</label>
+                    <input id="ri-tire-size" v-model="form.tire_size" type="text" maxlength="60" :placeholder="t('recepcionV2.medidaLlantaPh')"
+                        :aria-invalid="!!form.errors.tire_size" :class="[input, 'w-full', form.errors.tire_size ? 'border-danger' : '']" />
+                    <p v-if="form.errors.tire_size" :class="errorText" role="alert">{{ form.errors.tire_size }}</p>
                 </div>
             </div>
         </div>

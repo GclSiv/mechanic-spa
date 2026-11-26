@@ -165,20 +165,34 @@ THANK YOU FOOTER & PÁGINA 2
 <tr>
 <td class="lbl">Address</td>
 <td class="val">{{ $recepcion->client?->address ?? '—' }}</td>
-<td class="lbl">VIN / Plate</td>
+<td class="lbl">Identifier / Plate</td>
 <td class="val">
-{{ $recepcion->vehicle?->vin ?? 'N/A' }} /
-<strong>{{ $recepcion->vehicle?->plate ?? '—' }}</strong>
+@php
+    $veh = $recepcion->vehicle;
+    $tipoId = $veh?->identifier_type;
+    $valorId = $veh?->identifier_value;
+    // Registros anteriores: sin identificador propio, el VIN legado se muestra como VIN.
+    if ($tipoId === null && $veh?->vin) { $tipoId = 'vin'; $valorId = $veh->vin; }
+    $tieneId = $tipoId && $tipoId !== 'none' && $valorId;
+@endphp
+{{ $tieneId ? \App\Support\IdentificadorVehiculo::etiquetaPdf($tipoId) . ': ' . $valorId : 'N/A' }} /
+<strong>{{ $veh?->plate ?? '—' }}</strong>
 </td>
 </tr>
 <tr>
 <td class="lbl">RFC</td>
 <td class="val">{{ $recepcion->client?->rfc ?? '—' }}</td>
-<td class="lbl">Mileage</td>
+<td class="lbl">Reading</td>
 <td class="val val-strong">
-{{ $recepcion->miles ? number_format((float)$recepcion->miles) . ' km' : '—' }}
+{{ $recepcion->lecturaPdf() ?? '—' }}
 </td>
 </tr>
+@if($recepcion->tire_size)
+<tr>
+<td class="lbl">Tire size</td>
+<td class="val" colspan="3">{{ $recepcion->tire_size }}</td>
+</tr>
+@endif
 </table>
 
 {{-- ── VEHICLE CONDITION AT ENTRY ── --}}
@@ -234,6 +248,31 @@ $fuelPct = $fuelMap[$recepcion->fuel_level] ?? 50;
 </td>
 </tr>
 </table>
+
+{{-- ── ITEMS RECEIVED (solo si hay elementos) ── --}}
+@if($recepcion->items->isNotEmpty())
+<div class="section-title">Items Received</div>
+<table class="service-table">
+<thead>
+<tr>
+<th style="width: 50%;">Item</th>
+<th class="center" style="width: 12%;">Qty</th>
+<th class="center" style="width: 14%;">Unit</th>
+<th style="width: 24%;">Notes</th>
+</tr>
+</thead>
+<tbody>
+@foreach($recepcion->items as $item)
+<tr>
+<td>{{ $item->name }}</td>
+<td class="center">{{ $item->quantity }}</td>
+<td class="center">{{ $item->unit ?? '—' }}</td>
+<td>{{ $item->observation ?? '' }}</td>
+</tr>
+@endforeach
+</tbody>
+</table>
+@endif
 
 {{-- ── DESCRIPTION OF SERVICE / PARTS ── --}}
 <div class="section-title">Description of Service / Parts</div>

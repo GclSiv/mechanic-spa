@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidaClasificacionVehiculo;
+use App\Http\Requests\Concerns\ValidaRecepcionV2;
 use App\Models\Vehicle;
 use App\Models\VehicleType;
 use App\Support\DiagramaDano;
@@ -11,11 +12,16 @@ use Illuminate\Validation\Rule;
 
 class StoreRecepcionRequest extends FormRequest
 {
-    use ValidaClasificacionVehiculo;
+    use ValidaClasificacionVehiculo, ValidaRecepcionV2;
 
     public function authorize(): bool
     {
         return auth()->check();
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizarRecepcionV2();
     }
 
     public function rules(): array
@@ -44,20 +50,19 @@ class StoreRecepcionRequest extends FormRequest
             'plate'            => 'nullable|string|max:20',
             // Clasificación (Fase B). Los catálogos se validan por existencia; el subtipo, por compatibilidad.
             ...$this->reglasClasificacion(),
-            // VIN: 17 caracteres, sin I, O ni Q (norma ISO 3779)
+            // VIN legado: se deriva del identificador tipo VIN (ver ValidaRecepcionV2). Formato ISO 3779 si llega.
             'vin'              => ['nullable', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/i'],
+            ...$this->reglasRecepcionV2(),
             'color'            => 'nullable|string|max:30',
             'engine'           => 'nullable|string|max:50',
 
-            // Recepción
+            // Recepción. Kilometraje (reading_*), medida de llanta e inventario (items) son Recepción V2.
+            // miles e inventory ya no se escriben: quedan intactos en registros anteriores.
             'fuel_level'       => 'required|string',
-            'miles'            => 'nullable|numeric|min:0',
             'symptoms'         => 'nullable|string|max:2000',
             'witnesses'        => 'nullable|array',
             // Catálogo warning_lights: una recepción nueva solo acepta testigos activos.
             'witnesses.*'      => ['string', Rule::exists('warning_lights', 'code')->where('active', true)],
-            'inventory'        => 'nullable|array',
-            'inventory.*'      => 'in:llanta,gato,estereo,tapetes,herramienta',
 
             // Diagrama de daños (coordenadas en porcentaje)
             'damages'          => 'nullable|array|max:30',
@@ -89,6 +94,7 @@ class StoreRecepcionRequest extends FormRequest
             }
 
             $this->validarSubtipoCompatible($v, $this->input('vehicle_type_id'));
+            $this->validarRecepcionV2($v);
 
             // Cada daño debe pertenecer al diagrama de la unidad. Con vehículo existente se usa su tipo actual.
             $tipo = $this->filled('vehicle_id')

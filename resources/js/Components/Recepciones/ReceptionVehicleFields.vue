@@ -6,6 +6,7 @@ import { computed, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
+import { TIPOS_IDENTIFICADOR } from './recepcionV2.js';
 
 const props = defineProps({
     form: { type: Object, required: true },
@@ -28,6 +29,13 @@ const label = 'mb-1 block text-ds-label font-semibold text-ink-secondary';
 const errorText = 'mt-1 text-ds-caption text-danger-text';
 const seccion = 'text-ds-label font-semibold uppercase tracking-wide text-ink-muted';
 const cls = (key) => [input, props.form.errors[key] ? inputError : ''];
+
+// ── Identificador (Recepción V2): el valor depende del tipo; "sin identificador" no guarda valor ──
+const identificadorActivo = computed(() => !!props.form.identifier_type && props.form.identifier_type !== 'none');
+const maxIdentificador = computed(() => ({ vin: 17, vin_last_8: 8, vin_last_10: 10 })[props.form.identifier_type] ?? 100);
+watch(() => props.form.identifier_type, (nuevo) => {
+    if (!nuevo || nuevo === 'none') props.form.identifier_value = '';
+});
 
 // ── Clasificación ─────────────────────────────────────────────────────
 const tipoSeleccionado = computed(() => props.vehicleTypes.find((x) => x.id == props.form.vehicle_type_id) ?? null);
@@ -240,9 +248,19 @@ const years = computed(() => {
                     <p v-if="form.errors.plate" :class="errorText" role="alert">{{ form.errors.plate }}</p>
                 </div>
                 <div>
-                    <label for="rv-vin" :class="label">{{ t('recepcion_form.serie') }}</label>
-                    <input id="rv-vin" v-model="form.vin" type="text" maxlength="17" :placeholder="t('recepcionUi.seriePh')" :aria-invalid="!!form.errors.vin" :class="[...cls('vin'), 'uppercase']" />
-                    <p v-if="form.errors.vin" :class="errorText" role="alert">{{ form.errors.vin }}</p>
+                    <label for="rv-ident-tipo" :class="label">{{ t('recepcionV2.identTipo') }}</label>
+                    <select id="rv-ident-tipo" v-model="form.identifier_type" :aria-invalid="!!form.errors.identifier_type" :class="cls('identifier_type')">
+                        <option value="">{{ t('recepcionV2.identSinEspecificar') }}</option>
+                        <option v-for="tipo in TIPOS_IDENTIFICADOR" :key="tipo" :value="tipo">{{ t('recepcionV2.ident_' + tipo) }}</option>
+                    </select>
+                    <p v-if="form.errors.identifier_type" :class="errorText" role="alert">{{ form.errors.identifier_type }}</p>
+                </div>
+                <div>
+                    <label for="rv-ident-valor" :class="label">{{ t('recepcionV2.identValor') }}</label>
+                    <input id="rv-ident-valor" v-model="form.identifier_value" type="text" :disabled="!identificadorActivo" :maxlength="maxIdentificador"
+                        :placeholder="t('recepcionV2.identValorPh')" :aria-invalid="!!(form.errors.identifier_value || form.errors.vin)"
+                        :class="[...cls('identifier_value'), 'uppercase']" />
+                    <p v-if="form.errors.identifier_value || form.errors.vin" :class="errorText" role="alert">{{ form.errors.identifier_value || form.errors.vin }}</p>
                 </div>
                 <div>
                     <label for="rv-engine" :class="label">{{ t('recepcion_form.motor') }}</label>

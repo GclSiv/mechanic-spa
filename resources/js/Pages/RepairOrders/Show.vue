@@ -10,6 +10,7 @@ import AppShellLayout from '@/Layouts/AppShellLayout.vue';
 import OrderHeader from '@/Components/UI/OrderHeader.vue';
 import OrderStatusTrack from '@/Components/UI/OrderStatusTrack.vue';
 import ContentTabs from '@/Components/UI/ContentTabs.vue';
+import { formatLectura } from '@/Components/Recepciones/recepcionV2.js';
 import SideInfoPanel from '@/Components/UI/SideInfoPanel.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -525,7 +526,7 @@ function removeItem(itemId) {
                             </div>
                             <div>
                                 <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.kilometraje') }}</dt>
-                                <dd class="text-ink">{{ recepcion?.miles ? `${recepcion.miles} km` : $t('expediente.sinDato') }}</dd>
+                                <dd class="text-ink">{{ formatLectura(recepcion, $t('recepcionV2.lecturaSinUnidad')) ?? $t('expediente.sinDato') }}</dd>
                             </div>
                             <div>
                                 <dt class="text-ds-caption text-ink-muted">{{ $t('expediente.combustible') }}</dt>

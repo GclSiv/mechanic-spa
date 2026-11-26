@@ -78,9 +78,8 @@ class VehicleHistoryController extends Controller
     /** Kilometraje como entero si la recepción lo registró como número; null si está vacío o no es numérico. */
     private function kilometraje(Recepcion $r): ?int
     {
-        $raw = trim((string) $r->miles);
-
-        return $raw !== '' && is_numeric($raw) ? (int) $raw : null;
+        // Solo lecturas en km son comparables: millas y horas no se convierten (ver Recepcion::kilometrajeKm).
+        return $r->kilometrajeKm();
     }
 
     private function visita(Recepcion $r, CalculateOrderTotalsAction $calculator, EstadoFinancieroAction $estado): array

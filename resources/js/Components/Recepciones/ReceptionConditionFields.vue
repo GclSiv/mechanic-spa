@@ -21,14 +21,6 @@ const witnessOptions = computed(() => props.lights
         icon: iconoTestigo(w.icon),
     })));
 
-const inventoryOptions = computed(() => [
-    { key: 'llanta', label: t('recepcion_form.inv_llanta') },
-    { key: 'gato', label: t('recepcion_form.inv_gato') },
-    { key: 'estereo', label: t('recepcion_form.inv_estereo') },
-    { key: 'tapetes', label: t('recepcion_form.inv_tapetes') },
-    { key: 'herramienta', label: t('recepcion_form.inv_herramienta') },
-]);
-
 const toggle = (list, key) => {
     const idx = list.indexOf(key);
     if (idx === -1) list.push(key);
@@ -55,17 +47,5 @@ const label = 'mb-1 block text-ds-label font-semibold text-ink-secondary';
             </div>
         </div>
 
-        <div>
-            <span :class="label">{{ t('recepcion_form.inventarioIngreso') }}</span>
-            <p class="text-ds-caption text-ink-muted">{{ t('recepcion_form.inventarioAyuda') }}</p>
-            <div class="mt-2 flex flex-wrap gap-2" role="group" :aria-label="t('recepcion_form.inventarioIngreso')">
-                <button v-for="item in inventoryOptions" :key="item.key" type="button" :aria-pressed="form.inventory.includes(item.key)"
-                    @click="toggle(form.inventory, item.key)"
-                    class="ds-focus h-control-compact rounded-lg border px-3 text-ds-control font-semibold transition-colors"
-                    :class="form.inventory.includes(item.key) ? 'border-navy bg-navy text-white' : 'border-line-strong bg-surface text-ink-secondary hover:bg-surface-2'">
-                    {{ item.label }}
-                </button>
-            </div>
-        </div>
     </div>
 </template>

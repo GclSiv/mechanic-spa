@@ -261,6 +261,8 @@ class RecepcionController extends Controller
                     'year'      => $request->year ?: null,
                     'plate'     => $placa,
                     'vin'       => $request->vin,
+                    'identifier_type'  => $request->identifier_type,
+                    'identifier_value' => $request->identifier_value,
                     'engine'    => $request->engine,
                     'color'     => $request->color,
                     'vehicle_type_id'    => $request->vehicle_type_id ?: null,
@@ -284,15 +286,18 @@ class RecepcionController extends Controller
             'client_id'  => $client->id,
             'vehicle_id' => $vehicle->id,
             'fuel_level' => $request->fuel_level,
-            'miles'      => $request->miles,
+            'reading_type'  => $request->reading_type,
+            'reading_value' => $request->reading_value,
+            'tire_size'     => $request->tire_size,
             'witnesses'  => $request->witnesses,
-            'inventory'  => $request->inventory,
             'damages'    => $request->damages ?: null,
             // Snapshot: se fija solo si hay daños, con el diagrama de la unidad en este momento.
             'damage_diagram' => $request->damages ? DiagramaDano::paraTipo($vehicle->vehicleType) : null,
             'photos'     => !empty($photoPaths) ? $photoPaths : null,
             'symptoms'   => $request->symptoms,
         ]);
+
+        $this->guardarElementos($recepcion, $request->input('items', []));
 
         return redirect()->route('recepcion.index')->with([
             'success' => 'Recepción creada correctamente',
@@ -323,7 +328,7 @@ class RecepcionController extends Controller
      */
     public function showRecepcion(Recepcion $recepcion)
     {
-        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'items']);
 
         // Si ya tiene orden de reparación, redirigir a ella
         $orden = RepairOrder::where('recepcion_id', $recepcion->id)->first();
@@ -357,7 +362,7 @@ class RecepcionController extends Controller
      */
     public function edit(Recepcion $recepcion)
     {
-        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'vehicle.vehicleType']);
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'vehicle.vehicleType', 'items']);
         $brands = Brand::with('vehicleModels')->get();
 
         // La relación `brand` sobrescribe la columna de texto al serializar; el texto histórico se lee crudo.
@@ -401,6 +406,28 @@ class RecepcionController extends Controller
     }
 
     /**
+     * Guarda los elementos recibidos (Recepción V2). Descarta filas sin nombre.
+     */
+    private function guardarElementos(Recepcion $recepcion, array $elementos): void
+    {
+        $orden = 0;
+        foreach (array_values($elementos) as $fila) {
+            $nombre = trim((string) ($fila['name'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+
+            $recepcion->items()->create([
+                'name'        => $nombre,
+                'quantity'    => (int) ($fila['quantity'] ?? 1),
+                'unit'        => trim((string) ($fila['unit'] ?? '')) ?: null,
+                'observation' => trim((string) ($fila['observation'] ?? '')) ?: null,
+                'sort_order'  => $orden++,
+            ]);
+        }
+    }
+
+    /**
      * Actualiza una recepción desde Editar. Solo escribe lo validado por UpdateRecepcionRequest.
      * No cambia cliente ni vehículo asignados, orden, estado, fotos ni daños.
      */
@@ -431,7 +458,7 @@ class RecepcionController extends Controller
             // 2. Vehículo: marca/modelo solo cambian si el usuario los eligió; el texto histórico se conserva si no.
             if ($recepcion->vehicle) {
                 $vehiculo = $recepcion->vehicle;
-                $cambios = Arr::only($datos, ['year', 'plate', 'vin', 'engine', 'vehicle_type_id', 'vehicle_subtype_id', 'fuel_type_id', 'transmission_id']);
+                $cambios = Arr::only($datos, ['year', 'plate', 'vin', 'identifier_type', 'identifier_value', 'engine', 'vehicle_type_id', 'vehicle_subtype_id', 'fuel_type_id', 'transmission_id']);
 
                 // Cambiar de tipo invalida el subtipo anterior: si no se envió uno compatible, se limpia.
                 if (array_key_exists('vehicle_type_id', $cambios)
@@ -455,7 +482,13 @@ class RecepcionController extends Controller
             }
 
             // 3. Recepción: datos de ingreso (daños y fotos no se editan aquí).
-            $recepcion->update(Arr::only($datos, ['miles', 'fuel_level', 'symptoms', 'witnesses', 'inventory']));
+            $recepcion->update(Arr::only($datos, ['fuel_level', 'symptoms', 'witnesses', 'reading_type', 'reading_value', 'tire_size']));
+
+            // Elementos: si el formulario los envía, la lista reemplaza la anterior (sin duplicar ni conservar filas quitadas).
+            if (array_key_exists('items', $datos)) {
+                $recepcion->items()->delete();
+                $this->guardarElementos($recepcion, $datos['items'] ?? []);
+            }
         });
 
         return redirect()->route('recepcion.index')->with('success', 'Recepción actualizada correctamente');
@@ -474,6 +507,7 @@ class RecepcionController extends Controller
             'client',
             'vehicle.brand',
             'vehicle.vehicleModel',
+            'items',
         ]);
 
         // 2. Configuración global del taller

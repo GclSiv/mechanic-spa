@@ -7,6 +7,7 @@ import ReceptionClientFields from '@/Components/Recepciones/ReceptionClientField
 import ReceptionVehicleFields from '@/Components/Recepciones/ReceptionVehicleFields.vue';
 import ReceptionIntakeFields from '@/Components/Recepciones/ReceptionIntakeFields.vue';
 import ReceptionConditionFields from '@/Components/Recepciones/ReceptionConditionFields.vue';
+import ReceptionItemsEditor from '@/Components/Recepciones/ReceptionItemsEditor.vue';
 import DamageDiagram from '@/Components/DamageDiagram.vue';
 import ConfirmModal from '@/Components/ConfirmModal.vue';
 import { diagramaParaTipo, zonasDe } from '@/Components/DamageDiagrams/diagramas.js';
@@ -121,16 +122,19 @@ const form = useForm({
     transmission_id: '',
     year: '',
     plate: '',
-    vin: '',
+    identifier_type: '',
+    identifier_value: '',
     engine: '',
     color: '',
 
     // Recepción
-    miles: '',
+    reading_type: 'km',
+    reading_value: '',
+    tire_size: '',
     fuel_level: '1/2',
     witnesses: [],
     damages: [],
-    inventory: [],
+    items: [],
     photos: [],
     symptoms: '',
 });
@@ -187,9 +191,11 @@ watch(() => form.plate, (val) => {
     plateTimer = setTimeout(() => checkField('plate', val?.toUpperCase()), 600);
 });
 
-watch(() => form.vin, (val) => {
+// Duplicado por VIN: solo cuando el identificador es un VIN completo (los demás tipos no son únicos).
+watch(() => [form.identifier_type, form.identifier_value], ([tipo, val]) => {
     if (form.vehicle_id) return;
     clearTimeout(vinTimer);
+    if (tipo !== 'vin') return;
     vinTimer = setTimeout(() => checkField('vin', val?.toUpperCase()), 600);
 });
 
@@ -202,7 +208,7 @@ function useDuplicateVehicle() {
 // Placa o VIN ya registrados: no se captura de nuevo; se limpia el campo para corregir
 function ignoreDuplicate() {
     if (duplicateAlert.value?.type === 'plate') form.plate = '';
-    if (duplicateAlert.value?.type === 'vin') form.vin = '';
+    if (duplicateAlert.value?.type === 'vin') form.identifier_value = '';
     showDuplicateModal.value = false;
     duplicateAlert.value = null;
 }
@@ -341,9 +347,15 @@ function cancelarCambioDiagrama() {
     cambioPendiente.value = null;
 }
 
+// Filas de elementos sin nombre se descartan antes de enviar (el backend exige nombre).
+const limpiarBorradores = (datos) => ({
+    ...datos,
+    items: (datos.items ?? []).filter((f) => (f.name ?? '').trim() !== ''),
+});
+
 const submit = () => {
     // Con vehículo existente los campos de vehículo nuevo están ocultos: no se envían para no validar datos vacíos.
-    form.transform((data) => (data.vehicle_id ? {
+    form.transform((data) => limpiarBorradores(data.vehicle_id ? {
         ...data,
         brand_id: null,
         vehicle_model_id: null,
@@ -353,7 +365,8 @@ const submit = () => {
         transmission_id: null,
         year: null,
         plate: null,
-        vin: null,
+        identifier_type: null,
+        identifier_value: null,
         engine: null,
         color: null,
     } : data)).post(route('recepcion.store'), {
@@ -489,6 +502,11 @@ const submit = () => {
             <!-- ═══ INGRESO Y SÍNTOMAS ═══ -->
             <section aria-label="Ingreso" class="min-w-0 rounded-xl border border-line bg-surface p-5 sm:p-6">
                 <ReceptionIntakeFields :form="form" />
+            </section>
+
+            <!-- ═══ ELEMENTOS RECIBIDOS (separados de refacciones y almacén) ═══ -->
+            <section aria-label="Elementos recibidos" class="min-w-0 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <ReceptionItemsEditor :form="form" />
             </section>
 
             <!-- ═══ CONDICIÓN Y ACCESORIOS ═══ -->
