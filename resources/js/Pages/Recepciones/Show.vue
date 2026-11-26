@@ -7,11 +7,12 @@ import BaseBadge from '@/Components/UI/BaseBadge.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { etiquetaZona } from '@/Components/DamageDiagrams/diagramas.js';
 
 const props = defineProps({ recepcion: Object });
 
 const page = usePage();
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 // Marca y modelo ya resueltos en el servidor: catálogo si existe, o texto histórico del vehículo.
 const marcaVehiculo = computed(() => props.recepcion.vehicle?.display_brand ?? null);
@@ -197,7 +198,7 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                     <h3 class="mb-2 text-ds-label text-ink-muted">{{ t('recepcion_form.danos') }}</h3>
                     <ul class="list-disc space-y-1 pl-5 text-ds-body text-ink">
                         <li v-for="(d, idx) in recepcion.damages" :key="idx">
-                            {{ t('recepcion_form.zona_' + d.zone) }}<span v-if="d.severity" class="capitalize"> ({{ d.severity }})</span><span v-if="d.note"> — {{ d.note }}</span>
+                            {{ etiquetaZona(d.zone, t, te) }}<span v-if="d.severity" class="capitalize"> ({{ d.severity }})</span><span v-if="d.note"> — {{ d.note }}</span>
                         </li>
                     </ul>
                 </div>

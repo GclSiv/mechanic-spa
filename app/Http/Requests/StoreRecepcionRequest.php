@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidaClasificacionVehiculo;
+use App\Models\Vehicle;
+use App\Models\VehicleType;
+use App\Support\DiagramaDano;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -57,7 +60,8 @@ class StoreRecepcionRequest extends FormRequest
 
             // Diagrama de daños (coordenadas en porcentaje)
             'damages'          => 'nullable|array|max:30',
-            'damages.*.zone'   => 'required|in:capo,parabrisas,luneta,techo,cajuela,defensa_del,defensa_tra,puerta_fi,puerta_ti,puerta_fd,puerta_td,llanta_fi,llanta_fd,llanta_ti,llanta_td,espejo_i,espejo_d',
+            // La zona se valida contra el diagrama de la unidad (ver withValidator): no hay lista fija de automóvil.
+            'damages.*.zone'   => 'required|string|max:40',
             'damages.*.note'   => 'nullable|string|max:120',
             'damages.*.severity' => 'nullable|in:leve,medio,grave',
 
@@ -85,6 +89,17 @@ class StoreRecepcionRequest extends FormRequest
 
             $this->validarSubtipoCompatible($v, $this->input('vehicle_type_id'));
 
+            // Cada daño debe pertenecer al diagrama de la unidad. Con vehículo existente se usa su tipo actual.
+            $tipo = $this->filled('vehicle_id')
+                ? Vehicle::find($this->input('vehicle_id'))?->vehicleType
+                : VehicleType::find($this->input('vehicle_type_id'));
+            $diagrama = DiagramaDano::paraTipo($tipo);
+
+            foreach ((array) $this->input('damages', []) as $i => $daño) {
+                if (! DiagramaDano::zonaValida($diagrama, (string) ($daño['zone'] ?? ''))) {
+                    $v->errors()->add("damages.$i.zone", 'La zona no pertenece al diagrama de esta unidad.');
+                }
+            }
         });
     }
 }

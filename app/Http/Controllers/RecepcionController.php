@@ -20,6 +20,7 @@ use App\Models\RepairOrder;
 use App\Models\RepairOrderItem;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Http\Requests\StoreRecepcionRequest;
+use App\Support\DiagramaDano;
 use App\Http\Requests\UpdateRecepcionRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
@@ -285,6 +286,8 @@ class RecepcionController extends Controller
             'witnesses'  => $request->witnesses,
             'inventory'  => $request->inventory,
             'damages'    => $request->damages ?: null,
+            // Snapshot: se fija solo si hay daños, con el diagrama de la unidad en este momento.
+            'damage_diagram' => $request->damages ? DiagramaDano::paraTipo($vehicle->vehicleType) : null,
             'photos'     => !empty($photoPaths) ? $photoPaths : null,
             'symptoms'   => $request->symptoms,
         ]);
@@ -364,6 +367,8 @@ class RecepcionController extends Controller
             'recepcion'     => $recepcion,
             'brands'        => $brands,
             'legacyVehicle' => $legacy,
+            // Diagrama con el que se muestran los daños: snapshot guardado, nunca el tipo actual si difieren.
+            'damageDiagram' => DiagramaDano::deRecepcion($recepcion, $recepcion->vehicle?->vehicleType),
             ...$this->catalogosVehiculo(),
         ]);
     }

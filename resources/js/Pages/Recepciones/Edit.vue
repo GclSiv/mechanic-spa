@@ -7,6 +7,7 @@ import ReceptionClientFields from '@/Components/Recepciones/ReceptionClientField
 import ReceptionVehicleFields from '@/Components/Recepciones/ReceptionVehicleFields.vue';
 import ReceptionIntakeFields from '@/Components/Recepciones/ReceptionIntakeFields.vue';
 import ReceptionConditionFields from '@/Components/Recepciones/ReceptionConditionFields.vue';
+import DamageDiagram from '@/Components/DamageDiagram.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
@@ -17,6 +18,8 @@ const props = defineProps({
     fuelTypes: { type: Array, default: () => [] },
     transmissions: { type: Array, default: () => [] },
     recepcion: Object,
+    // Diagrama con el que se registraron los daños (snapshot). No cambia aunque el tipo del vehículo cambie.
+    damageDiagram: { type: String, default: 'car' },
     legacyVehicle: Object, // { brand, model } en texto, si el vehículo no tiene FK
 });
 const { t } = useI18n();
@@ -107,6 +110,14 @@ const submit = () => {
             <section aria-labelledby="sec-condicion" class="min-w-0 space-y-6 rounded-xl border border-line bg-surface p-5 sm:p-6">
                 <h2 id="sec-condicion" class="text-ds-section-title text-navy">{{ t('recepcion_form.condiciones') }}</h2>
                 <ReceptionConditionFields :form="form" />
+            </section>
+
+            <!-- Daños registrados: solo lectura, con el diagrama guardado al registrarlos -->
+            <section v-if="recepcion.damages?.length" aria-labelledby="sec-danos-guardados" class="min-w-0 rounded-xl border border-line bg-surface p-5 sm:p-6">
+                <h2 id="sec-danos-guardados" class="text-ds-section-title text-navy">{{ t('recepcionUi.secDanos') }}</h2>
+                <div class="mt-3 min-w-0 overflow-x-auto">
+                    <DamageDiagram :model-value="recepcion.damages" :diagram="damageDiagram" readonly />
+                </div>
             </section>
 
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

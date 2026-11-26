@@ -8,6 +8,8 @@ import ReceptionVehicleFields from '@/Components/Recepciones/ReceptionVehicleFie
 import ReceptionIntakeFields from '@/Components/Recepciones/ReceptionIntakeFields.vue';
 import ReceptionConditionFields from '@/Components/Recepciones/ReceptionConditionFields.vue';
 import DamageDiagram from '@/Components/DamageDiagram.vue';
+import ConfirmModal from '@/Components/ConfirmModal.vue';
+import { diagramaParaTipo, zonasDe } from '@/Components/DamageDiagrams/diagramas.js';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { ref, watch, computed, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -299,6 +301,44 @@ function corregirRfc() {
     fiscalDuplicado.value = null;
 }
 
+// ── Diagrama de daños por tipo de unidad ──────────────────────────────
+// Tipo efectivo: el del vehículo existente si se eligió uno; si no, el tipo capturado en el formulario.
+const vehiculoPorId = (id) => (props.clients ?? []).flatMap((c) => c.vehicles ?? []).find((v) => v.id == id) ?? null;
+const tipoIdEfectivo = computed(() => (form.vehicle_id ? vehiculoPorId(form.vehicle_id)?.vehicle_type_id ?? null : form.vehicle_type_id || null));
+const diagramaActual = computed(() => diagramaParaTipo(props.vehicleTypes, tipoIdEfectivo.value));
+
+// Cambiar el tipo: si hay daños que el nuevo diagrama no tiene, se pide confirmación antes de quitarlos.
+const estadoTipo = ref({ vehicle_id: form.vehicle_id, vehicle_type_id: form.vehicle_type_id });
+const cambioPendiente = ref(null); // { count, revertir }
+
+watch(tipoIdEfectivo, (nuevo, anterior) => {
+    const previo = estadoTipo.value;
+    estadoTipo.value = { vehicle_id: form.vehicle_id, vehicle_type_id: form.vehicle_type_id };
+    if (anterior === undefined || nuevo == anterior) return;
+
+    const zonas = zonasDe(diagramaParaTipo(props.vehicleTypes, nuevo));
+    const incompatibles = form.damages.filter((d) => !zonas.includes(d.zone));
+    if (!incompatibles.length) return;
+
+    const campo = previo.vehicle_id !== form.vehicle_id ? 'vehicle_id' : 'vehicle_type_id';
+    const valorAnterior = previo[campo];
+    cambioPendiente.value = {
+        count: incompatibles.length,
+        revertir: () => { form[campo] = valorAnterior; },
+    };
+});
+
+function confirmarCambioDiagrama() {
+    const zonas = zonasDe(diagramaActual.value);
+    form.damages = form.damages.filter((d) => zonas.includes(d.zone));
+    cambioPendiente.value = null;
+}
+
+function cancelarCambioDiagrama() {
+    cambioPendiente.value?.revertir();
+    cambioPendiente.value = null;
+}
+
 const submit = () => {
     // Con vehículo existente los campos de vehículo nuevo están ocultos: no se envían para no validar datos vacíos.
     form.transform((data) => (data.vehicle_id ? {
@@ -458,7 +498,17 @@ const submit = () => {
                     <h3 class="text-ds-label font-semibold text-ink-secondary">{{ t('recepcionUi.secDanos') }}</h3>
                     <p class="text-ds-caption text-ink-muted">{{ t('recepcion_form.danosAyuda') }}</p>
                     <div class="mt-3 min-w-0 overflow-x-auto">
-                        <DamageDiagram v-model="form.damages" />
+                        <DamageDiagram v-model="form.damages" :diagram="diagramaActual" />
+                        <ConfirmModal
+                            :show="!!cambioPendiente"
+                            :title="t('diagramasUi.cambioTitulo')"
+                            :message="t('diagramasUi.cambioMensaje', { n: cambioPendiente?.count ?? 0 })"
+                            :confirm-text="t('diagramasUi.cambioConfirmar')"
+                            :cancel-text="t('diagramasUi.cambioCancelar')"
+                            :danger="true"
+                            @confirm="confirmarCambioDiagrama"
+                            @cancel="cancelarCambioDiagrama"
+                        />
                     </div>
                 </div>
             </section>

@@ -22,6 +22,7 @@ class Recepcion extends Model
         'witnesses',
         'inventory',
         'damages',
+        'damage_diagram',
         'photos',
     ];
 
