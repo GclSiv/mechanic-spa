@@ -30,6 +30,10 @@ class RepairOrder extends Model
         'is_paid',
     ];
 
+    // El token de seguimiento es un secreto de acceso público: nunca se serializa a Inertia/JSON.
+    // El backend lo usa directamente ($order->tracking_token); el frontend recibe solo tracking_url (owner/admin).
+    protected $hidden = ['tracking_token'];
+
     protected $casts = [
         'is_paid'     => 'boolean',
         'needs_quote' => 'boolean',

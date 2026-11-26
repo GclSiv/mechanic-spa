@@ -3,9 +3,12 @@ import { computed, ref } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import BaseBadge from '@/Components/UI/BaseBadge.vue';
+import { telefonoWhatsApp, urlWhatsApp, copiarTexto } from '@/lib/compartirSeguimiento';
 
 const props = defineProps({
     orden: Object,
+    // URL pública resuelta por el backend (solo owner/admin). Ya no se construye con window.location.origin.
+    trackingUrl: { type: String, default: '' },
 });
 
 const { t, locale } = useI18n();
@@ -40,37 +43,11 @@ const localeFecha = () => (locale.value === 'en' ? 'en-US' : 'es-MX');
 const money = (v) => '$' + Number(v ?? 0).toLocaleString(localeFecha(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fecha = (v) => (v ? new Date(v).toLocaleDateString(localeFecha(), { day: '2-digit', month: 'short', year: 'numeric' }) : null);
 
-const trackingUrl = computed(() => `${window.location.origin}/seguimiento/${props.orden?.tracking_token}`);
 const copied = ref(false);
 const mostrarManual = ref(false);
 
-// Copia con el método que funcione en la página: el moderno (https/localhost)
-// o, si no está disponible (http, red local), uno de respaldo con selección de texto.
-function copiarRespaldo(texto) {
-    const area = document.createElement('textarea');
-    area.value = texto;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    let ok = false;
-    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-    document.body.removeChild(area);
-    return ok;
-}
-
 const copyLink = async () => {
-    let ok = false;
-    if (window.isSecureContext && navigator.clipboard) {
-        try {
-            await navigator.clipboard.writeText(trackingUrl.value);
-            ok = true;
-        } catch (e) {
-            ok = false;
-        }
-    }
-    if (!ok) ok = copiarRespaldo(trackingUrl.value);
+    const ok = await copiarTexto(props.trackingUrl);
 
     if (ok) {
         mostrarManual.value = false;
@@ -83,21 +60,11 @@ const copyLink = async () => {
     }
 };
 
-// Formato WhatsApp de México: 52 + 10 dígitos
-const normalizarTelefono = (tel) => {
-    const d = (tel ?? '').replace(/\D/g, '');
-    if (!d) return null;
-    if (d.length === 10) return '52' + d;
-    if (d.length === 13 && d.startsWith('521')) return '52' + d.slice(3);
-    return d;
-};
-
-const clientePhone = computed(() => normalizarTelefono(props.orden?.recepcion?.client?.phone));
+const clientePhone = computed(() => telefonoWhatsApp(props.orden?.recepcion?.client?.phone));
 
 const whatsappLink = (quote) => {
-    const text = encodeURIComponent(`${t('quotesPanel.waMensaje', { folio: quote.folio })} ${trackingUrl.value}`);
-    const tel = clientePhone.value;
-    return tel ? `https://wa.me/${tel}?text=${text}` : `https://wa.me/?text=${text}`;
+    const texto = `${t('quotesPanel.waMensaje', { folio: quote.folio })} ${props.trackingUrl}`;
+    return urlWhatsApp(clientePhone.value, texto);
 };
 
 const generar = (kind = 'principal') => {

@@ -3,6 +3,8 @@ import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import BitacoraNotas from '@/Components/Historial/BitacoraNotas.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
+import ClienteSeguimiento from '@/Components/ClienteSeguimiento.vue';
+import { telefonoWhatsApp, urlWhatsApp, mensajeSeguimiento, copiarTexto } from '@/lib/compartirSeguimiento';
 import AvancePhotos from '@/Components/AvancePhotos.vue';
 import AppShellLayout from '@/Layouts/AppShellLayout.vue';
 import OrderHeader from '@/Components/UI/OrderHeader.vue';
@@ -26,9 +28,33 @@ const props = defineProps({
     services: Array,
     parts: Array,
     isAdmin: Boolean,
+    // Solo owner/admin: resumen derivado de comunicación con el cliente (tracking_url, autorización, cotización actual).
+    comunicacion: { type: Object, default: null },
 });
 
 const page = usePage();
+
+// ── Comunicación con el cliente (solo owner/admin) ───────────────────
+// La URL pública y el estado de autorización llegan del backend. Aquí solo se arma el texto de WhatsApp.
+const telefonoCliente = computed(() => telefonoWhatsApp(props.orden?.recepcion?.client?.phone));
+const waDisponible = computed(() => props.isAdmin && !!props.comunicacion && !!telefonoCliente.value);
+const waUrl = computed(() => {
+    if (!props.comunicacion) return null;
+    const texto = mensajeSeguimiento(t, {
+        nombre: props.comunicacion.cliente_nombre,
+        vehiculo: props.comunicacion.vehiculo,
+        url: props.comunicacion.tracking_url,
+        esperandoAutorizacion: props.comunicacion.autorizacion === 'esperando_autorizacion',
+    });
+    return urlWhatsApp(telefonoCliente.value, texto);
+});
+const copiaEstado = ref('idle'); // idle | ok | error
+const copiarEnlace = async () => {
+    if (!props.comunicacion) return;
+    const ok = await copiarTexto(props.comunicacion.tracking_url);
+    copiaEstado.value = ok ? 'ok' : 'error';
+    setTimeout(() => (copiaEstado.value = 'idle'), 2000);
+};
 
 // ── Expediente: pestañas, condición financiera y fechas ───────────────
 // Mecánico: no ve Cotizaciones ni Pagos. El backend ya no le envía esos datos; esto solo oculta pestañas.
@@ -226,6 +252,33 @@ function removeItem(itemId) {
                         :href="route('repair-orders.index')"
                         class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
                     >{{ $t('expediente.volver') }}</Link>
+                    <template v-if="isAdmin && comunicacion">
+                        <a
+                            :href="comunicacion.tracking_url"
+                            target="_blank"
+                            rel="noopener"
+                            class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                        >{{ $t('comunicacion.verSeguimiento') }}</a>
+                        <button
+                            type="button"
+                            class="ds-focus inline-flex h-control items-center rounded-lg border border-line bg-surface px-4 text-ds-control font-semibold text-navy hover:bg-surface-2"
+                            @click="copiarEnlace"
+                        >{{ copiaEstado === 'ok' ? $t('comunicacion.copiado') : copiaEstado === 'error' ? $t('comunicacion.noCopiado') : $t('comunicacion.copiarEnlace') }}</button>
+                        <a
+                            v-if="waDisponible"
+                            :href="waUrl"
+                            target="_blank"
+                            rel="noopener"
+                            class="ds-focus inline-flex h-control items-center rounded-lg bg-success px-4 text-ds-control font-semibold text-white hover:opacity-90"
+                        >{{ $t('comunicacion.whatsapp') }}</a>
+                        <button
+                            v-else
+                            type="button"
+                            disabled
+                            :title="$t('comunicacion.sinTelefono')"
+                            class="inline-flex h-control cursor-not-allowed items-center rounded-lg border border-line px-4 text-ds-control font-semibold text-ink-muted opacity-60"
+                        >{{ $t('comunicacion.whatsapp') }}</button>
+                    </template>
                     <button
                         v-if="isAdmin"
                         type="button"
@@ -236,6 +289,8 @@ function removeItem(itemId) {
             </OrderHeader>
 
             <OrderStatusTrack :slug="orden.status?.slug ?? null" />
+
+            <ClienteSeguimiento v-if="isAdmin && comunicacion" :comunicacion="comunicacion" />
 
             <ContentTabs v-model="tabActiva" :tabs="tabs" :label="$t('expediente.tabsLabel')" />
 
@@ -418,7 +473,7 @@ function removeItem(itemId) {
 
                     <!-- COTIZACIONES: solo admin -->
                     <div v-if="tabActiva === 'cotizaciones' && isAdmin">
-                        <QuotesPanel :orden="orden" />
+                        <QuotesPanel :orden="orden" :tracking-url="comunicacion?.tracking_url ?? ''" />
                     </div>
 
                     <!-- PAGOS: solo admin -->

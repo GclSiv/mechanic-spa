@@ -10,6 +10,7 @@ use App\Models\FollowUp;
 use App\Actions\RepairOrders\CalculateOrderTotalsAction;
 use App\Actions\RepairOrders\EstadoFinancieroAction;
 use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
+use App\Actions\RepairOrders\ResumenComunicacionAction;
 use App\Support\ConteoOrdenes;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -195,6 +196,11 @@ class RepairOrderController extends Controller
         // Estado financiero autorizado (fuente única). Solo admin/owner.
         $estadoFinanciero = $isAdmin ? $estado->execute($order) : null;
 
+        // Comunicación con el cliente: solo owner/admin. El token de seguimiento no viaja como dato de la orden;
+        // solo se expone la URL pública ya resuelta por el backend (tracking_url dentro de comunicacion).
+        $comunicacion = $isAdmin ? app(ResumenComunicacionAction::class)->execute($order) : null;
+        $order->makeHidden('tracking_token');
+
         // Aseguramos que photos esté disponible (columna JSON en recepcions)
         $recepcion = $order->recepcion;
         if ($recepcion && !isset($recepcion->photos)) {
@@ -209,6 +215,7 @@ class RepairOrderController extends Controller
             'recepcion'           => $order->recepcion,
             'financial_breakdown' => $isAdmin ? $breakdown : null,
             'estado_financiero'   => $estadoFinanciero,
+            'comunicacion'        => $comunicacion,
             'settings'            => \App\Models\Setting::current()->brandingData(),
             'statuses'            => RepairOrderStatus::orderBy('id')->get(),
             'mechanics'           => $isAdmin ? Mechanic::orderBy('name')->get(['id', 'name']) : [],
