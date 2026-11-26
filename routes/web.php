@@ -208,6 +208,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:admin')
         ->name('vehicles.history');
 
+    // Catálogo de marca y modelo desde Nueva/Editar recepción (admin/owner; mecánico 403).
+    Route::post('/catalogo/marcas', [\App\Http\Controllers\BrandController::class, 'store'])
+        ->middleware('role:admin')
+        ->name('brands.store');
+    Route::post('/catalogo/marcas/{brand}/modelos', [\App\Http\Controllers\VehicleModelController::class, 'store'])
+        ->middleware('role:admin')
+        ->name('brands.models.store');
+
     Route::controller(ClientPhotoController::class)->middleware('role:admin')->group(function () {
         Route::post('/clients/{client}/photos', 'store')->name('clients.photos.store');
         Route::delete('/photos/{photo}', 'destroy')->name('clients.photos.destroy');

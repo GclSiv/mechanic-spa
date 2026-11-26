@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidaClasificacionVehiculo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreRecepcionRequest extends FormRequest
 {
+    use ValidaClasificacionVehiculo;
+
     public function authorize(): bool
     {
         return auth()->check();
@@ -33,8 +36,11 @@ class StoreRecepcionRequest extends FormRequest
             // Con vehículo existente estos campos no aplican: pueden llegar nulos o vacíos (el formulario los oculta).
             'brand_id'         => [$sinVehiculo ? 'required' : 'nullable', 'exists:brands,id'],
             'vehicle_model_id' => [$sinVehiculo ? 'required' : 'nullable', 'exists:vehicle_models,id'],
-            'year'             => [$sinVehiculo ? 'required' : 'nullable', 'numeric', 'min:1900', 'max:2099'],
+            // Año opcional: maquinaria y vehículos sin año conocido se registran sin inventarlo.
+            'year'             => ['nullable', 'numeric', 'min:1900', 'max:2099'],
             'plate'            => 'nullable|string|max:20',
+            // Clasificación (Fase B). Los catálogos se validan por existencia; el subtipo, por compatibilidad.
+            ...$this->reglasClasificacion(),
             // VIN: 17 caracteres, sin I, O ni Q (norma ISO 3779)
             'vin'              => ['nullable', 'string', 'size:17', 'regex:/^[A-HJ-NPR-Z0-9]{17}$/i'],
             'color'            => 'nullable|string|max:30',
@@ -76,6 +82,9 @@ class StoreRecepcionRequest extends FormRequest
             if ($this->filled('vehicle_id') && ! $this->filled('client_id')) {
                 $v->errors()->add('vehicle_id', 'Un vehículo registrado solo puede usarse junto con su cliente.');
             }
+
+            $this->validarSubtipoCompatible($v, $this->input('vehicle_type_id'));
+
         });
     }
 }

@@ -12,6 +12,10 @@ import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     brands: Array,
+    vehicleTypes: { type: Array, default: () => [] },
+    vehicleSubtypes: { type: Array, default: () => [] },
+    fuelTypes: { type: Array, default: () => [] },
+    transmissions: { type: Array, default: () => [] },
     recepcion: Object,
     legacyVehicle: Object, // { brand, model } en texto, si el vehículo no tiene FK
 });
@@ -35,6 +39,10 @@ const form = useForm({
     // Vehículo
     brand_id: vehicle.brand_id || '',
     vehicle_model_id: vehicle.model_id || '',
+    vehicle_type_id: vehicle.vehicle_type_id || '',
+    vehicle_subtype_id: vehicle.vehicle_subtype_id || '',
+    fuel_type_id: vehicle.fuel_type_id || '',
+    transmission_id: vehicle.transmission_id || '',
     year: vehicle.year ? String(vehicle.year) : '',
     plate: vehicle.plate || '',
     vin: vehicle.vin || '',
@@ -81,7 +89,15 @@ const submit = () => {
 
             <section aria-labelledby="sec-vehiculo" class="min-w-0 space-y-5 rounded-xl border border-line bg-surface p-5 sm:p-6">
                 <h2 id="sec-vehiculo" class="text-ds-section-title text-navy">{{ t('recepcionUi.secVehiculo') }}</h2>
-                <ReceptionVehicleFields :form="form" :brands="brands" :legacy="legacyVehicle" />
+                <ReceptionVehicleFields
+                    :form="form"
+                    :brands="brands"
+                    :legacy="legacyVehicle"
+                    :vehicle-types="vehicleTypes"
+                    :vehicle-subtypes="vehicleSubtypes"
+                    :fuel-types="fuelTypes"
+                    :transmissions="transmissions"
+                />
             </section>
 
             <section aria-label="Ingreso" class="min-w-0 rounded-xl border border-line bg-surface p-5 sm:p-6">

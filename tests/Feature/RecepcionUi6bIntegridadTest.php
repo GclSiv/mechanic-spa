@@ -162,7 +162,8 @@ class RecepcionUi6bIntegridadTest extends TestCase
         $this->assertDatabaseHas('recepcions', ['client_id' => $cliente->id, 'vehicle_id' => $vehiculo->id]);
     }
 
-    public function test_store_sin_vehiculo_exige_marca_modelo_y_año(): void
+    /** Fase A: el año es opcional (maquinaria); marca y modelo siguen siendo obligatorios sin vehículo. */
+    public function test_store_sin_vehiculo_exige_marca_y_modelo_pero_no_anio(): void
     {
         $cliente = Client::factory()->create();
 
@@ -171,7 +172,8 @@ class RecepcionUi6bIntegridadTest extends TestCase
                 'client_id' => $cliente->id, 'fuel_level' => '1/2',
                 'brand_id' => null, 'vehicle_model_id' => null, 'year' => null,
             ])
-            ->assertSessionHasErrors(['brand_id', 'vehicle_model_id', 'year']);
+            ->assertSessionHasErrors(['brand_id', 'vehicle_model_id'])
+            ->assertSessionDoesntHaveErrors('year');
     }
 
     public function test_store_rechaza_vehiculo_sin_cliente(): void
@@ -192,7 +194,7 @@ class RecepcionUi6bIntegridadTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post(route('recepcion.store'), ['fuel_level' => '1/2'])
-            ->assertSessionHasErrors(['first_name', 'last_name', 'brand_id', 'vehicle_model_id', 'year']);
+            ->assertSessionHasErrors(['first_name', 'last_name', 'brand_id', 'vehicle_model_id']);
 
         $this->assertDatabaseCount('recepcions', 0);
     }

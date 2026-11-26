@@ -22,7 +22,7 @@ class VehicleHistoryController extends Controller
 {
     public function show(Vehicle $vehicle, CalculateOrderTotalsAction $calculator, EstadoFinancieroAction $estado)
     {
-        $vehicle->load(['client:id,first_name,last_name,client_number', 'brand', 'vehicleModel']);
+        $vehicle->load(['client:id,first_name,last_name,client_number', 'brand', 'vehicleModel', 'vehicleType:id,name']);
 
         $recepciones = $vehicle->recepciones()
             ->with(['repairOrder' => fn ($q) => $q->with([
@@ -53,6 +53,8 @@ class VehicleHistoryController extends Controller
                 'marca'                => $vehicle->displayBrand(),
                 'modelo'               => $vehicle->displayModel(),
                 'year'                 => $vehicle->year,
+                // Histórico sin tipo: null. La vista lo muestra como "Tipo no especificado", nunca como un tipo inventado.
+                'tipo'                 => $vehicle->vehicleType?->name,
                 'plate'                => $vehicle->plate,
                 'vin'                  => $vehicle->vin ?: null,
                 'propietario'          => $propietario,

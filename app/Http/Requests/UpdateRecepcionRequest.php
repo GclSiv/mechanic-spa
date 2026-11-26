@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidaClasificacionVehiculo;
 use App\Models\ClientFiscalProfile;
 use App\Models\Recepcion;
 use App\Models\VehicleModel;
@@ -13,6 +14,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateRecepcionRequest extends FormRequest
 {
+    use ValidaClasificacionVehiculo;
+
     private const RFC_GENERICOS = ['XAXX010101000', 'XEXX010101000'];
 
     public function authorize(): bool
@@ -39,6 +42,7 @@ class UpdateRecepcionRequest extends FormRequest
             // Formato ISO solo si el VIN cambia: registros anteriores pueden tener VIN que no cumplen la norma.
             'vin'              => 'nullable|string|max:17',
             'engine'           => 'nullable|string|max:50',
+            ...$this->reglasClasificacion(),
 
             // Ingreso
             'fuel_level'       => 'nullable|string|max:20',
@@ -85,6 +89,10 @@ class UpdateRecepcionRequest extends FormRequest
                     $v->errors()->add('vehicle_model_id', 'El modelo no pertenece a la marca seleccionada.');
                 }
             }
+
+            // Subtipo: se compara contra el tipo que quedará (el enviado, o el actual si no se envió).
+            $tipoEfectivo = $this->has('vehicle_type_id') ? $this->input('vehicle_type_id') : $recepcion->vehicle?->vehicle_type_id;
+            $this->validarSubtipoCompatible($v, $tipoEfectivo);
 
             // VIN nuevo o modificado: 17 caracteres sin I, O ni Q (ISO 3779).
             if ($this->filled('vin') && strtoupper(trim((string) $this->input('vin'))) !== strtoupper((string) $recepcion->vehicle?->vin)) {

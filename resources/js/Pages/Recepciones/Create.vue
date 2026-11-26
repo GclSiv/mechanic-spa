@@ -14,6 +14,10 @@ import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     brands: Array,
+    vehicleTypes: { type: Array, default: () => [] },
+    vehicleSubtypes: { type: Array, default: () => [] },
+    fuelTypes: { type: Array, default: () => [] },
+    transmissions: { type: Array, default: () => [] },
     clients: Array,   // Clientes para elegir uno ya registrado
     preselect: Object, // { client_id, vehicle_id } desde "Nueva visita"
 });
@@ -107,6 +111,10 @@ const form = useForm({
     // Vehículo (solo si vehicle_id es null)
     brand_id: '',
     vehicle_model_id: '',
+    vehicle_type_id: '',
+    vehicle_subtype_id: '',
+    fuel_type_id: '',
+    transmission_id: '',
     year: '',
     plate: '',
     vin: '',
@@ -297,6 +305,10 @@ const submit = () => {
         ...data,
         brand_id: null,
         vehicle_model_id: null,
+        vehicle_type_id: null,
+        vehicle_subtype_id: null,
+        fuel_type_id: null,
+        transmission_id: null,
         year: null,
         plate: null,
         vin: null,
@@ -419,7 +431,16 @@ const submit = () => {
                     </select>
                 </div>
 
-                <ReceptionVehicleFields v-if="!form.vehicle_id" :form="form" :brands="brands" show-color />
+                <ReceptionVehicleFields
+                    v-if="!form.vehicle_id"
+                    :form="form"
+                    :brands="brands"
+                    :vehicle-types="vehicleTypes"
+                    :vehicle-subtypes="vehicleSubtypes"
+                    :fuel-types="fuelTypes"
+                    :transmissions="transmissions"
+                    show-color
+                />
                 <p v-else class="text-ds-caption text-ink-muted">{{ t('recepcion_form.vehiculoNuevo') }}</p>
             </section>
 

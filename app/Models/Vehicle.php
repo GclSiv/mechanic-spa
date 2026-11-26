@@ -13,7 +13,25 @@ class Vehicle extends Model
         'client_id', 'brand_id', 'model_id',
         'brand', 'model', 
         'year', 'plate', 'vin', 'engine', 'color',
+        'vehicle_type_id', 'vehicle_subtype_id', 'fuel_type_id', 'transmission_id',
     ];
+
+    /**
+     * Placa normalizada: sin espacios sobrantes, en mayúsculas; vacía => null.
+     * Un null no entra en la unicidad, así que varios vehículos sin placa pueden coexistir.
+     */
+    public static function normalizarPlaca(?string $placa): ?string
+    {
+        $limpia = mb_strtoupper(trim((string) $placa));
+
+        return $limpia === '' ? null : $limpia;
+    }
+
+    /** Toda escritura de placa pasa por la normalización, sin importar desde dónde se guarde. */
+    public function setPlateAttribute(?string $valor): void
+    {
+        $this->attributes['plate'] = self::normalizarPlaca($valor);
+    }
 
     public function client()
     {
@@ -29,6 +47,26 @@ class Vehicle extends Model
     public function vehicleModel()
     {
         return $this->belongsTo(VehicleModel::class, 'model_id');
+    }
+
+    public function vehicleType()
+    {
+        return $this->belongsTo(VehicleType::class);
+    }
+
+    public function vehicleSubtype()
+    {
+        return $this->belongsTo(VehicleSubtype::class);
+    }
+
+    public function fuelType()
+    {
+        return $this->belongsTo(FuelType::class);
+    }
+
+    public function transmission()
+    {
+        return $this->belongsTo(Transmission::class);
     }
 
     /**

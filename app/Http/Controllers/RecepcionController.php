@@ -9,6 +9,10 @@ use App\Models\Client;
 use App\Models\ClientFiscalProfile;
 use App\Models\Vehicle;
 use App\Models\VehicleModel;
+use App\Models\VehicleSubtype;
+use App\Models\VehicleType;
+use App\Models\FuelType;
+use App\Models\Transmission;
 use App\Models\Recepcion;
 use App\Models\Setting; 
 // Tus importaciones originales
@@ -53,6 +57,7 @@ class RecepcionController extends Controller
             'brands' => $brands,
             'clients' => $clients,
             'preselect' => $preselect,
+            ...$this->catalogosVehiculo(),
         ]);
     }
 
@@ -239,8 +244,9 @@ class RecepcionController extends Controller
             $brand = Brand::find($request->brand_id);
             $model = VehicleModel::find($request->vehicle_model_id);
 
-            // Si ya existe un vehículo con esa placa, lo reutilizamos en lugar de crear uno nuevo
-            $vehicle = Vehicle::where('plate', $request->plate)->first();
+            // Placa normalizada (vacía => null). Sin placa nunca se reutiliza un vehículo: un null no identifica a nadie.
+            $placa = Vehicle::normalizarPlaca($request->plate);
+            $vehicle = $placa !== null ? Vehicle::where('plate', $placa)->first() : null;
 
             if (!$vehicle) {
                 $vehicle = Vehicle::create([
@@ -249,11 +255,15 @@ class RecepcionController extends Controller
                     'model_id'  => $request->vehicle_model_id,
                     'brand'     => $brand->name ?? 'Desconocido',
                     'model'     => $model->name ?? 'Desconocido',
-                    'year'      => $request->year,
-                    'plate'     => $request->plate,
+                    'year'      => $request->year ?: null,
+                    'plate'     => $placa,
                     'vin'       => $request->vin,
                     'engine'    => $request->engine,
                     'color'     => $request->color,
+                    'vehicle_type_id'    => $request->vehicle_type_id ?: null,
+                    'vehicle_subtype_id' => $request->vehicle_subtype_id ?: null,
+                    'fuel_type_id'       => $request->fuel_type_id ?: null,
+                    'transmission_id'    => $request->transmission_id ?: null,
                 ]);
             }
         }
@@ -324,12 +334,23 @@ class RecepcionController extends Controller
         ]);
     }
 
+    /** Catálogos de clasificación del vehículo para Crear y Editar. Solo lectura. */
+    private function catalogosVehiculo(): array
+    {
+        return [
+            'vehicleTypes'    => VehicleType::orderBy('sort')->get(['id', 'code', 'name', 'damage_diagram']),
+            'vehicleSubtypes' => VehicleSubtype::orderBy('sort')->get(['id', 'vehicle_type_id', 'code', 'name']),
+            'fuelTypes'       => FuelType::orderBy('sort')->get(['id', 'code', 'name']),
+            'transmissions'   => Transmission::orderBy('sort')->get(['id', 'code', 'name']),
+        ];
+    }
+
     /**
      * Muestra el formulario de edición de una recepción.
      */
     public function edit(Recepcion $recepcion)
     {
-        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel']);
+        $recepcion->load(['client', 'vehicle.brand', 'vehicle.vehicleModel', 'vehicle.vehicleType']);
         $brands = Brand::with('vehicleModels')->get();
 
         // La relación `brand` sobrescribe la columna de texto al serializar; el texto histórico se lee crudo.
@@ -343,6 +364,7 @@ class RecepcionController extends Controller
             'recepcion'     => $recepcion,
             'brands'        => $brands,
             'legacyVehicle' => $legacy,
+            ...$this->catalogosVehiculo(),
         ]);
     }
 
@@ -394,7 +416,14 @@ class RecepcionController extends Controller
             // 2. Vehículo: marca/modelo solo cambian si el usuario los eligió; el texto histórico se conserva si no.
             if ($recepcion->vehicle) {
                 $vehiculo = $recepcion->vehicle;
-                $cambios = Arr::only($datos, ['year', 'plate', 'vin', 'engine']);
+                $cambios = Arr::only($datos, ['year', 'plate', 'vin', 'engine', 'vehicle_type_id', 'vehicle_subtype_id', 'fuel_type_id', 'transmission_id']);
+
+                // Cambiar de tipo invalida el subtipo anterior: si no se envió uno compatible, se limpia.
+                if (array_key_exists('vehicle_type_id', $cambios)
+                    && (int) $cambios['vehicle_type_id'] !== (int) $vehiculo->vehicle_type_id
+                    && ! array_key_exists('vehicle_subtype_id', $cambios)) {
+                    $cambios['vehicle_subtype_id'] = null;
+                }
 
                 if (! empty($datos['brand_id']) && (int) $datos['brand_id'] !== (int) $vehiculo->brand_id) {
                     $cambios['brand_id'] = $datos['brand_id'];

@@ -68,6 +68,7 @@ function estadoVisita(visita) {
             :description="[
                 t('vehiculosUi.placa') + ' ' + (vehicle.plate || '—'),
                 t('vehiculosUi.vin') + ' ' + (vehicle.vin || t('vehiculosUi.sinVin')),
+                t('clasificacionUi.tipo') + ': ' + (vehicle.tipo || t('clasificacionUi.tipoNoEspecificado')),
                 vehicle.propietario ? t('vehiculosUi.propietario') + ': ' + vehicle.propietario.nombre : null,
             ].filter(Boolean).join(' · ')"
         >
