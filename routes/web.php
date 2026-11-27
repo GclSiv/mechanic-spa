@@ -301,15 +301,18 @@ Route::get('/seguimiento/{token}/fotos/{photo}', [\App\Http\Controllers\Tracking
 | Importación de clientes (solo administrador)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin'])
-    ->prefix('clientes')
-    ->middleware('module:importar_clientes')
-    ->name('clients.import.')
-    ->group(function () {
-        Route::get('/importar', [\App\Http\Controllers\ClientImportController::class, 'index'])->name('index');
-        Route::get('/importar/plantilla', [\App\Http\Controllers\ClientImportController::class, 'template'])->name('template');
-        Route::post('/importar', [\App\Http\Controllers\ClientImportController::class, 'store'])->name('store');
-    });
+// auth va en el grupo externo, igual que el resto de las pantallas administrativas: el invitado
+// se redirige al login (302) antes de evaluar role:admin, que responde 403 a un usuario sin permiso.
+Route::middleware(['auth'])->group(function () {
+    Route::middleware(['role:admin', 'module:importar_clientes'])
+        ->prefix('clientes')
+        ->name('clients.import.')
+        ->group(function () {
+            Route::get('/importar', [\App\Http\Controllers\ClientImportController::class, 'index'])->name('index');
+            Route::get('/importar/plantilla', [\App\Http\Controllers\ClientImportController::class, 'template'])->name('template');
+            Route::post('/importar', [\App\Http\Controllers\ClientImportController::class, 'store'])->name('store');
+        });
+});
 
 /*
 |--------------------------------------------------------------------------
