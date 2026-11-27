@@ -343,5 +343,6 @@ Route::middleware(['auth', 'role:owner'])
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/citas', [\App\Http\Controllers\AppointmentRequestController::class, 'index'])->name('citas.index');
     Route::patch('/citas/{cita}', [\App\Http\Controllers\AppointmentRequestController::class, 'update'])->name('citas.update');
+    Route::post('/repair-orders/{order}/seguimiento/regenerar', [\App\Http\Controllers\RepairOrderTrackingController::class, 'regenerate'])->name('repair-orders.tracking.regenerate');
     Route::post('/repair-orders/{order}/recordatorios', [\App\Http\Controllers\ServiceReminderController::class, 'store'])->name('repair-orders.recordatorios.store');
 });

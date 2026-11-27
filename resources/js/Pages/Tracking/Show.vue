@@ -1,5 +1,6 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
+import TarjetaCotizacion from '@/Components/Tracking/TarjetaCotizacion.vue';
 import { router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
@@ -26,6 +27,7 @@ const money = (v) => new Intl.NumberFormat('es-MX', { style: 'currency', currenc
 
 const statusLabel = computed(() => {
     const slug = props.orden?.status?.slug;
+    if (slug === 'entregado') return 'Servicio finalizado';
     const key = `status.${slug}`;
     const translated = slug ? t(key) : '';
     return translated && translated !== key ? translated : (props.orden?.status?.name ?? '');
@@ -108,6 +110,14 @@ const claseCotizacion = (q) => enHistorico(q) ? 'bg-gray-100 text-gray-700' : qu
 const textoCotizacion = (q) => enHistorico(q)
     ? t('seguimiento.quoteStatus.enviadaHistorica')
     : t('seguimiento.quoteStatus.' + q.status);
+// Clasificación de cotizaciones: visibles (aprobadas o la enviada vigente) e históricas (colapsadas).
+const historialAbierto = ref(false);
+// El backend ya entrega las cotizaciones ordenadas por prioridad (enviada vigente, aprobada principal, aprobada adicional).
+const cotizacionesVisibles = computed(() => (props.quotes ?? [])
+    .filter((q) => q.bloque !== 'historico')
+);
+const cotizacionesHistoricas = computed(() => (props.quotes ?? []).filter((q) => q.bloque === 'historico'));
+
 </script>
 
 <template>
@@ -214,113 +224,26 @@ const textoCotizacion = (q) => enHistorico(q)
                     {{ $t('seguimiento.sinCotizaciones') }}
                 </p>
 
-                <article v-for="q in quotes" :key="q.id"
-                    class="bg-white rounded-xl shadow-sm border p-5 mb-4"
-                    :class="q.id === current_quote_id ? 'border-[#10213E] ring-1 ring-[#10213E]' : 'border-gray-200'">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <p class="font-bold">{{ q.kind === 'adicional' ? 'Trabajo adicional' : $t('seguimiento.cotizacion') }} {{ q.folio }}</p>
-                            <p class="text-xs text-gray-500" v-if="q.valid_until">
-                                {{ $t('seguimiento.vigente') }}: {{ q.valid_until }}
-                                <span v-if="q.expired" class="text-red-600 font-bold"> · {{ $t('seguimiento.vencida') }}</span>
-                            </p>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold" :class="claseCotizacion(q)">
-                            {{ textoCotizacion(q) }}
-                        </span>
-                    </div>
+                <TarjetaCotizacion v-for="q in cotizacionesVisibles" :key="q.id"
+                    :q="q" :money="money" :decision="estado(q.id)"
+                    :es-actual="q.id === current_quote_id"
+                    :puede-decidir="q.bloque === 'visible'"
+                    :texto-estado="textoCotizacion(q)" :clase-estado="claseCotizacion(q)"
+                    @aceptar="enviar(q, 'aceptar')" @rechazar="enviar(q, 'rechazar')" />
 
-                    <div class="mt-4 overflow-x-auto">
-                        <div class="overflow-x-auto"><table class="w-full text-sm">
-                            <thead>
-                                <tr class="text-left text-xs text-gray-400 uppercase border-b">
-                                    <th class="py-2">{{ $t('seguimiento.concepto') }}</th>
-                                    <th class="py-2 text-right">{{ $t('seguimiento.cant') }}</th>
-                                    <th class="py-2 text-right">{{ $t('seguimiento.importe') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(it, i) in q.items" :key="i" class="border-b border-gray-100">
-                                    <td class="py-2">
-                                        <span class="text-[10px] font-bold uppercase mr-1"
-                                            :class="it.type === 'labor' ? 'text-blue-600' : 'text-amber-600'">
-                                            {{ it.type === 'labor' ? $t('seguimiento.manoObra') : $t('seguimiento.refaccion') }}
-                                        </span>
-                                        {{ it.description }}
-                                    </td>
-                                    <td class="py-2 text-right">{{ Number(it.quantity) }}</td>
-                                    <td class="py-2 text-right">{{ money(it.subtotal) }}</td>
-                                </tr>
-                            </tbody>
-                        </table></div>
+                <div v-if="cotizacionesHistoricas.length" class="mt-2">
+                    <button type="button" @click="historialAbierto = !historialAbierto" :aria-expanded="historialAbierto"
+                        class="flex w-full min-h-[48px] items-center justify-between rounded-xl border border-gray-300 bg-white px-4 font-bold text-gray-700 hover:bg-gray-50">
+                        <span>Historial de cotizaciones ({{ cotizacionesHistoricas.length }})</span>
+                        <span aria-hidden="true">{{ historialAbierto ? '−' : '+' }}</span>
+                    </button>
+                    <div v-if="historialAbierto" class="mt-3">
+                        <TarjetaCotizacion v-for="q in cotizacionesHistoricas" :key="q.id"
+                            :q="q" :money="money" :decision="estado(q.id)"
+                            :puede-decidir="false"
+                            :texto-estado="textoCotizacion(q)" :clase-estado="claseCotizacion(q)" />
                     </div>
-
-                    <div class="mt-4 ml-auto w-full sm:w-1/2 text-sm space-y-1">
-                        <div class="flex justify-between"><span>{{ $t('seguimiento.refacciones') }}</span><span>{{ money(q.parts_subtotal) }}</span></div>
-                        <div class="flex justify-between"><span>{{ $t('seguimiento.manoObra') }}</span><span>{{ money(q.labor_subtotal) }}</span></div>
-                        <div class="flex justify-between"><span>{{ $t('seguimiento.subtotal') }}</span><span>{{ money(q.subtotal) }}</span></div>
-                        <div class="flex justify-between"><span>{{ $t('seguimiento.iva') }} ({{ Number(q.tax_rate) }}%)</span><span>{{ money(q.tax) }}</span></div>
-                        <div class="flex justify-between font-bold text-base border-t pt-2"><span>{{ $t('seguimiento.total') }}</span><span>{{ money(q.total) }}</span></div>
-                    </div>
-
-                    <p v-if="q.notes" class="mt-4 text-sm text-gray-600 bg-gray-50 rounded p-3">{{ q.notes }}</p>
-
-                    <div v-if="q.status === 'aprobada'" class="mt-4 text-sm text-green-800 bg-green-50 rounded p-3">
-                        Aceptada<span v-if="q.accepted_name"> por {{ q.accepted_name }}</span><span v-if="q.accepted_at"> el {{ q.accepted_at }}</span>.
-                    </div>
-                    <div v-if="q.status === 'rechazada'" class="mt-4 text-sm text-red-800 bg-red-50 rounded p-3">
-                        Rechazada<span v-if="q.rejection_reason">: {{ q.rejection_reason }}</span>.
-                    </div>
-
-                    <div v-if="q.can_accept" class="mt-5 border-t pt-4 space-y-3">
-                        <template v-if="!estado(q.id).rechazando">
-                            <p class="text-sm font-bold text-gray-800">¿Aceptas esta cotización?</p>
-                            <input v-model="estado(q.id).nombre" type="text" maxlength="120"
-                                placeholder="Escribe tu nombre completo"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                            <label class="flex items-start gap-2 text-xs text-gray-600">
-                                <input type="checkbox" v-model="estado(q.id).acepto" class="mt-0.5" />
-                                Acepto el total y las condiciones de esta cotización.
-                            </label>
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button"
-                                    :disabled="!estado(q.id).acepto || estado(q.id).nombre.trim().length < 5 || estado(q.id).enviando"
-                                    @click="enviar(q, 'aceptar')"
-                                    class="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-bold disabled:opacity-40">
-                                    Aceptar cotización
-                                </button>
-                                <button type="button" @click="estado(q.id).rechazando = true"
-                                    class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-bold text-gray-700">
-                                    No acepto
-                                </button>
-                            </div>
-                        </template>
-                        <template v-else>
-                            <textarea v-model="estado(q.id).motivo" maxlength="255"
-                                placeholder="¿Por qué no la aceptas? (opcional)"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></textarea>
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" :disabled="estado(q.id).enviando" @click="enviar(q, 'rechazar')"
-                                    class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold disabled:opacity-40">
-                                    Confirmar rechazo
-                                </button>
-                                <button type="button" @click="estado(q.id).rechazando = false"
-                                    class="px-4 py-2 rounded-lg text-sm text-gray-600">
-                                    Volver
-                                </button>
-                            </div>
-                        </template>
-                        <p v-if="estado(q.id).error" class="text-sm text-red-600 font-medium">{{ estado(q.id).error }}</p>
-                    </div>
-
-                    <div class="mt-5 flex flex-wrap items-center gap-3" :class="q.can_accept ? 'justify-between' : 'justify-end'">
-                        <p v-if="q.status === 'enviada' && q.can_accept" class="text-xs text-gray-500">{{ $t('seguimiento.comoAprobar') }}</p>
-                        <a :href="q.pdf_url" target="_blank"
-                            class="px-4 py-2 rounded-lg bg-[#10213E] text-white text-sm font-bold hover:bg-[#1c3660]">
-                            {{ $t('seguimiento.descargarPdf') }}
-                        </a>
-                    </div>
-                </article>
+                </div>
             </section>
 
             <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">

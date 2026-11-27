@@ -129,7 +129,7 @@ class TrackingController extends Controller
                 'fecha' => optional($f->created_at)->format('d/m/Y'),
                 'url'   => route('tracking.avance.photo', ['token' => $token, 'photo' => $f->id]),
             ])->values(),
-            'quotes' => $order->quotes()->where('status', '!=', Quote::BORRADOR)->get()->map(fn (Quote $q) => $this->quoteSummary($q, $token, $cerrada))->values(),
+            'quotes' => $this->cotizacionesPublicas($order, $token, $cerrada),
             'current_quote_id' => $quote?->id,
             'cita' => $this->citaReciente($order, $vehicle),
             'recordatorios' => $this->recordatoriosVehiculo($vehicle),
@@ -302,9 +302,46 @@ class TrackingController extends Controller
             ->firstOrFail();
     }
 
+    /**
+     * Cotizaciones públicas de la orden: exactamente el mismo conjunto de siempre (todo lo que no es borrador).
+     * Solo se añade la clasificación para la UI:
+     * - "visible": aprobadas (principal o adicional) y la enviada vigente más reciente (la que requiere decisión).
+     * - "historico": reemplazadas, rechazadas, vencidas y enviadas anteriores.
+     * Los items se cargan en una sola consulta (sin N+1).
+     */
+    private function cotizacionesPublicas(RepairOrder $order, string $token, bool $cerrada): \Illuminate\Support\Collection
+    {
+        $cotizaciones = $order->quotes()
+            ->where('status', '!=', Quote::BORRADOR)
+            ->with('items')
+            ->get();
+
+        $enviadaVigente = $cotizaciones
+            ->filter(fn (Quote $q) => $q->status === Quote::ENVIADA && ! $q->isExpired())
+            ->sortByDesc('id')
+            ->first();
+
+        return $cotizaciones->map(function (Quote $q) use ($token, $cerrada, $enviadaVigente) {
+            $resumen = $this->quoteSummary($q, $token, $cerrada);
+            $visible = $q->status === Quote::APROBADA
+                || ($enviadaVigente !== null && $q->id === $enviadaVigente->id);
+            $esEnviadaVigente = $enviadaVigente !== null && $q->id === $enviadaVigente->id;
+            $resumen['bloque'] = $visible ? 'visible' : 'historico';
+            // Prioridad visual determinista: 0 enviada vigente, 1 aprobada principal, 2 aprobada adicional, 3 historica.
+            $resumen['prioridad'] = match (true) {
+                $esEnviadaVigente => 0,
+                $q->status === Quote::APROBADA && $q->kind === Quote::KIND_PRINCIPAL => 1,
+                $q->status === Quote::APROBADA => 2,
+                default => 3,
+            };
+
+            return $resumen;
+        })->sortBy([['prioridad', 'asc'], ['id', 'asc']])->values();
+    }
+
     private function quoteSummary(Quote $quote, string $token, bool $cerrada): array
     {
-        $quote->load('items');
+        $quote->loadMissing('items');
 
         return [
             'id'          => $quote->id,

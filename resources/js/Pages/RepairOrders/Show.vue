@@ -4,6 +4,7 @@ import BitacoraNotas from '@/Components/Historial/BitacoraNotas.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
 import ProximoServicioForm from '@/Components/Ordenes/ProximoServicioForm.vue';
+import EnlaceSeguimiento from '@/Components/Ordenes/EnlaceSeguimiento.vue';
 import ClienteSeguimiento from '@/Components/ClienteSeguimiento.vue';
 import { telefonoWhatsApp, urlWhatsApp, mensajeSeguimiento, copiarTexto } from '@/lib/compartirSeguimiento';
 import AvancePhotos from '@/Components/AvancePhotos.vue';
@@ -476,6 +477,7 @@ function removeItem(itemId) {
 
                     <!-- COTIZACIONES: solo admin -->
                     <div v-if="tabActiva === 'cotizaciones' && isAdmin">
+                        <EnlaceSeguimiento v-if="isAdmin && comunicacion?.tracking_url" :tracking-url="comunicacion.tracking_url" :order-id="orden.id" class="md:col-span-2" />
                         <QuotesPanel :orden="orden" :tracking-url="comunicacion?.tracking_url ?? ''" />
                     </div>
 
