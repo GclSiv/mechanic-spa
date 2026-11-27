@@ -87,7 +87,8 @@ class FinanceController extends Controller
                 'status_color' => $order->status->color_class ?? 'bg-gray-100 text-gray-600',
                 'saldo'        => $saldo,
                 'pendiente'    => $financiero['pendiente_autorizacion'],
-                'liquidado'    => $saldo <= 0,
+                'liquidado'    => $financiero['total_autorizado'] > 0 && $saldo <= 0,
+                'autorizado'   => $financiero['total_autorizado'] > 0,
                 'updated_at'   => $order->updated_at?->format('d/m/Y'),
             ];
         });

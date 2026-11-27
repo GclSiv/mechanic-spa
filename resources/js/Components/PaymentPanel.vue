@@ -29,7 +29,7 @@ const saldoClase = computed(() => {
 });
 
 const localeFecha = () => (locale.value === 'en' ? 'en-US' : 'es-MX');
-const dinero = (n) => '$' + Number(n ?? 0).toFixed(2);
+const dinero = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n ?? 0));
 const fecha = (iso) => (iso
     ? new Date(iso).toLocaleDateString(localeFecha(), { day: '2-digit', month: 'short', year: 'numeric' })
     : '—');

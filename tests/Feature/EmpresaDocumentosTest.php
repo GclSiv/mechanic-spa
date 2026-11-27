@@ -83,7 +83,7 @@ class EmpresaDocumentosTest extends TestCase
     {
         return [
             'rows'     => collect(),
-            'totals'   => ['labor_subtotal' => 0, 'parts_subtotal' => 0, 'tax' => 0, 'total' => 0],
+            'totals'   => ['ingresos' => 0, 'pagos' => 0, 'ordenes' => 0, 'generales' => 0, 'asociados' => 0],
             'month'    => 11,
             'year'     => 2026,
             'settings' => $settings,
