@@ -216,7 +216,7 @@ class ClientExpedienteTest extends TestCase
 
     public function test_admin_can_upload_client_photos_through_the_relation(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $cliente = $this->cliente('Subida', '9511313131');
 
         $this->actingAs($this->admin())

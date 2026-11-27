@@ -239,7 +239,7 @@ class TrackingController extends Controller
         $order = $this->findOrder($token);
         abort_unless($photo->repair_order_id === $order->id, 404);
 
-        return Storage::disk('public')->response($photo->path);
+        return \App\Support\ArchivoPrivado::respuesta($photo->path, basename((string) $photo->path));
     }
 
     private function findOrder(string $token): RepairOrder

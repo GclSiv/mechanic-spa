@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\RepairOrder;
 use App\Models\RepairOrderPhoto;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use App\Support\ArchivoPrivado;
 
 /**
  * Fotos del avance del vehículo. El cliente las ve en su enlace de seguimiento.
@@ -28,7 +28,7 @@ class RepairOrderPhotoController extends Controller
             'note'  => 'nullable|string|max:255',
         ]);
 
-        $path = $data['photo']->store('avance/' . $order->id, 'public');
+        $path = ArchivoPrivado::guardar($data['photo'], 'avance/' . $order->id);
 
         $order->avancePhotos()->create([
             'path' => $path,
@@ -42,7 +42,7 @@ class RepairOrderPhotoController extends Controller
     {
         abort_unless($photo->repair_order_id === $order->id, 404);
 
-        return Storage::disk('public')->response($photo->path);
+        return ArchivoPrivado::respuesta($photo->path, basename((string) $photo->path));
     }
 
     public function destroy(Request $request, RepairOrder $order, RepairOrderPhoto $photo)
@@ -51,7 +51,7 @@ class RepairOrderPhotoController extends Controller
         // Regla de dominio: nadie (ni admin) elimina evidencia de una orden cerrada.
         abort_if($order->estaCerrada(), 403, 'Esta orden está cerrada. No se pueden eliminar fotos de avance.');
 
-        Storage::disk('public')->delete($photo->path);
+        ArchivoPrivado::eliminar($photo->path);
         $photo->delete();
 
         return back()->with('success', 'Foto eliminada.');

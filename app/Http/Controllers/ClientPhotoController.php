@@ -1,14 +1,15 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\ClientPhoto;
+use App\Support\ArchivoPrivado;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ClientPhotoController extends Controller
 {
-    // Subida múltiple
+    // Subida múltiple (disco privado)
     public function store(Request $request, Client $client)
     {
         $request->validate([
@@ -16,8 +17,8 @@ class ClientPhotoController extends Controller
         ]);
 
         foreach ($request->file('photos') as $file) {
-            $path = $file->store('recepciones/' . $client->id, 'public');
-            
+            $path = ArchivoPrivado::guardar($file, 'clientes/' . $client->id);
+
             $client->photos()->create([
                 'path' => $path,
             ]);
@@ -26,10 +27,18 @@ class ClientPhotoController extends Controller
         return back()->with('success', 'Evidencia fotográfica guardada.');
     }
 
+    /** Foto del cliente: solo admin/owner (ruta con role:admin) y solo si pertenece a ese cliente. */
+    public function show(Client $client, ClientPhoto $photo)
+    {
+        abort_unless((int) $photo->client_id === (int) $client->id, 404);
+
+        return ArchivoPrivado::respuesta($photo->path, basename((string) $photo->path));
+    }
+
     // Eliminar foto física y registro
     public function destroy(ClientPhoto $photo)
     {
-        Storage::disk('public')->delete($photo->path);
+        ArchivoPrivado::eliminar($photo->path);
         $photo->delete();
 
         return back()->with('info', 'Foto eliminada correctamente.');

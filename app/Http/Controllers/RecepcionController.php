@@ -277,7 +277,7 @@ class RecepcionController extends Controller
         $photoPaths = [];
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $photoPaths[] = $photo->store('recepciones', 'public');
+                $photoPaths[] = \App\Support\ArchivoPrivado::guardar($photo, 'recepciones');
             }
         }
 
@@ -535,5 +535,27 @@ class RecepcionController extends Controller
         $order = $action->execute($recepcion);
 
         return redirect()->route('repair-orders.show', $order->id);
+    }
+
+    /**
+     * Foto de recepción. Admin/owner: cualquiera. Mecánico: solo si tiene asignada una orden de esa recepción.
+     * El índice identifica la foto dentro de la recepción; nunca se acepta una ruta desde el navegador.
+     */
+    public function foto(\Illuminate\Http\Request $request, Recepcion $recepcion, int $indice)
+    {
+        $usuario = $request->user();
+
+        if (! $usuario->isAdmin()) {
+            $mecanico = $usuario->mechanic?->id;
+            abort_unless(
+                $mecanico && \App\Models\RepairOrder::where('recepcion_id', $recepcion->id)->where('mechanic_id', $mecanico)->exists(),
+                403
+            );
+        }
+
+        $rutas = $recepcion->photos ?? [];
+        abort_unless(array_key_exists($indice, $rutas), 404);
+
+        return \App\Support\ArchivoPrivado::respuesta($rutas[$indice], basename((string) $rutas[$indice]));
     }
 }

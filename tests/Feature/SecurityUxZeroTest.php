@@ -352,10 +352,10 @@ class SecurityUxZeroTest extends TestCase
 
     public function test_mecanico_elimina_foto_de_avance_en_orden_abierta(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         [$user, $mecanico] = $this->mechanic();
         $orden = $this->orderIn('en-reparacion', $mecanico);
-        Storage::disk('public')->put('avance/prueba.jpg', 'x');
+        Storage::disk('local')->put('avance/prueba.jpg', 'x');
         $foto = RepairOrderPhoto::create(['repair_order_id' => $orden->id, 'path' => 'avance/prueba.jpg']);
 
         $this->actingAs($user)
@@ -367,10 +367,10 @@ class SecurityUxZeroTest extends TestCase
 
     public function test_mecanico_no_elimina_foto_de_avance_en_orden_entregada(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         [$user, $mecanico] = $this->mechanic();
         $orden = $this->orderIn('entregado', $mecanico);
-        Storage::disk('public')->put('avance/historica.jpg', 'x');
+        Storage::disk('local')->put('avance/historica.jpg', 'x');
         $foto = RepairOrderPhoto::create(['repair_order_id' => $orden->id, 'path' => 'avance/historica.jpg']);
 
         $this->actingAs($user)
@@ -378,12 +378,12 @@ class SecurityUxZeroTest extends TestCase
             ->assertForbidden();
 
         $this->assertTrue(RepairOrderPhoto::whereKey($foto->id)->exists());
-        Storage::disk('public')->assertExists('avance/historica.jpg');
+        Storage::disk('local')->assertExists('avance/historica.jpg');
     }
 
     public function test_mecanico_no_elimina_evidencia_de_bitacora_en_orden_rechazada(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         [$user, $mecanico] = $this->mechanic();
         $orden = $this->orderIn('rechazado', $mecanico);
         $nota = FollowUp::create([
@@ -403,11 +403,11 @@ class SecurityUxZeroTest extends TestCase
 
     public function test_mecanico_no_elimina_evidencia_de_orden_ajena(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         [$user] = $this->mechanic();
         [, $otro] = $this->mechanic('Otro');
         $ajena = $this->orderIn('en-reparacion', $otro);
-        Storage::disk('public')->put('avance/ajena.jpg', 'x');
+        Storage::disk('local')->put('avance/ajena.jpg', 'x');
         $foto = RepairOrderPhoto::create(['repair_order_id' => $ajena->id, 'path' => 'avance/ajena.jpg']);
 
         $this->actingAs($user)
@@ -419,10 +419,10 @@ class SecurityUxZeroTest extends TestCase
 
     public function test_admin_no_elimina_foto_en_orden_cerrada(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         [, $mecanico] = $this->mechanic();
         $orden = $this->orderIn('entregado', $mecanico);
-        Storage::disk('public')->put('avance/admin.jpg', 'x');
+        Storage::disk('local')->put('avance/admin.jpg', 'x');
         $foto = RepairOrderPhoto::create(['repair_order_id' => $orden->id, 'path' => 'avance/admin.jpg']);
 
         // Regla de dominio: la evidencia de una orden cerrada es de solo lectura, también para admin.
@@ -431,7 +431,7 @@ class SecurityUxZeroTest extends TestCase
             ->assertForbidden();
 
         $this->assertTrue(RepairOrderPhoto::whereKey($foto->id)->exists());
-        Storage::disk('public')->assertExists('avance/admin.jpg');
+        Storage::disk('local')->assertExists('avance/admin.jpg');
     }
 
     // ── SECURITY-UX-0.2 · 1-2: contraseña inicial definida por el admin ──

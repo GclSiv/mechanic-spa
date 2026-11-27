@@ -22,7 +22,7 @@ class AvancePhotoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('public');
+        Storage::fake('local');
     }
 
     public static function estadosConFotos(): array
@@ -66,7 +66,7 @@ class AvancePhotoTest extends TestCase
     private function fotoEn(RepairOrder $order): RepairOrderPhoto
     {
         $path = 'avance/' . $order->id . '/prueba.jpg';
-        Storage::disk('public')->put($path, 'x');
+        Storage::disk('local')->put($path, 'x');
 
         return RepairOrderPhoto::create(['repair_order_id' => $order->id, 'path' => $path]);
     }
@@ -88,7 +88,7 @@ class AvancePhotoTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('repair_order_photos', ['repair_order_id' => $order->id, 'note' => 'Bomba instalada']);
-        $this->assertCount(1, Storage::disk('public')->allFiles('avance/' . $order->id));
+        $this->assertCount(1, Storage::disk('local')->allFiles('avance/' . $order->id));
     }
 
     #[DataProvider('estadosConFotos')]
@@ -115,7 +115,7 @@ class AvancePhotoTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseMissing('repair_order_photos', ['id' => $foto->id]);
-        Storage::disk('public')->assertMissing($foto->path);
+        Storage::disk('local')->assertMissing($foto->path);
     }
 
     #[DataProvider('estadosCerrados')]
@@ -134,7 +134,7 @@ class AvancePhotoTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('repair_order_photos', 0);
-        $this->assertCount(0, Storage::disk('public')->allFiles('avance/' . $order->id));
+        $this->assertCount(0, Storage::disk('local')->allFiles('avance/' . $order->id));
     }
 
     #[DataProvider('estadosCerrados')]
@@ -154,7 +154,7 @@ class AvancePhotoTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('repair_order_photos', ['id' => $foto->id]);
-        Storage::disk('public')->assertExists($foto->path);
+        Storage::disk('local')->assertExists($foto->path);
     }
 
     public function test_rechaza_archivo_que_no_es_imagen(): void

@@ -492,9 +492,9 @@ function removeItem(itemId) {
                                     :key="i"
                                     type="button"
                                     class="ds-focus aspect-square overflow-hidden rounded-lg border border-line transition-all hover:border-navy"
-                                    @click="openPhotoLightbox('/storage/' + photo)"
+                                    @click="openPhotoLightbox(route('recepcion.foto', [recepcion.id, i]))"
                                 >
-                                    <img :src="'/storage/' + photo" class="h-full w-full object-cover" :alt="'Foto ' + (i + 1)" />
+                                    <img :src="route('recepcion.foto', [recepcion.id, i])" class="h-full w-full object-cover" :alt="'Foto ' + (i + 1)" />
                                 </button>
                             </div>
                         </section>

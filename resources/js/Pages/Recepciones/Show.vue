@@ -229,12 +229,12 @@ const cliente = computed(() => [props.recepcion.client?.first_name, props.recepc
                 <ul v-else class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <li v-for="(photo, i) in recepcion.photos" :key="i">
                         <a
-                            :href="'/storage/' + photo"
+                            :href="route('recepcion.foto', [recepcion.id, i])"
                             target="_blank"
                             rel="noopener"
                             class="ds-focus block aspect-square overflow-hidden rounded-xl border border-line hover:opacity-80"
                         >
-                            <img :src="'/storage/' + photo" class="h-full w-full object-cover" :alt="t('recepcionUi.fotoAlt', { n: i + 1 })" />
+                            <img :src="route('recepcion.foto', [recepcion.id, i])" class="h-full w-full object-cover" :alt="t('recepcionUi.fotoAlt', { n: i + 1 })" />
                         </a>
                     </li>
                 </ul>

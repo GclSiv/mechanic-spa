@@ -90,6 +90,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{recepcion}/pdf', 'print')->name('recepcion.pdf');
             Route::post('/{recepcion}/generate-order', 'generateOrder')->name('recepcion.generate-order');
     });
+    Route::get('/recepciones/{recepcion}/fotos/{indice}', [\App\Http\Controllers\RecepcionController::class, 'foto'])->whereNumber('indice')->name('recepcion.foto');
 
     // ========================================================
     // MÓDULO 5: GESTIÓN DE MECÁNICOS (solo admin)
@@ -194,6 +195,7 @@ Route::middleware(['auth'])->group(function () {
             Route::patch('/{order}/mechanic', 'assignMechanic')->name('mechanic.assign')->middleware('role:admin');
             Route::post('/{order}/follow-ups', [\App\Http\Controllers\FollowUpController::class, 'store'])->name('follow-ups.store');
             Route::delete('/{order}/follow-ups/{followUp}', [\App\Http\Controllers\FollowUpController::class, 'destroy'])->name('follow-ups.destroy');
+            Route::get('/{order}/notas/{followUp}/fotos/{indice}', [\App\Http\Controllers\FollowUpController::class, 'foto'])->whereNumber('indice')->name('follow-ups.foto');
 
             // Nuevas rutas operativas
             Route::post('/{order}/diagnosis-complete', 'diagnosisComplete')->name('diagnosis.complete');
@@ -218,6 +220,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::controller(ClientPhotoController::class)->middleware('role:admin')->group(function () {
         Route::post('/clients/{client}/photos', 'store')->name('clients.photos.store');
+        Route::get('/clients/{client}/photos/{photo}', 'show')->name('clients.photos.show');
         Route::delete('/photos/{photo}', 'destroy')->name('clients.photos.destroy');
     });
 

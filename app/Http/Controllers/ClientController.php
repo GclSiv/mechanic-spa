@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\Brand;
 use App\Actions\RepairOrders\EstadosFinancierosOrdenesAction;
 use App\Models\Client;
 use App\Models\Recepcion;
@@ -17,72 +16,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ClientController extends Controller
 {
-    
-public function create()
-{
-   // 2. Pedimos TODAS las marcas CON sus respectivos modelos
-$brands = Brand::with('vehicleModels')->get();
-
-    
-    // 3. Enviamos la vista y le pasamos la variable $brands
-    return Inertia::render('Clients/Create', [
-        'brands' => $brands
-    ]);
-     
-}
-// Solo indicamos la carpeta y el nombre del archivo
-   
-   /* protected $fillable = [
-    'first_name',
-    'last_name',
-    'business_name',
-    'address',
-    'phone',
-    'email',
-    'rfc'
-    ];
-    */
-
-public function store(Request $request)
-{
-    // 1. Validamos los datos (es como el control de calidad)
-    $validated = $request->validate([
-        'first_name' => 'required|string|max:255',
-        'phone'      => 'required|string|max:20',
-        'address'    => 'nullable|string',
-        'rfc'        => 'nullable|string',
-        'brand_id'      => 'required|exists:brands,id',
-        'vehicle_model_id'      => 'required|exists:vehicle_models,id',
-        'year'       => 'required|integer',
-        'plate'      => 'required|string',
-        'engine'     => 'nullable|string',
-        'vin'        => 'nullable|string',
-        'miles'      => 'nullable|string',
-        'description'=> 'nullable|string',
-        
-    ]);
-
-    // 2. Guardamos en la base de datos
-    Client::create([
-        'first_name'        => $validated['first_name'],
-        'phone'             => $validated['phone'],
-        'address'           => $validated['address'],
-        'rfc'               => $validated['rfc'],
-        'brand_id'          => $validated['brand_id'], // Laravel usa brand_id
-        'vehicle_model_id'  => $validated['vehicle_model_id'], // Laravel usa vehicle_model_id
-        'year'              => $validated['year'],
-        'plate'             => $validated['plate'],
-        'engine'            => $validated['engine'],
-        'vin'               => $validated['vin'],
-        'miles'             => $validated['miles'],
-        'description'       => $validated['description'],
-        'client_status_id'  => 1, // Estatus inicial (Activo)
-    ]);
-
-
-    // 3. Regresamos con un mensaje de éxito
-    return redirect()->back()->with('success', '¡Recepción de vehículo registrada exitosamente!');
-}
     /**
      * Directorio de clientes (UI-7A): paginación de servidor y búsqueda por query string `search`.
      * Solo lectura; no muestra finanzas. Marca/modelo se resuelven con Vehicle::withDisplay (sin escribir FK).

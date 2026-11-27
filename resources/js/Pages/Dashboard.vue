@@ -25,7 +25,10 @@ let timeout       = null;
 const showPhotoModal = ref(false);
 const selectedPhotos = ref([]);
 
-const openPhotoGallery = (photos) => {
+const selectedRecepcionId = ref(null);
+const openPhotoGallery = (rec) => {
+    selectedRecepcionId.value = rec?.id ?? null;
+    const photos = rec?.photos ?? [];
     selectedPhotos.value = Array.isArray(photos) ? photos : JSON.parse(photos || '[]');
     showPhotoModal.value = true;
 };
@@ -206,7 +209,7 @@ const formatCurrency = (val) =>
                                             :aria-label="$t('dashboard.verFotos')"
                                             :title="$t('dashboard.verFotos')"
                                             class="ds-focus h-control-compact rounded-lg border border-line bg-surface px-3 text-ds-control font-semibold text-navy hover:bg-surface-2"
-                                            @click="openPhotoGallery(rec.photos ?? [])"
+                                            @click="openPhotoGallery(rec)"
                                         >{{ $t('dashboard.fotos') }}</button>
                                         <Link
                                             v-if="enlaceDetalle(rec)"
@@ -263,7 +266,7 @@ const formatCurrency = (val) =>
                 </div>
                 <div v-if="selectedPhotos.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     <img v-for="(photo, i) in selectedPhotos" :key="i"
-                        :src="'/storage/' + (typeof photo === 'string' ? photo : photo.path)"
+                        :src="route('recepcion.foto', [selectedRecepcionId, i])"
                         class="aspect-square w-full rounded-lg object-cover" />
                 </div>
                 <p v-else class="py-8 text-center text-ds-body text-ink-muted">{{ $t('recepcion.sinFotos') }}</p>

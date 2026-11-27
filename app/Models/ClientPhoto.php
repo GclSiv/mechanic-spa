@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class ClientPhoto extends Model
 {
@@ -12,12 +11,18 @@ class ClientPhoto extends Model
 
     protected $fillable = ['client_id', 'path', 'label'];
 
-    // Esto nos permite enviar la URL completa de la foto al Frontend (Vue)
+    // La ruta física nunca sale al frontend: la foto se entrega solo por el endpoint autorizado.
+    protected $hidden = ['path'];
+
     protected $appends = ['url'];
 
-    public function getUrlAttribute()
+    public function getUrlAttribute(): ?string
     {
-        return $this->path ? Storage::url($this->path) : null;
+        if (! $this->client_id || ! $this->id) {
+            return null;
+        }
+
+        return route('clients.photos.show', ['client' => $this->client_id, 'photo' => $this->id]);
     }
 
     public function client()

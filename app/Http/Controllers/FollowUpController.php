@@ -38,7 +38,7 @@ class FollowUpController extends Controller
         $photoPaths = [];
         if ($request->hasFile('photos')) {
             foreach ($request->file('photos') as $photo) {
-                $photoPaths[] = $photo->store('follow_ups', 'public');
+                $photoPaths[] = \App\Support\ArchivoPrivado::guardar($photo, 'notas/' . $order->id);
             }
         }
 
@@ -74,7 +74,7 @@ class FollowUpController extends Controller
         // Eliminar archivos del disco si existen
         if ($followUp->evidence_photos) {
             foreach ($followUp->evidence_photos as $path) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+                \App\Support\ArchivoPrivado::eliminar($path);
             }
         }
 
@@ -82,5 +82,19 @@ class FollowUpController extends Controller
 
         return redirect()->route('repair-orders.show', $order)
             ->with('success', 'Nota eliminada.');
+    }
+
+    /**
+     * Foto de evidencia de una nota. La nota debe pertenecer a la orden (ruta own.order):
+     * admin/owner ven cualquiera; el mecánico, solo las de sus órdenes asignadas.
+     */
+    public function foto(RepairOrder $order, \App\Models\FollowUp $followUp, int $indice)
+    {
+        abort_unless((int) $followUp->repair_order_id === (int) $order->id, 404);
+
+        $rutas = $followUp->evidence_photos ?? [];
+        abort_unless(array_key_exists($indice, $rutas), 404);
+
+        return \App\Support\ArchivoPrivado::respuesta($rutas[$indice], basename((string) $rutas[$indice]));
     }
 }

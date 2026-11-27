@@ -73,7 +73,7 @@ function borrarConfirmado() {
 }
 
 const fecha = (valor) => new Date(String(valor).replace(' ', 'T')).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' });
-const urlEvidencia = (path) => '/storage/' + path;
+const urlEvidencia = (nota, i) => route('repair-orders.follow-ups.foto', [props.orden.id, nota.id, i]);
 
 </script>
 
@@ -157,8 +157,8 @@ const urlEvidencia = (path) => '/storage/' + path;
 
                     <ul v-if="n.evidence_photos && n.evidence_photos.length" class="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
                         <li v-for="(photo, pi) in n.evidence_photos" :key="pi">
-                            <a :href="urlEvidencia(photo)" target="_blank" rel="noopener" class="ds-focus block overflow-hidden rounded-lg border border-line">
-                                <img :src="urlEvidencia(photo)" :alt="$t('historialExp.fotoAlt')" loading="lazy" class="aspect-square w-full object-cover" />
+                            <a :href="urlEvidencia(n, pi)" target="_blank" rel="noopener" class="ds-focus block overflow-hidden rounded-lg border border-line">
+                                <img :src="urlEvidencia(n, pi)" :alt="$t('historialExp.fotoAlt')" loading="lazy" class="aspect-square w-full object-cover" />
                             </a>
                         </li>
                     </ul>

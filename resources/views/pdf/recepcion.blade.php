@@ -353,7 +353,7 @@ $photos = is_array($recepcion->photos) ? $recepcion->photos : json_decode($recep
 <tr>
 @foreach($row as $photo)
 <td style="text-align: center; padding: 8px; border: none;">
-<img src="{{ storage_path('app/public/' . str_replace('\\', '/', $photo)) }}" class="photo-img" alt="Foto del vehículo">
+@php($absoluta = \App\Support\ArchivoPrivado::rutaAbsoluta($photo))<img src="{{ $absoluta }}" class="photo-img" alt="Foto del vehículo">
 </td>
 @endforeach
 @if(count($row) === 1) <td style="width: 50%;"></td> @endif
