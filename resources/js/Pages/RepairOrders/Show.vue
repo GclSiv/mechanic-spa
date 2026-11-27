@@ -3,6 +3,7 @@ import FollowUpLogger from '@/Components/FollowUpLogger.vue';
 import BitacoraNotas from '@/Components/Historial/BitacoraNotas.vue';
 import PaymentPanel from '@/Components/PaymentPanel.vue';
 import QuotesPanel from '@/Components/QuotesPanel.vue';
+import ProximoServicioForm from '@/Components/Ordenes/ProximoServicioForm.vue';
 import ClienteSeguimiento from '@/Components/ClienteSeguimiento.vue';
 import { telefonoWhatsApp, urlWhatsApp, mensajeSeguimiento, copiarTexto } from '@/lib/compartirSeguimiento';
 import AvancePhotos from '@/Components/AvancePhotos.vue';
@@ -349,6 +350,7 @@ function removeItem(itemId) {
                             </dl>
                         </section>
 
+                        <ProximoServicioForm v-if="isAdmin" :orden-id="orden.id" class="md:col-span-2" />
                         <section v-if="isAdmin" class="rounded-xl border border-line bg-surface p-4 md:col-span-2">
                             <h2 class="mb-3 text-ds-label font-semibold uppercase tracking-wider text-ink-muted">{{ $t('expediente.financiero') }}</h2>
                             <dl class="grid grid-cols-2 gap-4 text-ds-body md:grid-cols-4">

@@ -20,6 +20,7 @@ export default {
         cerrarSesion2:  'Cerrar Sesión',
     },
     shell: {
+        citas: 'Citas',
         inicio: 'Inicio', operacion: 'Operación', clientes: 'Clientes', recursos: 'Recursos', finanzas: 'Finanzas', administracion: 'Administración',
         recepcion: 'Recepción', taller: 'Taller', ordenes: 'Órdenes', refacciones: 'Refacciones', herramientas: 'Herramientas', personal: 'Personal',
         caja: 'Caja', reportes: 'Reportes', configuracion: 'Configuración', modulos: 'Módulos', miTrabajo: 'Mi trabajo', misOrdenes: 'Mis órdenes',

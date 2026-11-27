@@ -7,6 +7,9 @@ use App\Models\Quote;
 use App\Models\RepairOrderPhoto;
 use App\Models\RepairOrder;
 use App\Models\Setting;
+use App\Models\Vehicle;
+use App\Models\ServiceReminder;
+use App\Models\AppointmentRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -128,10 +131,13 @@ class TrackingController extends Controller
             ])->values(),
             'quotes' => $order->quotes()->where('status', '!=', Quote::BORRADOR)->get()->map(fn (Quote $q) => $this->quoteSummary($q, $token, $cerrada))->values(),
             'current_quote_id' => $quote?->id,
+            'cita' => $this->citaReciente($order, $vehicle),
+            'recordatorios' => $this->recordatoriosVehiculo($vehicle),
             'token' => $token,
             'settings' => [
                 'company_name' => $settings->company_name,
                 'phone'        => $settings->phone,
+                'whatsapp'     => $settings->whatsapp,
             ],
         ]);
     }
@@ -240,6 +246,53 @@ class TrackingController extends Controller
         abort_unless($photo->repair_order_id === $order->id, 404);
 
         return \App\Support\ArchivoPrivado::respuesta($photo->path, basename((string) $photo->path));
+    }
+
+    /**
+     * Cita que muestra el seguimiento: la activa del vehículo si existe (aunque sea de otra orden
+     * del mismo vehículo); si no, la más reciente de esta orden. Sin notas internas (admin_notes).
+     */
+    private function citaReciente(RepairOrder $order, ?Vehicle $vehicle): ?array
+    {
+        $activa = $vehicle
+            ? AppointmentRequest::query()->activas()->where('vehicle_id', $vehicle->id)->latest()->first()
+            : null;
+        $cita = $activa ?? AppointmentRequest::where('repair_order_id', $order->id)->latest()->first();
+        if (! $cita) {
+            return null;
+        }
+
+        return [
+            'activa'           => $cita->estaActiva(),
+            'estado'           => $cita->status,
+            'motivo'           => $cita->reason,
+            'fecha'            => $cita->preferred_date?->toDateString(),
+            'horario'          => $cita->preferred_time,
+            'confirmada_fecha' => $cita->confirmed_date?->toDateString(),
+            'confirmada_hora'  => $cita->confirmed_time,
+            'nota_taller'      => $cita->customer_note,
+        ];
+    }
+
+    /** Próximos servicios pendientes del vehículo, solo con campos visibles para el cliente. */
+    private function recordatoriosVehiculo(?Vehicle $vehicle): array
+    {
+        if (! $vehicle) {
+            return [];
+        }
+
+        return ServiceReminder::where('vehicle_id', $vehicle->id)
+            ->where('status', ServiceReminder::PENDIENTE)
+            ->orderBy('recommended_date')
+            ->get()
+            ->map(fn (ServiceReminder $r) => [
+                'titulo'      => $r->title,
+                'fecha'       => $r->recommended_date?->toDateString(),
+                'kilometraje' => $r->recommended_mileage,
+                'nota'        => $r->notes,
+            ])
+            ->values()
+            ->all();
     }
 
     private function findOrder(string $token): RepairOrder

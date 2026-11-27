@@ -299,6 +299,11 @@ Route::get('/seguimiento/{token}/fotos/{photo}', [\App\Http\Controllers\Tracking
     ->where('token', '[A-Za-z0-9]{48}')
     ->name('tracking.avance.photo');
 
+Route::post('/seguimiento/{token}/citas', [\App\Http\Controllers\TrackingAppointmentController::class, 'store'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->middleware('throttle:10,1')
+    ->name('tracking.appointment.store');
+
 /*
 |--------------------------------------------------------------------------
 | Importación de clientes (solo administrador)
@@ -329,3 +334,14 @@ Route::middleware(['auth', 'role:owner'])
         Route::get('/modulos', [\App\Http\Controllers\Owner\ModuleController::class, 'index'])->name('modules.index');
         Route::put('/modulos', [\App\Http\Controllers\Owner\ModuleController::class, 'update'])->name('modules.update');
     });
+
+/*
+|--------------------------------------------------------------------------
+| Citas y próximos servicios (solo owner/admin)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/citas', [\App\Http\Controllers\AppointmentRequestController::class, 'index'])->name('citas.index');
+    Route::patch('/citas/{cita}', [\App\Http\Controllers\AppointmentRequestController::class, 'update'])->name('citas.update');
+    Route::post('/repair-orders/{order}/recordatorios', [\App\Http\Controllers\ServiceReminderController::class, 'store'])->name('repair-orders.recordatorios.store');
+});

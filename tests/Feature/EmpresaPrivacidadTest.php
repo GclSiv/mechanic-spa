@@ -134,8 +134,8 @@ class EmpresaPrivacidadTest extends TestCase
         $this->assertSinClavesPrivadas($settings);
         $this->assertSame('Taller Real', $settings['company_name']);
         $this->assertSame('9511112222', $settings['phone']);
-        $this->assertArrayNotHasKey('whatsapp', $settings);
         $this->assertArrayNotHasKey('website', $settings);
+        $this->assertArrayNotHasKey('whatsapp', $settings);
         $this->assertSame('contacto@taller.example', $settings['email']);
         $this->assertSame('Calle Pública 1', $settings['address']);
     }
@@ -155,7 +155,7 @@ class EmpresaPrivacidadTest extends TestCase
         }
     }
 
-    public function test_seguimiento_publico_recibe_solo_nombre_y_telefono(): void
+    public function test_seguimiento_publico_recibe_solo_datos_publicos_de_contacto(): void
     {
         $this->configurarEmpresa();
 
@@ -169,9 +169,14 @@ class EmpresaPrivacidadTest extends TestCase
             ->assertOk()
             ->inertiaProps('settings');
 
-        $this->assertClaves(['company_name', 'phone'], $settings);
+        // Lista exacta: nombre comercial y contacto público (teléfono y WhatsApp). Nada más de empresa.
+        $this->assertClaves(['company_name', 'phone', 'whatsapp'], $settings);
         $this->assertSame('Taller Real', $settings['company_name']);
         $this->assertSame('9511112222', $settings['phone']);
+        $this->assertSame('9511113333', $settings['whatsapp']);
+        $this->assertArrayNotHasKey('email', $settings);
+        $this->assertArrayNotHasKey('address', $settings);
+        $this->assertArrayNotHasKey('website', $settings);
         $this->assertSinClavesPrivadas($settings);
     }
 

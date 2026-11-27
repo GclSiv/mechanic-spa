@@ -26,6 +26,7 @@ const ICONOS = {
     recepcion: 'M5 4h14v17H5zM9 4h6v3H9zM12 10v6M9 13h6',
     taller: 'M14 7l3 3-8 8-3-3 8-8zM16 4a4 4 0 0 0 4 4',
     ordenes: 'M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01',
+    citas: 'M4 5h16v15H4zM4 10h16M8 3v4M16 3v4',
     clientes: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6',
     refacciones: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8',
     herramientas: 'M4 20l8-8M14 4l6 6-3 1-4-4z',
@@ -46,6 +47,7 @@ const gruposAdmin = () => [
         { label: t('shell.recepcion'), href: route('recepcion.index'), activo: route().current('recepcion.*'), icono: 'recepcion' },
         { label: t('shell.taller'), href: route('repair-orders.index'), activo: route().current('repair-orders.index') || route().current('repair-orders.show'), icono: 'taller' },
         { label: t('shell.ordenes'), href: route('repair-orders.lista'), activo: route().current('repair-orders.lista'), icono: 'ordenes' },
+        { label: t('shell.citas'), href: route('citas.index'), activo: route().current('citas.*'), icono: 'citas' },
     ]},
     { titulo: t('shell.clientes'), items: [
         { label: t('shell.clientes'), href: route('clients.index'), activo: route().current('clients.*'), icono: 'clientes' },

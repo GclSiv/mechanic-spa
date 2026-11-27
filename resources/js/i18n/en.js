@@ -20,6 +20,7 @@ export default {
         cerrarSesion2:  'Log Out',
     },
     shell: {
+        citas: 'Appointments',
         inicio: 'Home', operacion: 'Operations', clientes: 'Customers', recursos: 'Resources', finanzas: 'Finance', administracion: 'Administration',
         recepcion: 'Reception', taller: 'Workshop', ordenes: 'Orders', refacciones: 'Parts', herramientas: 'Tools', personal: 'Staff',
         caja: 'Cash', reportes: 'Reports', configuracion: 'Settings', modulos: 'Modules', miTrabajo: 'My work', misOrdenes: 'My orders',

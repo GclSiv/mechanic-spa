@@ -16,6 +16,8 @@ const props = defineProps({
     ultima_actualizacion: String,
     token: String,
     avance_fotos: Array,
+    cita: Object,
+    recordatorios: Array,
 });
 
 const { t } = useI18n();
@@ -30,11 +32,43 @@ const statusLabel = computed(() => {
 });
 
 const whatsappUrl = computed(() => {
-    let digits = String(props.settings?.phone ?? '').replace(/\D/g, '');
+    let digits = String(props.settings?.whatsapp ?? '').replace(/\D/g, '');
     if (!digits) return null;
     if (digits.length === 10) digits = '52' + digits;
     return `https://wa.me/${digits}`;
 });
+
+// Solicitud de cita: el backend decide cliente, vehículo y orden; aquí solo van preferencias.
+const modalCita = reactive({ abierto: false, enviando: false, error: '', motivo: 'mantenimiento', fecha: '', horario: '', comentario: '' });
+const motivosCita = [
+    { value: 'mantenimiento', label: 'Mantenimiento' },
+    { value: 'revision', label: 'Revisión' },
+    { value: 'garantia', label: 'Garantía / revisión posterior' },
+    { value: 'diagnostico', label: 'Diagnóstico' },
+    { value: 'otro', label: 'Otro' },
+];
+const fechaMinima = new Date().toISOString().slice(0, 10);
+const estadoCitaTexto = { pendiente: 'Pendiente', confirmada: 'Confirmada', rechazada: 'Rechazada', cancelada: 'Cancelada', completada: 'Completada' };
+const fechaLegible = (f) => f ? new Date(f + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+const citaActiva = computed(() => props.cita?.activa === true);
+
+function abrirCita() { if (citaActiva.value) return; modalCita.abierto = true; modalCita.error = ''; }
+function cerrarCita() { modalCita.abierto = false; }
+function enviarCita() {
+    modalCita.enviando = true;
+    modalCita.error = '';
+    router.post(route('tracking.appointment.store', { token: props.token }), {
+        reason: modalCita.motivo,
+        preferred_date: modalCita.fecha,
+        preferred_time: modalCita.horario || null,
+        notes: modalCita.comentario.trim() || null,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => { modalCita.abierto = false; modalCita.comentario = ''; modalCita.fecha = ''; modalCita.horario = ''; },
+        onError: (errores) => { modalCita.error = Object.values(errores)[0] ?? 'No se pudo enviar la solicitud.'; },
+        onFinish: () => { modalCita.enviando = false; },
+    });
+}
 
 // Estado local de aceptar/rechazar por cotización (solo en pantalla)
 const decision = reactive({});
@@ -289,15 +323,86 @@ const textoCotizacion = (q) => enHistorico(q)
                 </article>
             </section>
 
-            <section class="text-center text-sm">
-                <p class="text-gray-500">¿Tienes dudas? Comunícate con el taller:</p>
-                <div class="flex flex-wrap justify-center gap-3 mt-3">
-                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank"
-                        class="px-4 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700">WhatsApp</a>
+            <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h2 class="text-sm font-bold uppercase text-gray-500 mb-1">Necesitas algo más?</h2>
+                <p class="text-sm text-gray-600 mb-4">Escríbenos o solicita una cita para tu vehículo.</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <a v-if="whatsappUrl" :href="whatsappUrl" target="_blank" rel="noopener"
+                        class="min-h-[48px] flex items-center justify-center rounded-lg bg-green-600 text-white font-bold px-4 py-3 hover:bg-green-700">Contactar por WhatsApp</a>
                     <a v-if="settings?.phone" :href="'tel:' + settings.phone"
-                        class="px-4 py-2 rounded-lg border border-[#10213E] text-[#10213E] font-bold hover:bg-gray-100">Llamar</a>
+                        class="min-h-[48px] flex items-center justify-center rounded-lg border border-[#10213E] text-[#10213E] font-bold px-4 py-3 hover:bg-gray-100">Llamar al taller</a>
+                    <button v-if="!citaActiva" type="button" @click="abrirCita"
+                        class="min-h-[48px] rounded-lg bg-[#10213E] text-white font-bold px-4 py-3 hover:bg-[#1c3660] sm:col-span-2">Solicitar cita</button>
+                    <a v-else href="#solicitud-cita"
+                        class="min-h-[48px] flex items-center justify-center rounded-lg border border-[#10213E] text-[#10213E] font-bold px-4 py-3 hover:bg-gray-100 sm:col-span-2">Ver solicitud</a>
                 </div>
             </section>
+
+            <section v-if="cita" id="solicitud-cita" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-sm">
+                <h2 class="text-sm font-bold uppercase text-gray-500 mb-2">Solicitud de cita</h2>
+                <p class="font-bold text-[#10213E]">{{ estadoCitaTexto[cita.estado] ?? cita.estado }}</p>
+                <template v-if="cita.estado === 'confirmada'">
+                    <p class="mt-1">Tu cita está confirmada para el {{ fechaLegible(cita.confirmada_fecha) }}<span v-if="cita.confirmada_hora"> a las {{ cita.confirmada_hora }}</span>.</p>
+                    <p v-if="cita.nota_taller" class="mt-1 text-gray-600">{{ cita.nota_taller }}</p>
+                </template>
+                <template v-else-if="cita.estado === 'pendiente'">
+                    <p class="mt-1 text-gray-600">Ya tienes una solicitud de cita pendiente. El taller confirmará la fecha y horario.</p>
+                    <p class="mt-1 text-gray-500">Fecha solicitada: {{ fechaLegible(cita.fecha) }}</p>
+                </template>
+            </section>
+
+            <section v-if="recordatorios?.length" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h2 class="text-sm font-bold uppercase text-gray-500 mb-3">Próximo servicio</h2>
+                <ul class="space-y-4">
+                    <li v-for="(r, i) in recordatorios" :key="i" class="text-sm">
+                        <p class="font-bold text-[#10213E]">{{ r.titulo }}</p>
+                        <p class="mt-1 text-gray-700">
+                            <span v-if="r.fecha">{{ fechaLegible(r.fecha) }}</span>
+                            <span v-if="r.fecha && r.kilometraje"> o </span>
+                            <span v-if="r.kilometraje">{{ Number(r.kilometraje).toLocaleString('es-MX') }} km</span>
+                        </p>
+                        <p v-if="r.fecha && r.kilometraje" class="text-xs text-gray-500">Lo que ocurra primero.</p>
+                        <p v-if="r.nota" class="mt-1 text-gray-600">{{ r.nota }}</p>
+                    </li>
+                </ul>
+                <button v-if="!citaActiva" type="button" @click="abrirCita"
+                    class="mt-4 min-h-[44px] px-4 py-2 rounded-lg bg-[#10213E] text-white font-bold hover:bg-[#1c3660]">Solicitar cita</button>
+                <a v-else href="#solicitud-cita" class="mt-4 inline-flex min-h-[44px] items-center px-4 py-2 rounded-lg border border-[#10213E] text-[#10213E] font-bold hover:bg-gray-100">Ver solicitud</a>
+            </section>
+
+            <div v-if="modalCita.abierto" class="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" @click.self="cerrarCita">
+                <form @submit.prevent="enviarCita" class="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-lg font-bold text-[#10213E]">Solicitar cita</h3>
+                    <label class="block text-sm font-semibold text-gray-700">Motivo
+                        <select v-model="modalCita.motivo" required class="mt-1 w-full min-h-[44px] rounded-lg border-gray-300">
+                            <option v-for="m in motivosCita" :key="m.value" :value="m.value">{{ m.label }}</option>
+                        </select>
+                    </label>
+                    <label class="block text-sm font-semibold text-gray-700">Fecha preferida
+                        <input v-model="modalCita.fecha" type="date" required :min="fechaMinima" class="mt-1 w-full min-h-[44px] rounded-lg border-gray-300">
+                    </label>
+                    <fieldset class="text-sm font-semibold text-gray-700">
+                        <legend class="mb-1">Horario preferido (opcional)</legend>
+                        <div class="flex gap-2">
+                            <label class="flex-1 min-h-[44px] flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-3">
+                                <input type="radio" v-model="modalCita.horario" value="manana"> Mañana
+                            </label>
+                            <label class="flex-1 min-h-[44px] flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-3">
+                                <input type="radio" v-model="modalCita.horario" value="tarde"> Tarde
+                            </label>
+                        </div>
+                    </fieldset>
+                    <label class="block text-sm font-semibold text-gray-700">Comentario (opcional)
+                        <textarea v-model="modalCita.comentario" rows="3" maxlength="500" class="mt-1 w-full rounded-lg border-gray-300"></textarea>
+                    </label>
+                    <p v-if="modalCita.error" class="text-sm text-red-700">{{ modalCita.error }}</p>
+                    <p class="text-xs text-gray-500">Tu cita no queda reservada. El taller confirmará la fecha y horario.</p>
+                    <div class="flex gap-3 justify-end">
+                        <button type="button" @click="cerrarCita" class="min-h-[44px] px-4 rounded-lg border border-gray-300">Cancelar</button>
+                        <button type="submit" :disabled="modalCita.enviando" class="min-h-[44px] px-4 rounded-lg bg-[#10213E] text-white font-bold disabled:opacity-50">Enviar solicitud</button>
+                    </div>
+                </form>
+            </div>
 
             <footer class="text-center text-xs text-gray-400 pb-8">{{ $t('seguimiento.pie') }}</footer>
         </main>
